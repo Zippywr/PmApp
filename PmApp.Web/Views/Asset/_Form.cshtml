@@ -1,0 +1,50 @@
+﻿@model PmApp.Web.Models.ViewModels.AssetFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="Code" class="form-label"></label>
+        <input asp-for="Code" class="form-control" placeholder="Contoh: 342131" />
+        <span asp-validation-for="Code" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" placeholder="Contoh: CNC Mesin" />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label asp-for="Line" class="form-label"></label>
+        <input asp-for="Line" class="form-control" placeholder="Contoh: Line-1" />
+        <span asp-validation-for="Line" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label asp-for="Criticality" class="form-label"></label>
+        <select asp-for="Criticality" class="form-select"
+                asp-items="Html.GetEnumSelectList<PmApp.Web.Models.Criticality>()">
+        </select>
+        <span asp-validation-for="Criticality" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label asp-for="Location" class="form-label"></label>
+        <input asp-for="Location" class="form-control" placeholder="Contoh: Area Produksi A" />
+        <span asp-validation-for="Location" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6 mb-3 d-flex align-items-center">
+        <div class="form-check mt-4">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label"></label>
+        </div>
+    </div>
+
+    <div class="col-12 mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Description" class="text-danger small"></span>
+    </div>
+</div>

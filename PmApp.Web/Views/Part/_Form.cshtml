@@ -1,0 +1,34 @@
+﻿@model PmApp.Web.Models.ViewModels.PartFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label asp-for="PartNo" class="form-label"></label>
+        <input asp-for="PartNo" class="form-control" placeholder="Contoh: 321" />
+        <span asp-validation-for="PartNo" class="text-danger small"></span>
+    </div>
+    <div class="col-md-8 mb-3">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" placeholder="Contoh: Bearing 6205" />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <label asp-for="Category" class="form-label"></label>
+        <input asp-for="Category" class="form-control" placeholder="Bearing / Seal / Belt" />
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="Brand" class="form-label"></label>
+        <input asp-for="Brand" class="form-control" placeholder="SKF / NOK / Shell" />
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="Unit" class="form-label"></label>
+        <input asp-for="Unit" class="form-control" placeholder="PCS / Liter / KG / Meter" />
+    </div>
+
+    <div class="col-12 mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+    </div>
+</div>

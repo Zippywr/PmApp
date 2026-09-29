@@ -1,0 +1,103 @@
+﻿@model IEnumerable<PmApp.Web.Models.Entities.AssetPart>
+@{
+    var part = (PmApp.Web.Models.Entities.Part)ViewBag.Part;
+    ViewData["Title"] = $"Detail Part: {part.Name}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Daftar Part</a></li>
+        <li class="breadcrumb-item active">@part.PartNo</li>
+    </ol>
+</nav>
+
+<!-- INFO PART -->
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-box-seam"></i> @part.Name
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-2">
+                <small class="text-muted">Part No</small>
+                <p><strong>@part.PartNo</strong></p>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted">Kategori</small>
+                <p><strong>@part.Category</strong></p>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted">Merek</small>
+                <p><strong>@part.Brand</strong></p>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted">Satuan</small>
+                <p><strong>@part.Unit</strong></p>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">Deskripsi</small>
+                <p>@part.Description</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DAFTAR MESIN YANG PAKAI PART INI -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">
+        <i class="bi bi-gear"></i> Dipakai di Mesin
+    </h5>
+    <span class="badge bg-success">@Model.Count() mesin</span>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-info-circle"></i>
+        Part ini belum dipakai di mesin mana pun.
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Kode Mesin</th>
+                        <th>Nama Mesin</th>
+                        <th>Line</th>
+                        <th>Qty</th>
+                        <th>Satuan</th>
+                        <th>Posisi</th>
+                        <th width="120">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><strong>@item.Asset?.Code</strong></td>
+                            <td>@item.Asset?.Name</td>
+                            <td>@item.Asset?.Line</td>
+                            <td class="text-center">
+                                <span class="badge bg-primary">@item.Quantity</span>
+                            </td>
+                            <td>@part.Unit</td>
+                            <td>@item.Position</td>
+                            <td>
+                                <a asp-controller="Asset" asp-action="Details"
+                                   asp-route-id="@item.AssetId"
+                                   class="btn btn-sm btn-info text-white">
+                                    <i class="bi bi-eye"></i> Mesin
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

@@ -1,0 +1,136 @@
+﻿@model IEnumerable<PmApp.Web.Models.Entities.AssetPart>
+@{
+    var asset = (PmApp.Web.Models.Entities.Asset)ViewBag.Asset;
+    ViewData["Title"] = $"Detail Mesin: {asset.Name}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a asp-action="Index">Daftar Mesin</a>
+        </li>
+        <li class="breadcrumb-item active">@asset.Code</li>
+    </ol>
+</nav>
+
+<!-- ============================================== -->
+<!-- INFO MESIN -->
+<!-- ============================================== -->
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-gear-fill"></i> @asset.Name
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <small class="text-muted">Kode</small>
+                <p><strong>@asset.Code</strong></p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Line</small>
+                <p><strong>@asset.Line</strong></p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Kritikalitas</small>
+                <p>
+                    @switch (asset.Criticality)
+                    {
+                        case PmApp.Web.Models.Criticality.Critical:
+                            <span class="badge bg-danger">Critical</span>
+                            break;
+                        case PmApp.Web.Models.Criticality.High:
+                            <span class="badge bg-warning text-dark">High</span>
+                            break;
+                        case PmApp.Web.Models.Criticality.Normal:
+                            <span class="badge bg-info text-dark">Normal</span>
+                            break;
+                        default:
+                            <span class="badge bg-secondary">Low</span>
+                            break;
+                    }
+                </p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Lokasi</small>
+                <p><strong>@asset.Location</strong></p>
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(asset.Description))
+        {
+            <div class="mt-2">
+                <small class="text-muted">Deskripsi</small>
+                <p>@asset.Description</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- PART TERPASANG (BOM) -->
+<!-- ============================================== -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">
+        <i class="bi bi-list-check"></i> Part Terpasang
+    </h5>
+    <span class="badge bg-secondary">@Model.Count() part</span>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-info-circle"></i>
+        Belum ada part yang terpasang di mesin ini.
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th width="60">No</th>
+                        <th>Part No</th>
+                        <th>Nama Part</th>
+                        <th>Kategori</th>
+                        <th>Merek</th>
+                        <th width="80" class="text-center">Qty</th>
+                        <th>Satuan</th>
+                        <th>Posisi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ int no = 1; }
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@no</td>
+                            <td>
+                                <a asp-controller="Part" asp-action="Details" asp-route-id="@item.PartId"
+                                   class="text-decoration-none">
+                                    <strong>@item.Part?.PartNo</strong>
+                                </a>
+                            </td>
+                            <td>
+                                <a asp-controller="Part" asp-action="Details" asp-route-id="@item.PartId"
+                                   class="text-decoration-none">
+                                    @item.Part?.Name
+                                </a>
+                            </td>
+                            <td>@item.Part?.Category</td>
+                            <td>@item.Part?.Brand</td>
+                            <td class="text-center">
+                                <span class="badge bg-primary">@item.Quantity</span>
+                            </td>
+                            <td>@item.Part?.Unit</td>
+                            <td>@item.Position</td>
+                        </tr>
+                        no++;
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
