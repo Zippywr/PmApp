@@ -25,6 +25,11 @@
     </a>
 </div>
 
+<div class="alert alert-light border small mb-3">
+    <i class="bi bi-info-circle text-primary"></i>
+    Klik pada baris atau nama part untuk melihat part ini dipakai di mesin mana saja.
+</div>
+
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <table class="table table-hover mb-0 datatable">
@@ -36,16 +41,20 @@
                     <th>Merek</th>
                     <th>Satuan</th>
                     <th>Dipakai di</th>
-                    <th width="200">Aksi</th>
+                    <th width="150" class="no-row-click">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var item in Model)
                 {
                     var mesinCount = item.AssetParts.Count;
-                    <tr>
+                    <tr class="row-clickable" data-href="@Url.Action("Details", new { id = item.Id })">
                         <td><strong>@item.PartNo</strong></td>
-                        <td>@item.Name</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@item.Id">
+                                @item.Name
+                            </a>
+                        </td>
                         <td>@item.Category</td>
                         <td>@item.Brand</td>
                         <td>@item.Unit</td>
@@ -59,11 +68,7 @@
                                 <span class="badge bg-success">@mesinCount mesin</span>
                             }
                         </td>
-                        <td>
-                            <a asp-action="Details" asp-route-id="@item.Id"
-                               class="btn btn-sm btn-info text-white" title="Lihat mesin">
-                                <i class="bi bi-eye"></i>
-                            </a>
+                        <td class="no-row-click">
                             <a asp-action="Edit" asp-route-id="@item.Id"
                                class="btn btn-sm btn-warning" title="Edit">
                                 <i class="bi bi-pencil"></i>
@@ -93,6 +98,8 @@
             </div>
             <div class="modal-body">
                 Yakin ingin menghapus part <strong id="deletePartName"></strong>?
+                <br />
+                <small class="text-muted">Data akan di-soft delete (bisa dipulihkan).</small>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -105,13 +112,17 @@
 @section Scripts {
     <script>
         let deleteId = null;
+
         function confirmDelete(id, name) {
             deleteId = id;
             document.getElementById('deletePartName').textContent = name;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
+
         document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
-            if (deleteId) document.getElementById('deleteForm-' + deleteId).submit();
+            if (deleteId) {
+                document.getElementById('deleteForm-' + deleteId).submit();
+            }
         });
     </script>
 }

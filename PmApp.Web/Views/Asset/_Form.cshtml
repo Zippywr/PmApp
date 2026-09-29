@@ -2,49 +2,90 @@
 
 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
+<!-- ============================================== -->
+<!-- IDENTITAS UTAMA -->
+<!-- ============================================== -->
+<h6 class="text-muted mb-3"><i class="bi bi-tag"></i> Identitas Utama</h6>
 <div class="row">
-    <div class="col-md-6 mb-3">
+    <div class="col-md-4 mb-3">
         <label asp-for="Code" class="form-label"></label>
         <input asp-for="Code" class="form-control" placeholder="Contoh: 342131" />
         <span asp-validation-for="Code" class="text-danger small"></span>
     </div>
-
-    <div class="col-md-6 mb-3">
+    <div class="col-md-8 mb-3">
         <label asp-for="Name" class="form-label"></label>
         <input asp-for="Name" class="form-control" placeholder="Contoh: CNC Mesin" />
         <span asp-validation-for="Name" class="text-danger small"></span>
     </div>
+</div>
 
-    <div class="col-md-6 mb-3">
-        <label asp-for="Line" class="form-label"></label>
-        <input asp-for="Line" class="form-control" placeholder="Contoh: Line-1" />
-        <span asp-validation-for="Line" class="text-danger small"></span>
+<!-- ============================================== -->
+<!-- INFO TEKNIS -->
+<!-- ============================================== -->
+<h6 class="text-muted mb-3 mt-2"><i class="bi bi-tools"></i> Info Teknis</h6>
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label asp-for="Manufacturer" class="form-label"></label>
+        <input asp-for="Manufacturer" class="form-control" placeholder="Contoh: Mazak, Fanuc" />
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="Model" class="form-label"></label>
+        <input asp-for="Model" class="form-control" placeholder="Contoh: VCN-530" />
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="SerialNumber" class="form-label"></label>
+        <input asp-for="SerialNumber" class="form-control" placeholder="SN-XXXXX" />
     </div>
 
-    <div class="col-md-6 mb-3">
+    <div class="col-md-3 mb-3">
+        <label asp-for="YearMade" class="form-label"></label>
+        <input asp-for="YearMade" type="number" class="form-control" placeholder="2020" />
+        <span asp-validation-for="YearMade" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="InstallDate" class="form-label"></label>
+        <input asp-for="InstallDate" type="date" class="form-control" />
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="Capacity" class="form-label"></label>
+        <input asp-for="Capacity" class="form-control" placeholder="Contoh: 5000 RPM" />
+    </div>
+    <div class="col-md-3 mb-3">
         <label asp-for="Criticality" class="form-label"></label>
         <select asp-for="Criticality" class="form-select"
                 asp-items="Html.GetEnumSelectList<PmApp.Web.Models.Criticality>()">
         </select>
-        <span asp-validation-for="Criticality" class="text-danger small"></span>
     </div>
+</div>
 
-    <div class="col-md-6 mb-3">
+<!-- ============================================== -->
+<!-- LOKASI -->
+<!-- ============================================== -->
+<h6 class="text-muted mb-3 mt-2"><i class="bi bi-geo-alt"></i> Lokasi & Status</h6>
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label asp-for="Line" class="form-label"></label>
+        <input asp-for="Line" class="form-control" placeholder="Contoh: Line-1" />
+    </div>
+    <div class="col-md-4 mb-3">
         <label asp-for="Location" class="form-label"></label>
         <input asp-for="Location" class="form-control" placeholder="Contoh: Area Produksi A" />
-        <span asp-validation-for="Location" class="text-danger small"></span>
     </div>
-
-    <div class="col-md-6 mb-3 d-flex align-items-center">
+    <div class="col-md-4 mb-3 d-flex align-items-center">
         <div class="form-check mt-4">
             <input asp-for="IsActive" class="form-check-input" />
             <label asp-for="IsActive" class="form-check-label"></label>
         </div>
     </div>
+</div>
 
+<!-- ============================================== -->
+<!-- DESKRIPSI -->
+<!-- ============================================== -->
+<div class="row">
     <div class="col-12 mb-3">
         <label asp-for="Description" class="form-label"></label>
-        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-        <span asp-validation-for="Description" class="text-danger small"></span>
+        <textarea asp-for="Description" class="form-control" rows="2"
+                  placeholder="Catatan tambahan tentang mesin ini"></textarea>
     </div>
 </div>

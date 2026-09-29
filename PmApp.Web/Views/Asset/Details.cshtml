@@ -4,34 +4,40 @@
     ViewData["Title"] = $"Detail Mesin: {asset.Name}";
 }
 
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a asp-action="Index">Daftar Mesin</a>
-        </li>
+        <li class="breadcrumb-item"><a asp-action="Index">Daftar Mesin</a></li>
         <li class="breadcrumb-item active">@asset.Code</li>
     </ol>
 </nav>
 
-<!-- ============================================== -->
 <!-- INFO MESIN -->
-<!-- ============================================== -->
 <div class="card mb-4 border-0 shadow-sm">
-    <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">
-            <i class="bi bi-gear-fill"></i> @asset.Name
-        </h5>
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-gear-fill"></i> @asset.Name</h5>
+        <a asp-action="Edit" asp-route-id="@asset.Id" class="btn btn-sm btn-light">
+            <i class="bi bi-pencil"></i> Edit Info
+        </a>
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-md-3">
-                <small class="text-muted">Kode</small>
-                <p><strong>@asset.Code</strong></p>
-            </div>
-            <div class="col-md-3">
-                <small class="text-muted">Line</small>
-                <p><strong>@asset.Line</strong></p>
-            </div>
+            <div class="col-md-3"><small class="text-muted">Kode</small><p><strong>@asset.Code</strong></p></div>
+            <div class="col-md-3"><small class="text-muted">Line</small><p><strong>@asset.Line</strong></p></div>
             <div class="col-md-3">
                 <small class="text-muted">Kritikalitas</small>
                 <p>
@@ -52,10 +58,35 @@
                     }
                 </p>
             </div>
-            <div class="col-md-3">
-                <small class="text-muted">Lokasi</small>
-                <p><strong>@asset.Location</strong></p>
-            </div>
+            <div class="col-md-3"><small class="text-muted">Lokasi</small><p><strong>@asset.Location</strong></p></div>
+
+            @if (!string.IsNullOrEmpty(asset.Manufacturer))
+            {
+                <div class="col-md-3"><small class="text-muted">Merek</small><p>@asset.Manufacturer</p></div>
+            }
+            @if (!string.IsNullOrEmpty(asset.Model))
+            {
+                <div class="col-md-3"><small class="text-muted">Model</small><p>@asset.Model</p></div>
+            }
+            @if (!string.IsNullOrEmpty(asset.SerialNumber))
+            {
+                <div class="col-md-3"><small class="text-muted">Serial Number</small><p>@asset.SerialNumber</p></div>
+            }
+            @if (asset.YearMade.HasValue)
+            {
+                <div class="col-md-3"><small class="text-muted">Tahun</small><p>@asset.YearMade</p></div>
+            }
+            @if (!string.IsNullOrEmpty(asset.Capacity))
+            {
+                <div class="col-md-3"><small class="text-muted">Kapasitas</small><p>@asset.Capacity</p></div>
+            }
+            @if (asset.InstallDate.HasValue)
+            {
+                <div class="col-md-3">
+                    <small class="text-muted">Tanggal Instalasi</small>
+                    <p>@asset.InstallDate.Value.ToString("dd MMM yyyy")</p>
+                </div>
+            }
         </div>
         @if (!string.IsNullOrEmpty(asset.Description))
         {
@@ -67,21 +98,23 @@
     </div>
 </div>
 
-<!-- ============================================== -->
-<!-- PART TERPASANG (BOM) -->
-<!-- ============================================== -->
+<!-- PART TERPASANG -->
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">
-        <i class="bi bi-list-check"></i> Part Terpasang
-    </h5>
-    <span class="badge bg-secondary">@Model.Count() part</span>
+    <h5 class="mb-0"><i class="bi bi-list-check"></i> Part Terpasang</h5>
+    <div>
+        <span class="badge bg-secondary me-2">@Model.Count() part</span>
+        <a asp-action="AddPart" asp-route-assetId="@asset.Id" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle"></i> Tambah Part
+        </a>
+    </div>
 </div>
 
 @if (!Model.Any())
 {
-    <div class="alert alert-warning">
+    <div class="alert alert-info">
         <i class="bi bi-info-circle"></i>
-        Belum ada part yang terpasang di mesin ini.
+        Belum ada part terpasang di mesin ini.
+        <a asp-action="AddPart" asp-route-assetId="@asset.Id">Tambah part sekarang</a>.
     </div>
 }
 else
@@ -99,10 +132,13 @@ else
                         <th width="80" class="text-center">Qty</th>
                         <th>Satuan</th>
                         <th>Posisi</th>
+                        <th width="80">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @{ int no = 1; }
+                    @{
+                        int no = 1;
+                    }
                     @foreach (var item in Model)
                     {
                         <tr>
@@ -126,6 +162,16 @@ else
                             </td>
                             <td>@item.Part?.Unit</td>
                             <td>@item.Position</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-danger"
+                                        onclick="confirmRemove(@item.Id, '@item.Part?.Name')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                <form id="removeForm-@item.Id" asp-action="RemovePart"
+                                      asp-route-id="@item.Id" method="post" class="d-none">
+                                    @Html.AntiForgeryToken()
+                                </form>
+                            </td>
                         </tr>
                         no++;
                     }
@@ -133,4 +179,37 @@ else
             </table>
         </div>
     </div>
+}
+
+<!-- MODAL KONFIRMASI HAPUS PART -->
+<div class="modal fade" id="removeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-trash"></i> Konfirmasi Hapus Part</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Yakin ingin menghapus part <strong id="removePartName"></strong> dari mesin ini?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger" id="confirmRemoveBtn">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let removeId = null;
+        function confirmRemove(id, name) {
+            removeId = id;
+            document.getElementById('removePartName').textContent = name;
+            new bootstrap.Modal(document.getElementById('removeModal')).show();
+        }
+        document.getElementById('confirmRemoveBtn').addEventListener('click', function () {
+            if (removeId) document.getElementById('removeForm-' + removeId).submit();
+        });
+    </script>
 }

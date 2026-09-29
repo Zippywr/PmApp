@@ -1,0 +1,197 @@
+﻿@model PmApp.Web.Models.ViewModels.BomFormViewModel
+@{
+    ViewData["Title"] = "Tambah Part ke Mesin";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Daftar Mesin</a></li>
+        <li class="breadcrumb-item">
+            <a asp-action="Details" asp-route-id="@Model.AssetId">@Model.AssetCode</a>
+        </li>
+        <li class="breadcrumb-item active">Tambah Part</li>
+    </ol>
+</nav>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-plus-circle"></i>
+            Tambah Part ke <strong>@Model.AssetName</strong>
+        </h5>
+    </div>
+    <div class="card-body">
+
+        <form asp-action="AddPart" method="post" id="addPartForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="AssetId" />
+            <input type="hidden" asp-for="AssetName" />
+            <input type="hidden" asp-for="AssetCode" />
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <!-- ============================================== -->
+            <!-- PILIH MODE -->
+            <!-- ============================================== -->
+            <ul class="nav nav-pills mb-4">
+                <li class="nav-item">
+                    <label class="nav-link @(Model.Mode == "existing" ? "active" : "")"
+                           style="cursor:pointer;">
+                        <input type="radio" asp-for="Mode" value="existing"
+                               class="d-none mode-radio" />
+                        <i class="bi bi-list-ul"></i> Pilih dari Master
+                    </label>
+                </li>
+                <li class="nav-item">
+                    <label class="nav-link @(Model.Mode == "new" ? "active" : "")"
+                           style="cursor:pointer;">
+                        <input type="radio" asp-for="Mode" value="new"
+                               class="d-none mode-radio" />
+                        <i class="bi bi-pencil-square"></i> Input Part Baru
+                    </label>
+                </li>
+            </ul>
+
+            <!-- ============================================== -->
+            <!-- MODE EXISTING -->
+            <!-- ============================================== -->
+            <div id="sectionExisting" style="display:@(Model.Mode == "existing" ? "block" : "none");">
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label asp-for="PartId" class="form-label">Pilih Part dari Master</label>
+                        <select asp-for="PartId" class="form-select" asp-items="Model.PartList">
+                            <option value="">-- Pilih Part --</option>
+                        </select>
+                        <span asp-validation-for="PartId" class="text-danger small"></span>
+                        @if (Model.PartList.Count == 0)
+                        {
+                            <small class="text-muted">
+                                Semua part master sudah terpasang di mesin ini. Gunakan tab
+                                <strong>Input Part Baru</strong> untuk menambah part baru.
+                            </small>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- MODE NEW -->
+            <!-- ============================================== -->
+            <div id="sectionNew" style="display:@(Model.Mode == "new" ? "block" : "none");">
+                <div class="alert alert-info py-2">
+                    <i class="bi bi-info-circle"></i>
+                    Part baru akan otomatis disimpan ke master Part, lalu dipasang ke mesin ini.
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="NewPartNo" class="form-label">
+                            Part No <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="NewPartNo" class="form-control" placeholder="Contoh: 350" />
+                        <span asp-validation-for="NewPartNo" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-8 mb-3">
+                        <label asp-for="NewPartName" class="form-label">
+                            Nama Part <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="NewPartName" class="form-control"
+                               placeholder="Contoh: Bearing 6210" />
+                        <span asp-validation-for="NewPartName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="NewCategory" class="form-label"></label>
+                        <input asp-for="NewCategory" class="form-control"
+                               placeholder="Bearing / Seal / Belt" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="NewBrand" class="form-label"></label>
+                        <input asp-for="NewBrand" class="form-control"
+                               placeholder="SKF / NOK / Shell" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="NewUnit" class="form-label"></label>
+                        <input asp-for="NewUnit" class="form-control" placeholder="PCS" />
+                    </div>
+
+                    <div class="col-12 mb-3">
+                        <label asp-for="NewDescription" class="form-label"></label>
+                        <textarea asp-for="NewDescription" class="form-control" rows="2"
+                                  placeholder="Catatan tambahan (opsional)"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- BOM FIELDS (SELALU ADA) -->
+            <!-- ============================================== -->
+            <hr />
+            <h6 class="text-muted mb-3"><i class="bi bi-diagram-3"></i> Info Pemasangan di Mesin</h6>
+
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Quantity" class="form-label"></label>
+                    <input asp-for="Quantity" type="number" min="1" class="form-control" />
+                    <span asp-validation-for="Quantity" class="text-danger small"></span>
+                </div>
+                <div class="col-md-9 mb-3">
+                    <label asp-for="Position" class="form-label"></label>
+                    <input asp-for="Position" class="form-control"
+                           placeholder="Contoh: Spindle Drive End" />
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label asp-for="Notes" class="form-label"></label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"
+                              placeholder="Catatan pemasangan (opsional)"></textarea>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- TOMBOL -->
+            <!-- ============================================== -->
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Simpan
+                </button>
+                <a asp-action="Details" asp-route-id="@Model.AssetId" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Batal
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function () {
+            // Toggle section ketika radio berubah
+            $('.mode-radio').on('change', function () {
+                var mode = $(this).val();
+
+                // Update active class pada label
+                $('.nav-pills .nav-link').removeClass('active');
+                $(this).closest('.nav-link').addClass('active');
+
+                // Show/hide section
+                if (mode === 'existing') {
+                    $('#sectionExisting').show();
+                    $('#sectionNew').hide();
+                } else {
+                    $('#sectionExisting').hide();
+                    $('#sectionNew').show();
+                }
+            });
+
+            // Klik pada label → set radio & trigger change
+            $('.nav-pills .nav-link').on('click', function (e) {
+                if (e.target.tagName !== 'INPUT') {
+                    $(this).find('.mode-radio').prop('checked', true).trigger('change');
+                }
+            });
+        });
+    </script>
+}
