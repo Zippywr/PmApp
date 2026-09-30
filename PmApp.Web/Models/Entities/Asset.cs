@@ -4,14 +4,14 @@ namespace PmApp.Web.Models.Entities;
 
 public class Asset : BaseEntity
 {
-    [Required(ErrorMessage = "Kode mesin wajib diisi")]
+    [Required(ErrorMessage = "Kode aset wajib diisi")]
     [MaxLength(50)]
-    [Display(Name = "Kode Mesin")]
+    [Display(Name = "Kode Aset")]
     public string Code { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Nama mesin wajib diisi")]
+    [Required(ErrorMessage = "Nama aset wajib diisi")]
     [MaxLength(200)]
-    [Display(Name = "Nama Mesin")]
+    [Display(Name = "Nama Aset")]
     public string Name { get; set; } = string.Empty;
 
     [MaxLength(100)]
@@ -21,12 +21,12 @@ public class Asset : BaseEntity
     [Display(Name = "Kritikalitas")]
     public Criticality Criticality { get; set; } = Criticality.Normal;
 
-    [MaxLength(100)]
-    [Display(Name = "Merek / Manufacturer")]
+    [MaxLength(200)]
+    [Display(Name = "Manufaktur")]
     public string? Manufacturer { get; set; }
 
-    [MaxLength(100)]
-    [Display(Name = "Model / Tipe")]
+    [MaxLength(200)]
+    [Display(Name = "Model")]
     public string? Model { get; set; }
 
     [MaxLength(100)]
@@ -34,7 +34,6 @@ public class Asset : BaseEntity
     public string? SerialNumber { get; set; }
 
     [Display(Name = "Tahun Pembuatan")]
-    [Range(1900, 2100, ErrorMessage = "Tahun harus 1900-2100")]
     public int? YearMade { get; set; }
 
     [DataType(DataType.Date)]
@@ -45,13 +44,13 @@ public class Asset : BaseEntity
     [Display(Name = "Kapasitas")]
     public string? Capacity { get; set; }
 
-    [MaxLength(200)]
-    [Display(Name = "Lokasi")]
-    public string? Location { get; set; }
-
     [MaxLength(500)]
     [Display(Name = "Deskripsi")]
     public string? Description { get; set; }
+
+    [MaxLength(200)]
+    [Display(Name = "Lokasi")]
+    public string? Location { get; set; }
 
     [Display(Name = "Aktif")]
     public bool IsActive { get; set; } = true;
