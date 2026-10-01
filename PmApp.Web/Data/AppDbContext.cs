@@ -15,7 +15,6 @@ public class AppDbContext : DbContext
     public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<Part> Parts => Set<Part>();
     public DbSet<AssetPart> AssetParts => Set<AssetPart>();
-    public DbSet<Technician> Technicians => Set<Technician>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,13 +55,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.AssetId, x.PartId }).IsUnique();
         });
 
-        // ---------------------------------------------------------
-        // TECHNICIAN
-        // ---------------------------------------------------------
-        modelBuilder.Entity<Technician>(e =>
-        {
-            e.HasIndex(x => x.Code).IsUnique();
-        });
+        
 
         // =========================================================
         // GLOBAL QUERY FILTER — SOFT DELETE

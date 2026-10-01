@@ -20,7 +20,6 @@ public class HomeController : Controller
         {
             TotalAssets = await _db.Assets.CountAsync(),
             TotalParts = await _db.Parts.CountAsync(),
-            TotalTechnicians = await _db.Technicians.CountAsync(),
             TotalBom = await _db.AssetParts.CountAsync(),
             ActiveAssets = await _db.Assets.CountAsync(a => a.IsActive),
             CriticalAssets = await _db.Assets.CountAsync(a => a.Criticality == Models.Criticality.Critical),

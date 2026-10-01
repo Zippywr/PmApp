@@ -85,15 +85,7 @@ public static class DbSeeder
 
         db.Parts.AddRange(parts);
 
-        // ============================================================
-        // 3. TECHNICIANS — 2 teknisi
-        // ============================================================
-        var techs = new List<Technician>
-        {
-            new() { Code = "TEK-001", Name = "Budi Santoso", Skill = "Mechanical", Shift = "Shift-1", Phone = "081234567890", Email = "budi@perusahaan.com", IsActive = true, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "TEK-002", Name = "Andi Wijaya",  Skill = "Electrical", Shift = "Shift-2", Phone = "081234567891", Email = "andi@perusahaan.com", IsActive = true, CreatedBy = "system", CreatedDate = DateTime.Now },
-        };
-        db.Technicians.AddRange(techs);
+        
 
         // Simpan dulu supaya Id terisi
         await db.SaveChangesAsync();

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace PmApp.Web.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialMaster : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -69,32 +69,6 @@ namespace PmApp.Web.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Technicians",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Skill = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Shift = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Phone = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    DeletedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    DeletedDate = table.Column<DateTime>(type: "datetime2", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Technicians", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "AssetParts",
                 columns: table => new
                 {
@@ -152,12 +126,6 @@ namespace PmApp.Web.Migrations
                 table: "Parts",
                 column: "PartNo",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Technicians_Code",
-                table: "Technicians",
-                column: "Code",
-                unique: true);
         }
 
         /// <inheritdoc />
@@ -165,9 +133,6 @@ namespace PmApp.Web.Migrations
         {
             migrationBuilder.DropTable(
                 name: "AssetParts");
-
-            migrationBuilder.DropTable(
-                name: "Technicians");
 
             migrationBuilder.DropTable(
                 name: "Assets");
