@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace PmApp.Web.Models.ViewModels;
 
@@ -17,12 +18,8 @@ public class PartFormViewModel
     public string Name { get; set; } = string.Empty;
 
     [MaxLength(100)]
-    [Display(Name = "Kategori")]
-    public string? Category { get; set; }
-
-    [MaxLength(100)]
-    [Display(Name = "Merek")]
-    public string? Brand { get; set; }
+    [Display(Name = "Type")]
+    public string? Type { get; set; }
 
     [MaxLength(20)]
     [Display(Name = "Satuan")]
@@ -31,4 +28,37 @@ public class PartFormViewModel
     [MaxLength(500)]
     [Display(Name = "Deskripsi")]
     public string? Description { get; set; }
+
+    [Display(Name = "Kategori")]
+    public int? PartCodeCategoryId { get; set; }
+
+    [Display(Name = "Sub Kategori")]
+    public int? SubGrupCategoryId { get; set; }
+
+    [Display(Name = "Brand")]
+    public int? BrandId { get; set; }
+
+    [Range(0, int.MaxValue)]
+    [Display(Name = "Stok Saat Ini")]
+    public int StockQty { get; set; } = 0;
+
+    [Range(0, int.MaxValue)]
+    [Display(Name = "Stok Minimum")]
+    public int MinQty { get; set; } = 0;
+
+    [Range(0, int.MaxValue)]
+    [Display(Name = "Stok Maximum")]
+    public int MaxQty { get; set; } = 0;
+
+    [MaxLength(100)]
+    [Display(Name = "Lokasi Rak")]
+    public string? Location { get; set; }
+
+    [Range(0, double.MaxValue)]
+    [Display(Name = "Harga (IDR)")]
+    public decimal Price { get; set; } = 0;
+
+    public List<SelectListItem> PartCodeCategoryList { get; set; } = new();
+    public List<SelectListItem> SubGrupCategoryList { get; set; } = new();
+    public List<SelectListItem> BrandList { get; set; } = new();
 }

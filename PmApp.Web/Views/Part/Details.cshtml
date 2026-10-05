@@ -1,7 +1,7 @@
 ﻿@model IEnumerable<PmApp.Web.Models.Entities.AssetPart>
 @{
     var part = (PmApp.Web.Models.Entities.Part)ViewBag.Part;
-    ViewData["Title"] = $"Detail Part: {part.Name}";
+    ViewData["Title"] = "Detail Part: " + part.Name;
 }
 
 <nav aria-label="breadcrumb">
@@ -11,45 +11,63 @@
     </ol>
 </nav>
 
-<!-- INFO PART -->
 <div class="card mb-4 border-0 shadow-sm">
     <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">
-            <i class="bi bi-box-seam"></i> @part.Name
-        </h5>
+        <h5 class="mb-0"><i class="bi bi-box-seam"></i> @part.Name</h5>
     </div>
     <div class="card-body">
-        <div class="row">
+        <div class="row g-3">
             <div class="col-md-2">
                 <small class="text-muted">Part No</small>
-                <p><strong>@part.PartNo</strong></p>
+                <p class="mb-0"><strong>@part.PartNo</strong></p>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted">Type</small>
+                <p class="mb-0">@(part.Type ?? "-")</p>
             </div>
             <div class="col-md-2">
                 <small class="text-muted">Kategori</small>
-                <p><strong>@part.Category</strong></p>
+                <p class="mb-0">@(part.PartCodeCategory?.Name ?? "-")</p>
             </div>
-            <div class="col-md-2">
-                <small class="text-muted">Merek</small>
-                <p><strong>@part.Brand</strong></p>
+            <div class="col-md-3">
+                <small class="text-muted">Sub Kategori</small>
+                <p class="mb-0">@(part.SubGrupCategory?.Name ?? "-")</p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Brand</small>
+                <p class="mb-0">@(part.Brand?.Name ?? "-")</p>
             </div>
             <div class="col-md-2">
                 <small class="text-muted">Satuan</small>
-                <p><strong>@part.Unit</strong></p>
+                <p class="mb-0">@part.Unit</p>
             </div>
-            <div class="col-md-4">
-                <small class="text-muted">Deskripsi</small>
-                <p>@part.Description</p>
+            <div class="col-md-2">
+                <small class="text-muted">Stock</small>
+                <p class="mb-0">@part.StockQty (min @part.MinQty / max @part.MaxQty)</p>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted">Lokasi</small>
+                <p class="mb-0">@(part.Location ?? "-")</p>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted">Harga</small>
+                <p class="mb-0">@part.Price.ToString("N0")</p>
             </div>
         </div>
+        @if (!string.IsNullOrEmpty(part.Description))
+        {
+            <hr />
+            <small class="text-muted">Deskripsi</small>
+            <p class="mb-0">@part.Description</p>
+        }
     </div>
 </div>
 
-<!-- DAFTAR MESIN YANG PAKAI PART INI -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0">
         <i class="bi bi-gear"></i> Dipakai di Mesin
+        <span class="badge bg-success ms-2">@Model.Count() mesin</span>
     </h5>
-    <span class="badge bg-success">@Model.Count() mesin</span>
 </div>
 
 @if (!Model.Any())
@@ -62,13 +80,12 @@
 else
 {
     <div class="card border-0 shadow-sm">
-        <div class="card-body">
+        <div class="card-body p-0">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>Kode Mesin</th>
                         <th>Nama Mesin</th>
-                        <th>Line</th>
                         <th>Qty</th>
                         <th>Satuan</th>
                         <th>Posisi</th>
@@ -81,7 +98,6 @@ else
                         <tr>
                             <td><strong>@item.Asset?.Code</strong></td>
                             <td>@item.Asset?.Name</td>
-                            <td>@item.Asset?.Line</td>
                             <td class="text-center">
                                 <span class="badge bg-primary">@item.Quantity</span>
                             </td>

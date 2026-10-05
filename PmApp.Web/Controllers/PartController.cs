@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PmApp.Web.Data;
 using PmApp.Web.Models.Entities;
@@ -15,25 +16,24 @@ public class PartController : Controller
         _db = db;
     }
 
-    // ============================================================
-    // INDEX — Daftar Part + jumlah mesin yang pakai
-    // ============================================================
     public async Task<IActionResult> Index()
     {
-        var parts = await _db.Parts
+        var list = await _db.Parts
+            .Include(p => p.PartCodeCategory)
+            .Include(p => p.SubGrupCategory)
+            .Include(p => p.Brand)
             .Include(p => p.AssetParts)
-                .ThenInclude(ap => ap.Asset)
             .OrderBy(p => p.PartNo)
             .ToListAsync();
-        return View(parts);
+        return View(list);
     }
 
-    // ============================================================
-    // DETAILS — Lihat part ini dipakai di mesin mana saja
-    // ============================================================
     public async Task<IActionResult> Details(int id)
     {
         var part = await _db.Parts
+            .Include(p => p.PartCodeCategory)
+            .Include(p => p.SubGrupCategory)
+            .Include(p => p.Brand)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (part == null) return NotFound();
@@ -48,64 +48,94 @@ public class PartController : Controller
         return View(usage);
     }
 
-    // GET: Create
     [HttpGet]
-    public IActionResult Create() => View(new PartFormViewModel());
+    public async Task<IActionResult> Create()
+    {
+        var vm = new PartFormViewModel();
+        await PopulateDropdownsAsync(vm);
+        return View(vm);
+    }
 
-    // POST: Create
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(PartFormViewModel vm)
     {
-        if (!ModelState.IsValid) return View(vm);
+        if (!ModelState.IsValid)
+        {
+            await PopulateDropdownsAsync(vm);
+            return View(vm);
+        }
 
         if (await _db.Parts.AnyAsync(p => p.PartNo == vm.PartNo))
         {
             ModelState.AddModelError(nameof(vm.PartNo), "Part No sudah digunakan");
+            await PopulateDropdownsAsync(vm);
             return View(vm);
         }
 
-        _db.Parts.Add(new Part
+        var part = new Part
         {
             PartNo = vm.PartNo,
             Name = vm.Name,
-            Category = vm.Category,
-            Brand = vm.Brand,
+            Type = vm.Type,
             Unit = vm.Unit,
-            Description = vm.Description
-        });
+            Description = vm.Description,
+            PartCodeCategoryId = vm.PartCodeCategoryId,
+            SubGrupCategoryId = vm.SubGrupCategoryId,
+            BrandId = vm.BrandId,
+            StockQty = vm.StockQty,
+            MinQty = vm.MinQty,
+            MaxQty = vm.MaxQty,
+            Location = vm.Location,
+            Price = vm.Price
+        };
 
+        _db.Parts.Add(part);
         await _db.SaveChangesAsync();
-        TempData["Success"] = $"Part '{vm.Name}' berhasil ditambahkan.";
+
+        TempData["Success"] = "Part berhasil ditambahkan.";
         return RedirectToAction(nameof(Index));
     }
 
-    // GET: Edit
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
         var part = await _db.Parts.FirstOrDefaultAsync(p => p.Id == id);
         if (part == null) return NotFound();
 
-        return View(new PartFormViewModel
+        var vm = new PartFormViewModel
         {
             Id = part.Id,
             PartNo = part.PartNo,
             Name = part.Name,
-            Category = part.Category,
-            Brand = part.Brand,
+            Type = part.Type,
             Unit = part.Unit,
-            Description = part.Description
-        });
+            Description = part.Description,
+            PartCodeCategoryId = part.PartCodeCategoryId,
+            SubGrupCategoryId = part.SubGrupCategoryId,
+            BrandId = part.BrandId,
+            StockQty = part.StockQty,
+            MinQty = part.MinQty,
+            MaxQty = part.MaxQty,
+            Location = part.Location,
+            Price = part.Price
+        };
+
+        await PopulateDropdownsAsync(vm);
+        return View(vm);
     }
 
-    // POST: Edit
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, PartFormViewModel vm)
     {
         if (id != vm.Id) return BadRequest();
-        if (!ModelState.IsValid) return View(vm);
+
+        if (!ModelState.IsValid)
+        {
+            await PopulateDropdownsAsync(vm);
+            return View(vm);
+        }
 
         var part = await _db.Parts.FirstOrDefaultAsync(p => p.Id == id);
         if (part == null) return NotFound();
@@ -113,22 +143,30 @@ public class PartController : Controller
         if (await _db.Parts.AnyAsync(p => p.PartNo == vm.PartNo && p.Id != id))
         {
             ModelState.AddModelError(nameof(vm.PartNo), "Part No sudah digunakan");
+            await PopulateDropdownsAsync(vm);
             return View(vm);
         }
 
         part.PartNo = vm.PartNo;
         part.Name = vm.Name;
-        part.Category = vm.Category;
-        part.Brand = vm.Brand;
+        part.Type = vm.Type;
         part.Unit = vm.Unit;
         part.Description = vm.Description;
+        part.PartCodeCategoryId = vm.PartCodeCategoryId;
+        part.SubGrupCategoryId = vm.SubGrupCategoryId;
+        part.BrandId = vm.BrandId;
+        part.StockQty = vm.StockQty;
+        part.MinQty = vm.MinQty;
+        part.MaxQty = vm.MaxQty;
+        part.Location = vm.Location;
+        part.Price = vm.Price;
 
         await _db.SaveChangesAsync();
-        TempData["Success"] = $"Part '{part.Name}' berhasil diperbarui.";
+
+        TempData["Success"] = "Part berhasil diperbarui.";
         return RedirectToAction(nameof(Index));
     }
 
-    // POST: Delete
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
@@ -145,14 +183,32 @@ public class PartController : Controller
 
         if (part.AssetParts.Any())
         {
-            TempData["Error"] = $"Part '{part.Name}' tidak bisa dihapus karena masih terpasang di {part.AssetParts.Count} mesin.";
+            TempData["Error"] = "Part tidak bisa dihapus, masih terpasang di mesin.";
             return RedirectToAction(nameof(Index));
         }
 
         part.IsDeleted = true;
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"Part '{part.Name}' berhasil dihapus.";
+        TempData["Success"] = "Part berhasil dihapus.";
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task PopulateDropdownsAsync(PartFormViewModel vm)
+    {
+        vm.PartCodeCategoryList = await _db.PartCodeCategories
+            .OrderBy(c => c.Code)
+            .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Code + " - " + c.Name })
+            .ToListAsync();
+
+        vm.SubGrupCategoryList = await _db.SubGrupCategories
+            .OrderBy(s => s.Code)
+            .Select(s => new SelectListItem { Value = s.Id.ToString(), Text = s.Code + " - " + s.Name })
+            .ToListAsync();
+
+        vm.BrandList = await _db.Brands
+            .OrderBy(b => b.Code)
+            .Select(b => new SelectListItem { Value = b.Id.ToString(), Text = b.Code + " - " + b.Name })
+            .ToListAsync();
     }
 }

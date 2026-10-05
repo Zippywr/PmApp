@@ -1,0 +1,20 @@
+﻿@model PmApp.Web.Models.ViewModels.ProductFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label asp-for="Code" class="form-label"></label>
+        <input asp-for="Code" class="form-control" placeholder="Contoh: PRD-001" />
+        <span asp-validation-for="Code" class="text-danger small"></span>
+    </div>
+    <div class="col-md-8 mb-3">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" placeholder="Contoh: Bracket A" />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+    <div class="col-12 mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+    </div>
+</div>

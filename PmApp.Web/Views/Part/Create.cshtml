@@ -2,14 +2,12 @@
 @{
     ViewData["Title"] = "Tambah Part";
 }
-
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-action="Index">Daftar Part</a></li>
+        <li class="breadcrumb-item"><a asp-action="Index">Part</a></li>
         <li class="breadcrumb-item active">Tambah</li>
     </ol>
 </nav>
-
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-primary text-white">
         <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Tambah Part</h5>
@@ -25,7 +23,6 @@
         </form>
     </div>
 </div>
-
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }

@@ -2,7 +2,7 @@
 @{
     var asset = (PmApp.Web.Models.Entities.Asset)ViewBag.Asset;
     var availableParts = (List<PmApp.Web.Models.Entities.Part>)ViewBag.AvailableParts;
-    ViewData["Title"] = $"Detail Mesin: {asset.Name}";
+    ViewData["Title"] = "Detail Mesin: " + asset.Name;
 }
 
 <nav aria-label="breadcrumb">
@@ -27,57 +27,111 @@
     </div>
 }
 
-<!-- INFO MESIN -->
 <div class="card mb-4 border-0 shadow-sm">
-    <div class="card-header bg-primary text-white">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-gear-fill"></i> @asset.Name</h5>
+        <a asp-action="Edit" asp-route-id="@asset.Id" class="btn btn-sm btn-light">
+            <i class="bi bi-pencil"></i> Edit
+        </a>
     </div>
     <div class="card-body">
-        <div class="row">
+        <div class="row g-3">
             <div class="col-md-3">
-                <small class="text-muted">Kode</small>
-                <p><strong>@asset.Code</strong></p>
+                <small class="text-muted">Kode Mesin</small>
+                <p class="mb-0"><strong>@asset.Code</strong></p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">OP No</small>
+                <p class="mb-0">@(asset.OpNo ?? "-")</p>
             </div>
             <div class="col-md-3">
                 <small class="text-muted">Line</small>
-                <p><strong>@asset.Line</strong></p>
+                <p class="mb-0">@(asset.Line?.Name ?? "-")</p>
             </div>
             <div class="col-md-3">
+                <small class="text-muted">Area</small>
+                <p class="mb-0">@(asset.Area?.Name ?? "-")</p>
+            </div>
+
+            <div class="col-md-3">
+                <small class="text-muted">Kategori Mesin</small>
+                <p class="mb-0">@(asset.McCategory?.Name ?? "-")</p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Fungsi Mesin</small>
+                <p class="mb-0">@(asset.MachineFunction?.Name ?? "-")</p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Brand</small>
+                <p class="mb-0">@(asset.Brand?.Name ?? "-")</p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Product</small>
+                <p class="mb-0">@(asset.Product?.Name ?? "-")</p>
+            </div>
+
+            <div class="col-md-3">
+                <small class="text-muted">Model / Type</small>
+                <p class="mb-0">@(asset.Model ?? "-")</p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Serial Number</small>
+                <p class="mb-0">@(asset.SerialNumber ?? "-")</p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Tahun</small>
+                <p class="mb-0">@(asset.YearMade?.ToString() ?? "-")</p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Kapasitas</small>
+                <p class="mb-0">@(asset.Capacity ?? "-")</p>
+            </div>
+
+            <div class="col-md-3">
                 <small class="text-muted">Kritikalitas</small>
-                <p>
-                    @switch (asset.Criticality)
+                <p class="mb-0">
+                    @if (asset.Criticality == PmApp.Web.Models.Criticality.Critical)
                     {
-                        case PmApp.Web.Models.Criticality.Critical:
-                            <span class="badge bg-danger">Critical</span>
-                            break;
-                        case PmApp.Web.Models.Criticality.High:
-                            <span class="badge bg-warning text-dark">High</span>
-                            break;
-                        case PmApp.Web.Models.Criticality.Normal:
-                            <span class="badge bg-info text-dark">Normal</span>
-                            break;
-                        default:
-                            <span class="badge bg-secondary">Low</span>
-                            break;
+                        <span class="badge bg-danger">Critical</span>
+                    }
+                    else if (asset.Criticality == PmApp.Web.Models.Criticality.High)
+                    {
+                        <span class="badge bg-warning text-dark">High</span>
+                    }
+                    else if (asset.Criticality == PmApp.Web.Models.Criticality.Normal)
+                    {
+                        <span class="badge bg-info text-dark">Normal</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Low</span>
                     }
                 </p>
             </div>
             <div class="col-md-3">
-                <small class="text-muted">Lokasi</small>
-                <p><strong>@asset.Location</strong></p>
+                <small class="text-muted">Status</small>
+                <p class="mb-0">
+                    @if (asset.IsActive)
+                    {
+                        <span class="badge bg-success">Aktif</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Nonaktif</span>
+                    }
+                </p>
             </div>
         </div>
+
         @if (!string.IsNullOrEmpty(asset.Description))
         {
-            <div class="mt-2">
-                <small class="text-muted">Deskripsi</small>
-                <p>@asset.Description</p>
-            </div>
+            <hr />
+            <small class="text-muted">Deskripsi</small>
+            <p class="mb-0">@asset.Description</p>
         }
     </div>
 </div>
 
-<!-- HEADER PART TERPASANG + TOMBOL TAMBAH -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0">
         <i class="bi bi-list-check"></i> Part Terpasang
@@ -88,13 +142,11 @@
     </button>
 </div>
 
-<!-- TABEL BOM -->
 @if (!Model.Any())
 {
     <div class="alert alert-warning">
         <i class="bi bi-info-circle"></i>
         Belum ada part yang terpasang di mesin ini.
-        Klik <strong>+ Tambah Part</strong> untuk menambahkan.
     </div>
 }
 else
@@ -112,7 +164,7 @@ else
                         <th width="80" class="text-center">Qty</th>
                         <th>Satuan</th>
                         <th>Posisi</th>
-                        <th width="140" class="text-center">Aksi</th>
+                        <th width="120" class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -122,29 +174,19 @@ else
                         <tr>
                             <td>@no</td>
                             <td>
-                                <a asp-controller="Part" asp-action="Details" asp-route-id="@item.PartId"
-                                   class="text-decoration-none">
+                                <a asp-controller="Part" asp-action="Details" asp-route-id="@item.PartId">
                                     <strong>@item.Part?.PartNo</strong>
                                 </a>
                             </td>
-                            <td>
-                                <a asp-controller="Part" asp-action="Details" asp-route-id="@item.PartId"
-                                   class="text-decoration-none">
-                                    @item.Part?.Name
-                                </a>
-                            </td>
-                            <td>@item.Part?.Category</td>
-                            <td>@item.Part?.Brand</td>
+                            <td>@item.Part?.Name</td>
+                            <td>@(item.Part?.PartCodeCategory?.Name ?? "-")</td>
+                            <td>@(item.Part?.Brand?.Name ?? "-")</td>
                             <td class="text-center">
                                 <span class="badge bg-primary">@item.Quantity</span>
                             </td>
                             <td>@item.Part?.Unit</td>
                             <td>@item.Position</td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-warning"
-                                        onclick="openEditModal(@item.Id, @item.Quantity, '@item.Position', '@item.Notes', '@item.Part?.Name')">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
                                 <button type="button" class="btn btn-sm btn-danger"
                                         onclick="confirmRemove(@item.Id, '@item.Part?.Name')">
                                     <i class="bi bi-trash"></i>
@@ -159,7 +201,6 @@ else
     </div>
 }
 
-<!-- MODAL TAMBAH PART -->
 <div class="modal fade" id="addPartModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -178,13 +219,9 @@ else
                             <option value="">-- Pilih Part --</option>
                             @foreach (var p in availableParts)
                             {
-                                <option value="@p.Id">@p.PartNo — @p.Name (@p.Category)</option>
+                                <option value="@p.Id">@p.PartNo - @p.Name (@(p.PartCodeCategory?.Name ?? "-"))</option>
                             }
                         </select>
-                        @if (!availableParts.Any())
-                        {
-                            <small class="text-danger">Semua part sudah terpasang. Tambah part baru di menu Part dulu.</small>
-                        }
                     </div>
                     <div class="row">
                         <div class="col-md-4 mb-3">
@@ -193,69 +230,23 @@ else
                         </div>
                         <div class="col-md-8 mb-3">
                             <label class="form-label">Posisi</label>
-                            <input type="text" name="Position" class="form-control"
-                                   placeholder="Contoh: Spindle Drive End" />
+                            <input type="text" name="Position" class="form-control" placeholder="Contoh: Spindle Drive End" />
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Catatan</label>
-                        <textarea name="Notes" class="form-control" rows="2"
-                                  placeholder="Contoh: Maintenance 6w"></textarea>
+                        <textarea name="Notes" class="form-control" rows="2"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Simpan
-                    </button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- MODAL EDIT PART -->
-<div class="modal fade" id="editPartModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form asp-action="EditPart" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="Id" id="editId" />
-                <input type="hidden" name="AssetId" value="@asset.Id" />
-                <input type="hidden" name="PartId" value="0" />
-
-                <div class="modal-header bg-warning">
-                    <h5 class="modal-title"><i class="bi bi-pencil"></i> Edit Part: <span id="editPartName"></span></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Jumlah <span class="text-danger">*</span></label>
-                            <input type="number" name="Quantity" id="editQty" class="form-control" min="1" required />
-                        </div>
-                        <div class="col-md-8 mb-3">
-                            <label class="form-label">Posisi</label>
-                            <input type="text" name="Position" id="editPosition" class="form-control" />
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Catatan</label>
-                        <textarea name="Notes" id="editNotes" class="form-control" rows="2"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-warning">
-                        <i class="bi bi-save"></i> Update
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL KONFIRMASI HAPUS -->
 <div class="modal fade" id="removePartModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -280,15 +271,6 @@ else
 
 @section Scripts {
     <script>
-        function openEditModal(id, qty, position, notes, partName) {
-            document.getElementById('editId').value = id;
-            document.getElementById('editQty').value = qty;
-            document.getElementById('editPosition').value = position || '';
-            document.getElementById('editNotes').value = notes || '';
-            document.getElementById('editPartName').textContent = partName;
-            new bootstrap.Modal(document.getElementById('editPartModal')).show();
-        }
-
         function confirmRemove(id, partName) {
             document.getElementById('removeId').value = id;
             document.getElementById('removePartName').textContent = partName;

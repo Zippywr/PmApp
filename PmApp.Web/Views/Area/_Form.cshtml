@@ -1,0 +1,27 @@
+﻿@model PmApp.Web.Models.ViewModels.AreaFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label asp-for="Code" class="form-label"></label>
+        <input asp-for="Code" class="form-control" placeholder="Contoh: AR-01" />
+        <span asp-validation-for="Code" class="text-danger small"></span>
+    </div>
+    <div class="col-md-8 mb-3">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" placeholder="Contoh: 5C & QC Machining" />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="LineId" class="form-label"></label>
+        <select asp-for="LineId" asp-items="Model.LineList" class="form-select">
+            <option value="">-- Pilih Line --</option>
+        </select>
+        <span asp-validation-for="LineId" class="text-danger small"></span>
+    </div>
+    <div class="col-12 mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+    </div>
+</div>

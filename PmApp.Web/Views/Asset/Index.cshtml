@@ -25,11 +25,6 @@
     </a>
 </div>
 
-<div class="alert alert-light border small mb-3">
-    <i class="bi bi-info-circle text-primary"></i>
-    Klik pada baris atau nama mesin untuk melihat detail & part terpasang.
-</div>
-
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <table class="table table-hover mb-0 datatable">
@@ -37,24 +32,28 @@
                 <tr>
                     <th>Kode</th>
                     <th>Nama Mesin</th>
+                    <th>OP No</th>
+                    <th>Area</th>
                     <th>Line</th>
+                    <th>Kategori</th>
+                    <th>Brand</th>
+                    <th>Model</th>
                     <th>Kritikalitas</th>
-                    <th>Lokasi</th>
-                    <th>Status</th>
-                    <th width="150" class="no-row-click">Aksi</th>
+                    <th width="200">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var item in Model)
                 {
-                    <tr class="row-clickable" data-href="@Url.Action("Details", new { id = item.Id })">
+                    <tr>
                         <td><strong>@item.Code</strong></td>
-                        <td>
-                            <a asp-action="Details" asp-route-id="@item.Id">
-                                @item.Name
-                            </a>
-                        </td>
-                        <td>@item.Line</td>
+                        <td>@item.Name</td>
+                        <td>@item.OpNo</td>
+                        <td>@item.Area?.Name</td>
+                        <td>@item.Line?.Name</td>
+                        <td>@item.McCategory?.Name</td>
+                        <td>@item.Brand?.Name</td>
+                        <td>@item.Model</td>
                         <td>
                             @switch (item.Criticality)
                             {
@@ -72,27 +71,19 @@
                                     break;
                             }
                         </td>
-                        <td>@item.Location</td>
                         <td>
-                            @if (item.IsActive)
-                            {
-                                <span class="badge bg-success">Aktif</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">Nonaktif</span>
-                            }
-                        </td>
-                        <td class="no-row-click">
+                            <a asp-action="Details" asp-route-id="@item.Id"
+                               class="btn btn-sm btn-info text-white">
+                                <i class="bi bi-eye"></i>
+                            </a>
                             <a asp-action="Edit" asp-route-id="@item.Id"
-                               class="btn btn-sm btn-warning" title="Edit">
+                               class="btn btn-sm btn-warning">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             <button type="button" class="btn btn-sm btn-danger"
-                                    onclick="confirmDelete(@item.Id, '@item.Name')" title="Hapus">
+                                    onclick="confirmDelete(@item.Id, '@item.Name')">
                                 <i class="bi bi-trash"></i>
                             </button>
-
                             <form id="deleteForm-@item.Id" asp-action="Delete"
                                   asp-route-id="@item.Id" method="post" class="d-none">
                                 @Html.AntiForgeryToken()
@@ -105,7 +96,6 @@
     </div>
 </div>
 
-<!-- MODAL KONFIRMASI HAPUS -->
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -114,9 +104,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                Yakin ingin menghapus mesin <strong id="deleteAssetName"></strong>?
-                <br />
-                <small class="text-muted">Data akan di-soft delete (bisa dipulihkan).</small>
+                Yakin ingin menghapus mesin <strong id="deleteName"></strong>?
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -129,17 +117,13 @@
 @section Scripts {
     <script>
         let deleteId = null;
-
         function confirmDelete(id, name) {
             deleteId = id;
-            document.getElementById('deleteAssetName').textContent = name;
+            document.getElementById('deleteName').textContent = name;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
-
         document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
-            if (deleteId) {
-                document.getElementById('deleteForm-' + deleteId).submit();
-            }
+            if (deleteId) document.getElementById('deleteForm-' + deleteId).submit();
         });
     </script>
 }

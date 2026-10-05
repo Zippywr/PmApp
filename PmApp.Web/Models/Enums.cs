@@ -7,3 +7,43 @@ public enum Criticality
     High,
     Critical
 }
+
+// ============================================================
+// FASE B — PREVENTIVE MAINTENANCE
+// ============================================================
+
+public enum FrequencyType
+{
+    Daily,
+    Weekly,
+    Monthly,
+    Yearly
+}
+
+public enum MaintenanceMethod
+{
+    Visual,
+    Measure,
+    Test,
+    Replace,
+    Calibrate,
+    Clean,
+    Lubricate
+}
+
+public enum PmStatus
+{
+    Scheduled,
+    InProgress,
+    Done,
+    Overdue,
+    Cancelled
+}
+
+public enum MachineCondition
+{
+    Pending,
+    OK,
+    Partial,
+    NG
+}

@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PmApp.Web.Data;
-using PmApp.Web.Models.ViewModels;
 
 namespace PmApp.Web.Controllers;
 
@@ -16,42 +15,32 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var vm = new DashboardViewModel
-        {
-            TotalAssets = await _db.Assets.CountAsync(),
-            TotalParts = await _db.Parts.CountAsync(),
-            TotalBom = await _db.AssetParts.CountAsync(),
-            ActiveAssets = await _db.Assets.CountAsync(a => a.IsActive),
-            CriticalAssets = await _db.Assets.CountAsync(a => a.Criticality == Models.Criticality.Critical),
-            RecentAssets = await _db.Assets
-                .OrderByDescending(a => a.CreatedDate)
-                .Take(5)
-                .Select(a => new AssetSummary
-                {
-                    Id = a.Id,
-                    Code = a.Code,
-                    Name = a.Name,
-                    Line = a.Line,
-                    Criticality = a.Criticality.ToString(),
-                    PartCount = a.AssetParts.Count(ap => !ap.IsDeleted)
-                })
-                .ToListAsync()
-        };
+        // Statistik untuk dashboard
+        ViewBag.TotalAssets = await _db.Assets.CountAsync();
+        ViewBag.TotalParts = await _db.Parts.CountAsync();
+        ViewBag.TotalBom = await _db.AssetParts.CountAsync();
+        ViewBag.TotalPlants = await _db.Plants.CountAsync();
+        ViewBag.TotalLines = await _db.Lines.CountAsync();
+        ViewBag.TotalAreas = await _db.Areas.CountAsync();
+        ViewBag.TotalBrands = await _db.Brands.CountAsync();
+        ViewBag.TotalMcCategories = await _db.McCategories.CountAsync();
+        ViewBag.TotalMachineFunctions = await _db.MachineFunctions.CountAsync();
+        ViewBag.TotalProducts = await _db.Products.CountAsync();
 
-        return View(vm);
+        // Mesin terbaru (5 terakhir)
+        var recentAssets = await _db.Assets
+            .Include(a => a.Line)
+            .Include(a => a.Area)
+            .Include(a => a.Brand)
+            .OrderByDescending(a => a.CreatedDate)
+            .Take(5)
+            .ToListAsync();
+
+        return View(recentAssets);
     }
 
     public IActionResult Privacy()
     {
         return View();
-    }
-
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new Models.ErrorViewModel
-        {
-            RequestId = System.Diagnostics.Activity.Current?.Id ?? HttpContext.TraceIdentifier
-        });
     }
 }

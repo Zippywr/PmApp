@@ -1,0 +1,32 @@
+﻿@model PmApp.Web.Models.ViewModels.ProductFormViewModel
+@{
+    ViewData["Title"] = "Edit Produk";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Produk</a></li>
+        <li class="breadcrumb-item active">Edit</li>
+    </ol>
+</nav>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-warning">
+        <h5 class="mb-0"><i class="bi bi-pencil"></i> Edit Produk</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <partial name="_Form" model="Model" />
+            <div class="mt-3">
+                <button type="submit" class="btn btn-warning"><i class="bi bi-save"></i> Update</button>
+                <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Batal</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

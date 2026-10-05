@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PmApp.Web.Data;
 using PmApp.Web.Models.Entities;
@@ -15,23 +16,29 @@ public class AssetController : Controller
         _db = db;
     }
 
-    // ============================================================
-    // INDEX — Daftar Mesin
-    // ============================================================
     public async Task<IActionResult> Index()
     {
-        var assets = await _db.Assets
+        var list = await _db.Assets
+            .Include(a => a.Line)
+            .Include(a => a.Area)
+            .Include(a => a.McCategory)
+            .Include(a => a.MachineFunction)
+            .Include(a => a.Brand)
+            .Include(a => a.Product)
             .OrderBy(a => a.Code)
             .ToListAsync();
-        return View(assets);
+        return View(list);
     }
 
-    // ============================================================
-    // DETAILS — Info Mesin + Part Terpasang
-    // ============================================================
     public async Task<IActionResult> Details(int id)
     {
         var asset = await _db.Assets
+            .Include(a => a.Line)
+            .Include(a => a.Area)
+            .Include(a => a.McCategory)
+            .Include(a => a.MachineFunction)
+            .Include(a => a.Brand)
+            .Include(a => a.Product)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (asset == null) return NotFound();
@@ -53,29 +60,28 @@ public class AssetController : Controller
         return View(bom);
     }
 
-    // ============================================================
-    // CREATE — GET
-    // ============================================================
     [HttpGet]
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
-        return View(new AssetFormViewModel());
+        var vm = new AssetFormViewModel();
+        await PopulateDropdownsAsync(vm);
+        return View(vm);
     }
 
-    // ============================================================
-    // CREATE — POST
-    // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(AssetFormViewModel vm)
     {
         if (!ModelState.IsValid)
+        {
+            await PopulateDropdownsAsync(vm);
             return View(vm);
+        }
 
-        var exists = await _db.Assets.AnyAsync(a => a.Code == vm.Code);
-        if (exists)
+        if (await _db.Assets.AnyAsync(a => a.Code == vm.Code))
         {
             ModelState.AddModelError(nameof(vm.Code), "Kode mesin sudah digunakan");
+            await PopulateDropdownsAsync(vm);
             return View(vm);
         }
 
@@ -83,29 +89,30 @@ public class AssetController : Controller
         {
             Code = vm.Code,
             Name = vm.Name,
-            Line = vm.Line,
-            Criticality = vm.Criticality,
-            Manufacturer = vm.Manufacturer,
+            OpNo = vm.OpNo,
+            LineId = vm.LineId,
+            AreaId = vm.AreaId,
+            McCategoryId = vm.McCategoryId,
+            MachineFunctionId = vm.MachineFunctionId,
+            BrandId = vm.BrandId,
+            ProductId = vm.ProductId,
             Model = vm.Model,
             SerialNumber = vm.SerialNumber,
             YearMade = vm.YearMade,
-            InstallDate = vm.InstallDate,
             Capacity = vm.Capacity,
-            Location = vm.Location,
+            InstallDate = vm.InstallDate,
             Description = vm.Description,
+            Criticality = vm.Criticality,
             IsActive = vm.IsActive
         };
 
         _db.Assets.Add(asset);
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"Mesin '{asset.Name}' berhasil ditambahkan. Silakan tambahkan part di bawah ini.";
+        TempData["Success"] = "Mesin berhasil ditambahkan.";
         return RedirectToAction(nameof(Details), new { id = asset.Id });
     }
 
-    // ============================================================
-    // EDIT — GET
-    // ============================================================
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
@@ -117,65 +124,73 @@ public class AssetController : Controller
             Id = asset.Id,
             Code = asset.Code,
             Name = asset.Name,
-            Line = asset.Line,
-            Criticality = asset.Criticality,
-            Manufacturer = asset.Manufacturer,
+            OpNo = asset.OpNo,
+            LineId = asset.LineId,
+            AreaId = asset.AreaId,
+            McCategoryId = asset.McCategoryId,
+            MachineFunctionId = asset.MachineFunctionId,
+            BrandId = asset.BrandId,
+            ProductId = asset.ProductId,
             Model = asset.Model,
             SerialNumber = asset.SerialNumber,
             YearMade = asset.YearMade,
-            InstallDate = asset.InstallDate,
             Capacity = asset.Capacity,
-            Location = asset.Location,
+            InstallDate = asset.InstallDate,
             Description = asset.Description,
+            Criticality = asset.Criticality,
             IsActive = asset.IsActive
         };
 
+        await PopulateDropdownsAsync(vm);
         return View(vm);
     }
 
-    // ============================================================
-    // EDIT — POST
-    // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, AssetFormViewModel vm)
     {
         if (id != vm.Id) return BadRequest();
-        if (!ModelState.IsValid) return View(vm);
+
+        if (!ModelState.IsValid)
+        {
+            await PopulateDropdownsAsync(vm);
+            return View(vm);
+        }
 
         var asset = await _db.Assets.FirstOrDefaultAsync(a => a.Id == id);
         if (asset == null) return NotFound();
 
-        var exists = await _db.Assets.AnyAsync(a => a.Code == vm.Code && a.Id != id);
-        if (exists)
+        if (await _db.Assets.AnyAsync(a => a.Code == vm.Code && a.Id != id))
         {
             ModelState.AddModelError(nameof(vm.Code), "Kode mesin sudah digunakan");
+            await PopulateDropdownsAsync(vm);
             return View(vm);
         }
 
         asset.Code = vm.Code;
         asset.Name = vm.Name;
-        asset.Line = vm.Line;
-        asset.Criticality = vm.Criticality;
-        asset.Manufacturer = vm.Manufacturer;
+        asset.OpNo = vm.OpNo;
+        asset.LineId = vm.LineId;
+        asset.AreaId = vm.AreaId;
+        asset.McCategoryId = vm.McCategoryId;
+        asset.MachineFunctionId = vm.MachineFunctionId;
+        asset.BrandId = vm.BrandId;
+        asset.ProductId = vm.ProductId;
         asset.Model = vm.Model;
         asset.SerialNumber = vm.SerialNumber;
         asset.YearMade = vm.YearMade;
-        asset.InstallDate = vm.InstallDate;
         asset.Capacity = vm.Capacity;
-        asset.Location = vm.Location;
+        asset.InstallDate = vm.InstallDate;
         asset.Description = vm.Description;
+        asset.Criticality = vm.Criticality;
         asset.IsActive = vm.IsActive;
 
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"Mesin '{asset.Name}' berhasil diperbarui.";
+        TempData["Success"] = "Mesin berhasil diperbarui.";
         return RedirectToAction(nameof(Details), new { id = asset.Id });
     }
 
-    // ============================================================
-    // DELETE — POST (soft delete)
-    // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
@@ -192,108 +207,63 @@ public class AssetController : Controller
 
         if (asset.AssetParts.Any())
         {
-            TempData["Error"] = $"Mesin '{asset.Name}' tidak bisa dihapus karena masih punya {asset.AssetParts.Count} part terpasang. Hapus part dulu.";
+            TempData["Error"] = "Mesin tidak bisa dihapus, masih punya part terpasang.";
             return RedirectToAction(nameof(Index));
         }
 
         asset.IsDeleted = true;
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"Mesin '{asset.Name}' berhasil dihapus.";
+        TempData["Success"] = "Mesin berhasil dihapus.";
         return RedirectToAction(nameof(Index));
     }
 
-    // ============================================================
-    // BOM — TAMBAH PART KE MESIN
-    // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddPart(AssetPartFormViewModel vm)
+    public async Task<IActionResult> AddPart(int AssetId, int PartId, int Quantity, string? Position, string? Notes)
     {
-        if (!ModelState.IsValid)
-        {
-            TempData["Error"] = "Data tidak valid. Periksa kembali input Anda.";
-            return RedirectToAction(nameof(Details), new { id = vm.AssetId });
-        }
-
-        var asset = await _db.Assets.FirstOrDefaultAsync(a => a.Id == vm.AssetId);
+        var asset = await _db.Assets.FirstOrDefaultAsync(a => a.Id == AssetId);
         if (asset == null)
         {
             TempData["Error"] = "Mesin tidak ditemukan.";
             return RedirectToAction(nameof(Index));
         }
 
-        var part = await _db.Parts.FirstOrDefaultAsync(p => p.Id == vm.PartId);
+        var part = await _db.Parts.FirstOrDefaultAsync(p => p.Id == PartId);
         if (part == null)
         {
             TempData["Error"] = "Part tidak ditemukan.";
-            return RedirectToAction(nameof(Details), new { id = vm.AssetId });
+            return RedirectToAction(nameof(Details), new { id = AssetId });
         }
 
         var exists = await _db.AssetParts
-            .AnyAsync(ap => ap.AssetId == vm.AssetId && ap.PartId == vm.PartId);
+            .AnyAsync(ap => ap.AssetId == AssetId && ap.PartId == PartId);
 
         if (exists)
         {
-            TempData["Error"] = $"Part '{part.Name}' sudah terpasang di mesin ini. Silakan edit quantity-nya.";
-            return RedirectToAction(nameof(Details), new { id = vm.AssetId });
+            TempData["Error"] = "Part sudah terpasang di mesin ini.";
+            return RedirectToAction(nameof(Details), new { id = AssetId });
         }
 
         _db.AssetParts.Add(new AssetPart
         {
-            AssetId = vm.AssetId,
-            PartId = vm.PartId,
-            Quantity = vm.Quantity,
-            Position = vm.Position,
-            Notes = vm.Notes
+            AssetId = AssetId,
+            PartId = PartId,
+            Quantity = Quantity < 1 ? 1 : Quantity,
+            Position = Position,
+            Notes = Notes
         });
 
         await _db.SaveChangesAsync();
-        TempData["Success"] = $"Part '{part.Name}' berhasil ditambahkan ke mesin {asset.Name}.";
-        return RedirectToAction(nameof(Details), new { id = vm.AssetId });
+        TempData["Success"] = "Part berhasil ditambahkan.";
+        return RedirectToAction(nameof(Details), new { id = AssetId });
     }
 
-    // ============================================================
-    // BOM — EDIT QTY / POSISI
-    // ============================================================
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditPart(AssetPartFormViewModel vm)
-    {
-        var assetPart = await _db.AssetParts
-            .Include(ap => ap.Part)
-            .FirstOrDefaultAsync(ap => ap.Id == vm.Id);
-
-        if (assetPart == null)
-        {
-            TempData["Error"] = "Data BOM tidak ditemukan.";
-            return RedirectToAction(nameof(Details), new { id = vm.AssetId });
-        }
-
-        if (vm.Quantity < 1)
-        {
-            TempData["Error"] = "Quantity minimal 1.";
-            return RedirectToAction(nameof(Details), new { id = assetPart.AssetId });
-        }
-
-        assetPart.Quantity = vm.Quantity;
-        assetPart.Position = vm.Position;
-        assetPart.Notes = vm.Notes;
-
-        await _db.SaveChangesAsync();
-        TempData["Success"] = $"Part '{assetPart.Part?.Name}' berhasil diperbarui.";
-        return RedirectToAction(nameof(Details), new { id = assetPart.AssetId });
-    }
-
-    // ============================================================
-    // BOM — HAPUS PART DARI MESIN
-    // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemovePart(int id)
     {
         var assetPart = await _db.AssetParts
-            .Include(ap => ap.Part)
             .FirstOrDefaultAsync(ap => ap.Id == id);
 
         if (assetPart == null)
@@ -303,12 +273,44 @@ public class AssetController : Controller
         }
 
         var assetId = assetPart.AssetId;
-        var partName = assetPart.Part?.Name ?? "Part";
 
         assetPart.IsDeleted = true;
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"Part '{partName}' berhasil dihapus dari mesin.";
+        TempData["Success"] = "Part berhasil dihapus dari mesin.";
         return RedirectToAction(nameof(Details), new { id = assetId });
+    }
+
+    private async Task PopulateDropdownsAsync(AssetFormViewModel vm)
+    {
+        vm.LineList = await _db.Lines
+            .OrderBy(l => l.Code)
+            .Select(l => new SelectListItem { Value = l.Id.ToString(), Text = l.Code + " - " + l.Name })
+            .ToListAsync();
+
+        vm.AreaList = await _db.Areas
+            .OrderBy(a => a.Code)
+            .Select(a => new SelectListItem { Value = a.Id.ToString(), Text = a.Code + " - " + a.Name })
+            .ToListAsync();
+
+        vm.McCategoryList = await _db.McCategories
+            .OrderBy(m => m.Code)
+            .Select(m => new SelectListItem { Value = m.Id.ToString(), Text = m.Code + " - " + m.Name })
+            .ToListAsync();
+
+        vm.MachineFunctionList = await _db.MachineFunctions
+            .OrderBy(m => m.Code)
+            .Select(m => new SelectListItem { Value = m.Id.ToString(), Text = m.Code + " - " + m.Name })
+            .ToListAsync();
+
+        vm.BrandList = await _db.Brands
+            .OrderBy(b => b.Code)
+            .Select(b => new SelectListItem { Value = b.Id.ToString(), Text = b.Code + " - " + b.Name })
+            .ToListAsync();
+
+        vm.ProductList = await _db.Products
+            .OrderBy(p => p.Code)
+            .Select(p => new SelectListItem { Value = p.Id.ToString(), Text = p.Code + " - " + p.Name })
+            .ToListAsync();
     }
 }

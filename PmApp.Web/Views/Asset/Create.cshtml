@@ -5,7 +5,7 @@
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-action="Index">Daftar Mesin</a></li>
+        <li class="breadcrumb-item"><a asp-action="Index">Mesin</a></li>
         <li class="breadcrumb-item active">Tambah</li>
     </ol>
 </nav>
@@ -18,14 +18,9 @@
         <form asp-action="Create" method="post">
             @Html.AntiForgeryToken()
             <partial name="_Form" model="Model" />
-
             <div class="mt-3">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-save"></i> Simpan
-                </button>
-                <a asp-action="Index" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Batal
-                </a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button>
+                <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Batal</a>
             </div>
         </form>
     </div>
