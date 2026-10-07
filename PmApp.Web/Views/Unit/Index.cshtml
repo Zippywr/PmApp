@@ -1,6 +1,6 @@
-﻿@model IEnumerable<PmApp.Web.Models.Entities.Part>
+﻿@model IEnumerable<PmApp.Web.Models.Entities.Unit>
 @{
-    ViewData["Title"] = "Daftar Part";
+    ViewData["Title"] = "Daftar Unit";
 }
 
 @if (TempData["Success"] != null)
@@ -19,9 +19,9 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0"><i class="bi bi-box-seam"></i> Daftar Part</h4>
+    <h4 class="mb-0"><i class="bi bi-cpu"></i> Daftar Unit</h4>
     <a asp-action="Create" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Tambah Part
+        <i class="bi bi-plus-circle"></i> Tambah Unit
     </a>
 </div>
 
@@ -30,14 +30,10 @@
         <table class="table table-hover mb-0 datatable">
             <thead class="table-light">
                 <tr>
-                    <th>Part No</th>
-                    <th>Nama Part</th>
-                    <th>Type</th>
-                    <th>Kategori</th>
-                    <th>Brand</th>
-                    <th>Satuan</th>
-                    <th>Stock</th>
-                    <th>Dipakai</th>
+                    <th>Kode</th>
+                    <th>Nama Unit</th>
+                    <th>Deskripsi</th>
+                    <th>Sub Unit</th>
                     <th width="180">Aksi</th>
                 </tr>
             </thead>
@@ -45,27 +41,11 @@
                 @foreach (var item in Model)
                 {
                     <tr>
-                        <td><strong>@item.PartNo</strong></td>
+                        <td><strong>@item.Code</strong></td>
                         <td>@item.Name</td>
-                        <td>@item.Type</td>
-                        <td>@item.Category</td>
-                        <td>@item.Brand?.Name</td>
-                        <td>@item.Unit</td>
-                        <td>@item.StockQty</td>
+                        <td>@item.Description</td>
+                        <td><span class="badge bg-info">@item.SubUnits.Count</span></td>
                         <td>
-                            @if (item.AssetParts.Any())
-                            {
-                                <span class="badge bg-success">@item.AssetParts.Count mesin</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">-</span>
-                            }
-                        </td>
-                        <td>
-                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info text-white">
-                                <i class="bi bi-eye"></i>
-                            </a>
                             <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
                                 <i class="bi bi-pencil"></i>
                             </a>
@@ -93,7 +73,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                Yakin ingin menghapus part <strong id="deleteName"></strong>?
+                Yakin ingin menghapus unit <strong id="deleteName"></strong>?
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>

@@ -241,84 +241,42 @@ public static class DbSeeder
         await db.SaveChangesAsync();
 
         // ============================================================
-        // 9a. PART CODE CATEGORY
-        // ============================================================
-        var partCategories = new List<PartCodeCategory>
-        {
-            new() { Code = "CAT-01", Name = "Bearing",      Description = "Kategori bearing",      CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "CAT-02", Name = "Seal",         Description = "Kategori seal",         CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "CAT-03", Name = "Belt",         Description = "Kategori belt",         CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "CAT-04", Name = "Oil",          Description = "Kategori oli",          CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "CAT-05", Name = "Grease",       Description = "Kategori grease",       CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "CAT-06", Name = "Filter",       Description = "Kategori filter",       CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "CAT-07", Name = "Hose",         Description = "Kategori selang",       CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "CAT-08", Name = "Fitting",      Description = "Kategori fitting",      CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "CAT-09", Name = "Sensor",       Description = "Kategori sensor",       CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "CAT-10", Name = "Electrical",   Description = "Kategori electrical",   CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "CAT-11", Name = "Coupling",     Description = "Kategori coupling",     CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "CAT-12", Name = "Pump",         Description = "Kategori pompa",        CreatedBy = "system", CreatedDate = DateTime.Now }
-        };
-        db.PartCodeCategories.AddRange(partCategories);
-
-        await db.SaveChangesAsync();
-
-        // ============================================================
-        // 9b. SUB GRUP CATEGORY
-        // ============================================================
-        var subCategories = new List<SubGrupCategory>
-        {
-            new() { Code = "SUB-001", Name = "Deep Groove Ball Bearing", PartCodeCategoryId = partCategories[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SUB-002", Name = "Taper Roller Bearing",      PartCodeCategoryId = partCategories[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SUB-003", Name = "Oil Seal",                  PartCodeCategoryId = partCategories[1].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SUB-004", Name = "V-Belt",                    PartCodeCategoryId = partCategories[2].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SUB-005", Name = "Hydraulic Oil",             PartCodeCategoryId = partCategories[3].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SUB-006", Name = "Gear Oil",                  PartCodeCategoryId = partCategories[3].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SUB-007", Name = "Multi Purpose Grease",      PartCodeCategoryId = partCategories[4].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SUB-008", Name = "Air Filter",                PartCodeCategoryId = partCategories[5].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SUB-009", Name = "Hydraulic Hose",            PartCodeCategoryId = partCategories[6].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SUB-010", Name = "Proximity Sensor",          PartCodeCategoryId = partCategories[8].Id, CreatedBy = "system", CreatedDate = DateTime.Now }
-        };
-        db.SubGrupCategories.AddRange(subCategories);
-
-        await db.SaveChangesAsync();
-
-        // ============================================================
-        // 9c. PARTS — 32 part dengan FK
+        // 9. PARTS — 32 part
         // ============================================================
         var parts = new List<Part>();
 
-        parts.Add(new() { PartNo = "321", Name = "Bearing 6205", Type = "DGBB", Unit = "PCS", PartCodeCategoryId = partCategories[0].Id, SubGrupCategoryId = subCategories[0].Id, BrandId = brands[2].Id, StockQty = 12, MinQty = 5, MaxQty = 20, Price = 150000m, Location = "A-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "322", Name = "Bearing 6206", Type = "DGBB", Unit = "PCS", PartCodeCategoryId = partCategories[0].Id, SubGrupCategoryId = subCategories[0].Id, BrandId = brands[2].Id, StockQty = 8, MinQty = 5, MaxQty = 20, Price = 175000m, Location = "A-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "323", Name = "Seal 25mm", Type = "Oil Seal", Unit = "PCS", PartCodeCategoryId = partCategories[1].Id, SubGrupCategoryId = subCategories[2].Id, BrandId = brands[3].Id, StockQty = 15, MinQty = 5, MaxQty = 20, Price = 85000m, Location = "A-02", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "324", Name = "Seal 30mm", Type = "Oil Seal", Unit = "PCS", PartCodeCategoryId = partCategories[1].Id, SubGrupCategoryId = subCategories[2].Id, BrandId = brands[3].Id, StockQty = 10, MinQty = 5, MaxQty = 20, Price = 95000m, Location = "A-02", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "325", Name = "Belt V A-40", Type = "V-Belt", Unit = "PCS", PartCodeCategoryId = partCategories[2].Id, SubGrupCategoryId = subCategories[3].Id, BrandId = brands[5].Id, StockQty = 6, MinQty = 3, MaxQty = 10, Price = 120000m, Location = "B-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "326", Name = "Belt V A-42", Type = "V-Belt", Unit = "PCS", PartCodeCategoryId = partCategories[2].Id, SubGrupCategoryId = subCategories[3].Id, BrandId = brands[5].Id, StockQty = 5, MinQty = 3, MaxQty = 10, Price = 130000m, Location = "B-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "327", Name = "Oli Hydraulic 46", Type = "Hydraulic", Unit = "Liter", PartCodeCategoryId = partCategories[3].Id, SubGrupCategoryId = subCategories[4].Id, BrandId = brands[4].Id, StockQty = 100, MinQty = 50, MaxQty = 200, Price = 45000m, Location = "C-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "328", Name = "Oli Gear 220", Type = "Gear", Unit = "Liter", PartCodeCategoryId = partCategories[3].Id, SubGrupCategoryId = subCategories[5].Id, BrandId = brands[4].Id, StockQty = 80, MinQty = 30, MaxQty = 150, Price = 55000m, Location = "C-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "329", Name = "Grease EP2", Type = "MP Grease", Unit = "KG", PartCodeCategoryId = partCategories[4].Id, SubGrupCategoryId = subCategories[6].Id, BrandId = brands[4].Id, StockQty = 20, MinQty = 10, MaxQty = 50, Price = 120000m, Location = "C-02", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "330", Name = "Filter Udara", Type = "Air Filter", Unit = "PCS", PartCodeCategoryId = partCategories[5].Id, SubGrupCategoryId = subCategories[7].Id, BrandId = brands[6].Id, StockQty = 10, MinQty = 5, MaxQty = 20, Price = 250000m, Location = "D-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "331", Name = "Filter Oli", Type = "Oil Filter", Unit = "PCS", PartCodeCategoryId = partCategories[5].Id, SubGrupCategoryId = subCategories[7].Id, BrandId = brands[6].Id, StockQty = 10, MinQty = 5, MaxQty = 20, Price = 200000m, Location = "D-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "332", Name = "Selang Hidrolik 1/2", Type = "Hydraulic", Unit = "Meter", PartCodeCategoryId = partCategories[6].Id, SubGrupCategoryId = subCategories[8].Id, BrandId = brands[6].Id, StockQty = 50, MinQty = 20, MaxQty = 100, Price = 75000m, Location = "D-02", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "333", Name = "Fitting 1/2", Type = "Hydraulic", Unit = "PCS", PartCodeCategoryId = partCategories[7].Id, BrandId = brands[6].Id, StockQty = 40, MinQty = 20, MaxQty = 80, Price = 35000m, Location = "D-02", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "334", Name = "Sensor Proximity", Type = "Inductive", Unit = "PCS", PartCodeCategoryId = partCategories[8].Id, SubGrupCategoryId = subCategories[9].Id, BrandId = brands[7].Id, StockQty = 5, MinQty = 2, MaxQty = 10, Price = 650000m, Location = "E-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "335", Name = "Limit Switch", Type = "Mechanical", Unit = "PCS", PartCodeCategoryId = partCategories[8].Id, BrandId = brands[7].Id, StockQty = 8, MinQty = 3, MaxQty = 15, Price = 450000m, Location = "E-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "336", Name = "Relay 24V", Type = "Relay", Unit = "PCS", PartCodeCategoryId = partCategories[9].Id, BrandId = brands[7].Id, StockQty = 12, MinQty = 5, MaxQty = 20, Price = 180000m, Location = "E-02", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "432", Name = "Bearing 6207", Type = "DGBB", Unit = "PCS", PartCodeCategoryId = partCategories[0].Id, SubGrupCategoryId = subCategories[0].Id, BrandId = brands[2].Id, StockQty = 10, MinQty = 5, MaxQty = 20, Price = 250000m, Location = "A-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "433", Name = "Bearing 6208", Type = "DGBB", Unit = "PCS", PartCodeCategoryId = partCategories[0].Id, SubGrupCategoryId = subCategories[0].Id, BrandId = brands[2].Id, StockQty = 6, MinQty = 3, MaxQty = 12, Price = 320000m, Location = "A-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "434", Name = "Seal 35mm", Type = "Oil Seal", Unit = "PCS", PartCodeCategoryId = partCategories[1].Id, SubGrupCategoryId = subCategories[2].Id, BrandId = brands[3].Id, StockQty = 12, MinQty = 5, MaxQty = 20, Price = 105000m, Location = "A-02", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "435", Name = "Seal 40mm", Type = "Oil Seal", Unit = "PCS", PartCodeCategoryId = partCategories[1].Id, SubGrupCategoryId = subCategories[2].Id, BrandId = brands[3].Id, StockQty = 8, MinQty = 5, MaxQty = 20, Price = 115000m, Location = "A-02", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "436", Name = "Belt V B-50", Type = "V-Belt", Unit = "PCS", PartCodeCategoryId = partCategories[2].Id, SubGrupCategoryId = subCategories[3].Id, BrandId = brands[5].Id, StockQty = 6, MinQty = 3, MaxQty = 10, Price = 180000m, Location = "B-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "437", Name = "Belt V B-52", Type = "V-Belt", Unit = "PCS", PartCodeCategoryId = partCategories[2].Id, SubGrupCategoryId = subCategories[3].Id, BrandId = brands[5].Id, StockQty = 5, MinQty = 3, MaxQty = 10, Price = 195000m, Location = "B-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "438", Name = "Oli Way Lube 68", Type = "Way Lube", Unit = "Liter", PartCodeCategoryId = partCategories[3].Id, SubGrupCategoryId = subCategories[4].Id, BrandId = brands[4].Id, StockQty = 60, MinQty = 30, MaxQty = 120, Price = 52000m, Location = "C-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "439", Name = "Oli Spindle 32", Type = "Spindle", Unit = "Liter", PartCodeCategoryId = partCategories[3].Id, SubGrupCategoryId = subCategories[4].Id, BrandId = brands[4].Id, StockQty = 50, MinQty = 20, MaxQty = 100, Price = 62000m, Location = "C-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "440", Name = "Grease MP2", Type = "MP Grease", Unit = "KG", PartCodeCategoryId = partCategories[4].Id, SubGrupCategoryId = subCategories[6].Id, BrandId = brands[4].Id, StockQty = 25, MinQty = 10, MaxQty = 50, Price = 135000m, Location = "C-02", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "441", Name = "Filter Coolant", Type = "Coolant", Unit = "PCS", PartCodeCategoryId = partCategories[5].Id, SubGrupCategoryId = subCategories[7].Id, BrandId = brands[6].Id, StockQty = 8, MinQty = 4, MaxQty = 15, Price = 220000m, Location = "D-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "442", Name = "Filter Hidrolik", Type = "Hydraulic", Unit = "PCS", PartCodeCategoryId = partCategories[5].Id, SubGrupCategoryId = subCategories[7].Id, BrandId = brands[6].Id, StockQty = 8, MinQty = 4, MaxQty = 15, Price = 240000m, Location = "D-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "443", Name = "Selang Pneumatic 3/8", Type = "Pneumatic", Unit = "Meter", PartCodeCategoryId = partCategories[6].Id, SubGrupCategoryId = subCategories[8].Id, BrandId = brands[6].Id, StockQty = 40, MinQty = 20, MaxQty = 80, Price = 68000m, Location = "D-02", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "444", Name = "Fitting 3/8", Type = "Pneumatic", Unit = "PCS", PartCodeCategoryId = partCategories[7].Id, BrandId = brands[6].Id, StockQty = 35, MinQty = 15, MaxQty = 60, Price = 32000m, Location = "D-02", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "445", Name = "Sensor Pressure", Type = "Pressure", Unit = "PCS", PartCodeCategoryId = partCategories[8].Id, BrandId = brands[7].Id, StockQty = 4, MinQty = 2, MaxQty = 8, Price = 750000m, Location = "E-01", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "446", Name = "Solenoid Valve 24V", Type = "Solenoid", Unit = "PCS", PartCodeCategoryId = partCategories[9].Id, BrandId = brands[6].Id, StockQty = 6, MinQty = 2, MaxQty = 10, Price = 480000m, Location = "E-02", CreatedBy = "system", CreatedDate = DateTime.Now });
-        parts.Add(new() { PartNo = "447", Name = "Contactor 25A", Type = "Contactor", Unit = "PCS", PartCodeCategoryId = partCategories[9].Id, BrandId = brands[6].Id, StockQty = 5, MinQty = 2, MaxQty = 8, Price = 320000m, Location = "E-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "321", Name = "Bearing 6205", Type = "DGBB", Category = "Bearing", Unit = "PCS", BrandId = brands[2].Id, StockQty = 12, MinQty = 5, MaxQty = 20, Price = 150000m, Location = "A-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "322", Name = "Bearing 6206", Type = "DGBB", Category = "Bearing", Unit = "PCS", BrandId = brands[2].Id, StockQty = 8, MinQty = 5, MaxQty = 20, Price = 175000m, Location = "A-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "323", Name = "Seal 25mm", Type = "Oil Seal", Category = "Seal", Unit = "PCS", BrandId = brands[3].Id, StockQty = 15, MinQty = 5, MaxQty = 20, Price = 85000m, Location = "A-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "324", Name = "Seal 30mm", Type = "Oil Seal", Category = "Seal", Unit = "PCS", BrandId = brands[3].Id, StockQty = 10, MinQty = 5, MaxQty = 20, Price = 95000m, Location = "A-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "325", Name = "Belt V A-40", Type = "V-Belt", Category = "Belt", Unit = "PCS", BrandId = brands[5].Id, StockQty = 6, MinQty = 3, MaxQty = 10, Price = 120000m, Location = "B-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "326", Name = "Belt V A-42", Type = "V-Belt", Category = "Belt", Unit = "PCS", BrandId = brands[5].Id, StockQty = 5, MinQty = 3, MaxQty = 10, Price = 130000m, Location = "B-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "327", Name = "Oli Hydraulic 46", Type = "Hydraulic", Category = "Oil", Unit = "Liter", BrandId = brands[4].Id, StockQty = 100, MinQty = 50, MaxQty = 200, Price = 45000m, Location = "C-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "328", Name = "Oli Gear 220", Type = "Gear", Category = "Oil", Unit = "Liter", BrandId = brands[4].Id, StockQty = 80, MinQty = 30, MaxQty = 150, Price = 55000m, Location = "C-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "329", Name = "Grease EP2", Type = "MP Grease", Category = "Grease", Unit = "KG", BrandId = brands[4].Id, StockQty = 20, MinQty = 10, MaxQty = 50, Price = 120000m, Location = "C-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "330", Name = "Filter Udara", Type = "Air Filter", Category = "Filter", Unit = "PCS", BrandId = brands[6].Id, StockQty = 10, MinQty = 5, MaxQty = 20, Price = 250000m, Location = "D-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "331", Name = "Filter Oli", Type = "Oil Filter", Category = "Filter", Unit = "PCS", BrandId = brands[6].Id, StockQty = 10, MinQty = 5, MaxQty = 20, Price = 200000m, Location = "D-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "332", Name = "Selang Hidrolik 1/2", Type = "Hydraulic", Category = "Hose", Unit = "Meter", BrandId = brands[6].Id, StockQty = 50, MinQty = 20, MaxQty = 100, Price = 75000m, Location = "D-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "333", Name = "Fitting 1/2", Type = "Hydraulic", Category = "Fitting", Unit = "PCS", BrandId = brands[6].Id, StockQty = 40, MinQty = 20, MaxQty = 80, Price = 35000m, Location = "D-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "334", Name = "Sensor Proximity", Type = "Inductive", Category = "Sensor", Unit = "PCS", BrandId = brands[7].Id, StockQty = 5, MinQty = 2, MaxQty = 10, Price = 650000m, Location = "E-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "335", Name = "Limit Switch", Type = "Mechanical", Category = "Sensor", Unit = "PCS", BrandId = brands[7].Id, StockQty = 8, MinQty = 3, MaxQty = 15, Price = 450000m, Location = "E-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "336", Name = "Relay 24V", Type = "Relay", Category = "Electrical", Unit = "PCS", BrandId = brands[7].Id, StockQty = 12, MinQty = 5, MaxQty = 20, Price = 180000m, Location = "E-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "432", Name = "Bearing 6207", Type = "DGBB", Category = "Bearing", Unit = "PCS", BrandId = brands[2].Id, StockQty = 10, MinQty = 5, MaxQty = 20, Price = 250000m, Location = "A-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "433", Name = "Bearing 6208", Type = "DGBB", Category = "Bearing", Unit = "PCS", BrandId = brands[2].Id, StockQty = 6, MinQty = 3, MaxQty = 12, Price = 320000m, Location = "A-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "434", Name = "Seal 35mm", Type = "Oil Seal", Category = "Seal", Unit = "PCS", BrandId = brands[3].Id, StockQty = 12, MinQty = 5, MaxQty = 20, Price = 105000m, Location = "A-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "435", Name = "Seal 40mm", Type = "Oil Seal", Category = "Seal", Unit = "PCS", BrandId = brands[3].Id, StockQty = 8, MinQty = 5, MaxQty = 20, Price = 115000m, Location = "A-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "436", Name = "Belt V B-50", Type = "V-Belt", Category = "Belt", Unit = "PCS", BrandId = brands[5].Id, StockQty = 6, MinQty = 3, MaxQty = 10, Price = 180000m, Location = "B-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "437", Name = "Belt V B-52", Type = "V-Belt", Category = "Belt", Unit = "PCS", BrandId = brands[5].Id, StockQty = 5, MinQty = 3, MaxQty = 10, Price = 195000m, Location = "B-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "438", Name = "Oli Way Lube 68", Type = "Way Lube", Category = "Oil", Unit = "Liter", BrandId = brands[4].Id, StockQty = 60, MinQty = 30, MaxQty = 120, Price = 52000m, Location = "C-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "439", Name = "Oli Spindle 32", Type = "Spindle", Category = "Oil", Unit = "Liter", BrandId = brands[4].Id, StockQty = 50, MinQty = 20, MaxQty = 100, Price = 62000m, Location = "C-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "440", Name = "Grease MP2", Type = "MP Grease", Category = "Grease", Unit = "KG", BrandId = brands[4].Id, StockQty = 25, MinQty = 10, MaxQty = 50, Price = 135000m, Location = "C-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "441", Name = "Filter Coolant", Type = "Coolant", Category = "Filter", Unit = "PCS", BrandId = brands[6].Id, StockQty = 8, MinQty = 4, MaxQty = 15, Price = 220000m, Location = "D-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "442", Name = "Filter Hidrolik", Type = "Hydraulic", Category = "Filter", Unit = "PCS", BrandId = brands[6].Id, StockQty = 8, MinQty = 4, MaxQty = 15, Price = 240000m, Location = "D-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "443", Name = "Selang Pneumatic 3/8", Type = "Pneumatic", Category = "Hose", Unit = "Meter", BrandId = brands[6].Id, StockQty = 40, MinQty = 20, MaxQty = 80, Price = 68000m, Location = "D-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "444", Name = "Fitting 3/8", Type = "Pneumatic", Category = "Fitting", Unit = "PCS", BrandId = brands[6].Id, StockQty = 35, MinQty = 15, MaxQty = 60, Price = 32000m, Location = "D-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "445", Name = "Sensor Pressure", Type = "Pressure", Category = "Sensor", Unit = "PCS", BrandId = brands[7].Id, StockQty = 4, MinQty = 2, MaxQty = 8, Price = 750000m, Location = "E-01", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "446", Name = "Solenoid Valve 24V", Type = "Solenoid", Category = "Electrical", Unit = "PCS", BrandId = brands[6].Id, StockQty = 6, MinQty = 2, MaxQty = 10, Price = 480000m, Location = "E-02", CreatedBy = "system", CreatedDate = DateTime.Now });
+        parts.Add(new() { PartNo = "447", Name = "Contactor 25A", Type = "Contactor", Category = "Electrical", Unit = "PCS", BrandId = brands[6].Id, StockQty = 5, MinQty = 2, MaxQty = 8, Price = 320000m, Location = "E-02", CreatedBy = "system", CreatedDate = DateTime.Now });
 
         db.Parts.AddRange(parts);
 
@@ -371,7 +329,72 @@ public static class DbSeeder
             .ToListAsync();
 
         var tasks = new List<PmTaskTemplate>();
+        // ============================================================
+        // 12. UNIT (Unit Mesin)
+        // ============================================================
+        var units = new List<Unit>
+        {
+            new() { Code = "U-01", Name = "Hydraulic Equipment", Description = "Peralatan hidrolik", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "U-02", Name = "Electrical Equipment", Description = "Peralatan listrik", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "U-03", Name = "Mechanical Equipment", Description = "Peralatan mekanik", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "U-04", Name = "Pneumatic Equipment", Description = "Peralatan pneumatik", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "U-05", Name = "Cooling System", Description = "Sistem pendingin", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "U-06", Name = "Lubrication System", Description = "Sistem pelumasan", CreatedBy = "system", CreatedDate = DateTime.Now }
+        };
+        db.Units.AddRange(units);
 
+        await db.SaveChangesAsync();
+
+        // ============================================================
+        // 13. SUB UNIT
+        // ============================================================
+        var subUnits = new List<SubUnit>
+        {
+            new() { Code = "SU-01", Name = "Tanki Hidrolik 1", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "SU-02", Name = "Tanki Hidrolik 2", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "SU-03", Name = "Motorpump", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "SU-04", Name = "Oil Cooler Pompa Hidrolik 1", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "SU-05", Name = "Oil Cooler Pompa Hidrolik 2", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "SU-06", Name = "Panel Listrik Utama", UnitId = units[1].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "SU-07", Name = "Kipas Pendingin", UnitId = units[4].Id, CreatedBy = "system", CreatedDate = DateTime.Now }
+        };
+        db.SubUnits.AddRange(subUnits);
+
+        await db.SaveChangesAsync();
+
+        // ============================================================
+        // 14. METODE
+        // ============================================================
+        var metodes = new List<Metode>
+        {
+            new() { Code = "M01", Name = "Change", Initial = "Chg", MachineState = MachineRunningState.OFF, Description = "Ganti part/komponen", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "M02", Name = "Check", Initial = "Chk", MachineState = MachineRunningState.ON, Description = "Pengecekan kondisi", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "M03", Name = "Cleaning", Initial = "Cln", MachineState = MachineRunningState.OFF, Description = "Pembersihan", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "M04", Name = "Repair", Initial = "Rpr", MachineState = MachineRunningState.OFF, Description = "Perbaikan", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "M05", Name = "Inspect", Initial = "Ins", MachineState = MachineRunningState.ON, Description = "Inspeksi visual", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "M06", Name = "Replace", Initial = "Rpl", MachineState = MachineRunningState.OFF, Description = "Ganti total", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "M07", Name = "Greasing", Initial = "Grs", MachineState = MachineRunningState.OFF, Description = "Pelumasan", CreatedBy = "system", CreatedDate = DateTime.Now }
+        };
+        db.Metodes.AddRange(metodes);
+
+        await db.SaveChangesAsync();
+
+        // ============================================================
+        // 15. STANDAR
+        // ============================================================
+        var standars = new List<Standar>
+        {
+            new() { Name = "Ganti oli dengan Shell Tellus 32", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Name = "Tidak over noise, tidak vibrasi", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Name = "Bersih dari debu, tidak ada endapan kotoran", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Name = "Level oli antara MIN-MAX", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Name = "Tidak ada kebocoran", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Name = "Vibrasi < 2 mm/s", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Name = "Temperatur normal < 70°C", CreatedBy = "system", CreatedDate = DateTime.Now }
+        };
+        db.Standars.AddRange(standars);
+
+        await db.SaveChangesAsync();
         if (bomCnc.Count >= 1)
         {
             tasks.Add(new PmTaskTemplate

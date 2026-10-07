@@ -179,7 +179,7 @@ else
                                 </a>
                             </td>
                             <td>@item.Part?.Name</td>
-                            <td>@(item.Part?.PartCodeCategory?.Name ?? "-")</td>
+                            <td>@(item.Part?.Category ?? "-")</td>
                             <td>@(item.Part?.Brand?.Name ?? "-")</td>
                             <td class="text-center">
                                 <span class="badge bg-primary">@item.Quantity</span>
@@ -219,7 +219,7 @@ else
                             <option value="">-- Pilih Part --</option>
                             @foreach (var p in availableParts)
                             {
-                                <option value="@p.Id">@p.PartNo - @p.Name (@(p.PartCodeCategory?.Name ?? "-"))</option>
+                                <option value="@p.Id">@p.PartNo - @p.Name (@(p.Category ?? "-"))</option>
                             }
                         </select>
                     </div>

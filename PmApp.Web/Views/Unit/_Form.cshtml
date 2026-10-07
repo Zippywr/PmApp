@@ -1,24 +1,17 @@
-﻿@model PmApp.Web.Models.ViewModels.SubGrupCategoryFormViewModel
+﻿@model PmApp.Web.Models.ViewModels.UnitFormViewModel
 
 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
 <div class="row">
     <div class="col-md-4 mb-3">
         <label asp-for="Code" class="form-label"></label>
-        <input asp-for="Code" class="form-control" placeholder="Contoh: SUB-001" />
+        <input asp-for="Code" class="form-control" placeholder="Contoh: U-01" />
         <span asp-validation-for="Code" class="text-danger small"></span>
     </div>
     <div class="col-md-8 mb-3">
         <label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" placeholder="Contoh: Deep Groove Ball Bearing" />
+        <input asp-for="Name" class="form-control" placeholder="Contoh: Hydraulic Equipment" />
         <span asp-validation-for="Name" class="text-danger small"></span>
-    </div>
-    <div class="col-md-6 mb-3">
-        <label asp-for="PartCodeCategoryId" class="form-label"></label>
-        <select asp-for="PartCodeCategoryId" asp-items="Model.CategoryList" class="form-select">
-            <option value="">-- Pilih Kategori --</option>
-        </select>
-        <span asp-validation-for="PartCodeCategoryId" class="text-danger small"></span>
     </div>
     <div class="col-12 mb-3">
         <label asp-for="Description" class="form-label"></label>

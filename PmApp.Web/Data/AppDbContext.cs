@@ -23,13 +23,16 @@ public class AppDbContext : DbContext
     // ============================================================
     public DbSet<McCategory> McCategories => Set<McCategory>();
     public DbSet<MachineFunction> MachineFunctions => Set<MachineFunction>();
+    public DbSet<Unit> Units => Set<Unit>();
+    public DbSet<SubUnit> SubUnits => Set<SubUnit>();
+    public DbSet<Metode> Metodes => Set<Metode>();
+    public DbSet<Standar> Standars => Set<Standar>();
 
     // ============================================================
     // DB SETS — MASTER MESIN & PART
     // ============================================================
     public DbSet<Asset> Assets => Set<Asset>();
-    public DbSet<PartCodeCategory> PartCodeCategories => Set<PartCodeCategory>();
-    public DbSet<SubGrupCategory> SubGrupCategories => Set<SubGrupCategory>();
+
     public DbSet<Part> Parts => Set<Part>();
     public DbSet<AssetPart> AssetParts => Set<AssetPart>();
 
@@ -146,44 +149,12 @@ public class AppDbContext : DbContext
              .HasForeignKey(x => x.ProductId)
              .OnDelete(DeleteBehavior.Restrict);
         });
-
-        // ---------------------------------------------------------
-        // PART CODE CATEGORY
-        // ---------------------------------------------------------
-        modelBuilder.Entity<PartCodeCategory>(e =>
-        {
-            e.HasIndex(x => x.Code).IsUnique();
-        });
-
-        // ---------------------------------------------------------
-        // SUB GRUP CATEGORY
-        // ---------------------------------------------------------
-        modelBuilder.Entity<SubGrupCategory>(e =>
-        {
-            e.HasIndex(x => x.Code).IsUnique();
-
-            e.HasOne(x => x.PartCodeCategory)
-             .WithMany(c => c.SubCategories)
-             .HasForeignKey(x => x.PartCodeCategoryId)
-             .OnDelete(DeleteBehavior.Restrict);
-        });
-
         // ---------------------------------------------------------
         // PART
         // ---------------------------------------------------------
         modelBuilder.Entity<Part>(e =>
         {
             e.HasIndex(x => x.PartNo).IsUnique();
-
-            e.HasOne(x => x.PartCodeCategory)
-             .WithMany(c => c.Parts)
-             .HasForeignKey(x => x.PartCodeCategoryId)
-             .OnDelete(DeleteBehavior.Restrict);
-
-            e.HasOne(x => x.SubGrupCategory)
-             .WithMany(s => s.Parts)
-             .HasForeignKey(x => x.SubGrupCategoryId)
-             .OnDelete(DeleteBehavior.Restrict);
 
             e.HasOne(x => x.Brand)
              .WithMany()
@@ -242,6 +213,43 @@ public class AppDbContext : DbContext
 
             e.HasIndex(x => x.DueDate);
             e.HasIndex(x => x.Status);
+        });
+
+        // ---------------------------------------------------------
+        // UNIT
+        // ---------------------------------------------------------
+        modelBuilder.Entity<Unit>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+        });
+
+        // ---------------------------------------------------------
+        // SUB UNIT
+        // ---------------------------------------------------------
+        modelBuilder.Entity<SubUnit>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+
+            e.HasOne(x => x.Unit)
+             .WithMany(u => u.SubUnits)
+             .HasForeignKey(x => x.UnitId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ---------------------------------------------------------
+        // METODE
+        // ---------------------------------------------------------
+        modelBuilder.Entity<Metode>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+        });
+
+        // ---------------------------------------------------------
+        // STANDAR
+        // ---------------------------------------------------------
+        modelBuilder.Entity<Standar>(e =>
+        {
+            e.HasIndex(x => x.Name);
         });
 
         // =========================================================

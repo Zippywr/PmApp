@@ -21,6 +21,10 @@ public class PartFormViewModel
     [Display(Name = "Type")]
     public string? Type { get; set; }
 
+    [MaxLength(100)]
+    [Display(Name = "Kategori")]
+    public string? Category { get; set; }
+
     [MaxLength(20)]
     [Display(Name = "Satuan")]
     public string Unit { get; set; } = "PCS";
@@ -28,12 +32,6 @@ public class PartFormViewModel
     [MaxLength(500)]
     [Display(Name = "Deskripsi")]
     public string? Description { get; set; }
-
-    [Display(Name = "Kategori")]
-    public int? PartCodeCategoryId { get; set; }
-
-    [Display(Name = "Sub Kategori")]
-    public int? SubGrupCategoryId { get; set; }
 
     [Display(Name = "Brand")]
     public int? BrandId { get; set; }
@@ -58,7 +56,5 @@ public class PartFormViewModel
     [Display(Name = "Harga (IDR)")]
     public decimal Price { get; set; } = 0;
 
-    public List<SelectListItem> PartCodeCategoryList { get; set; } = new();
-    public List<SelectListItem> SubGrupCategoryList { get; set; } = new();
     public List<SelectListItem> BrandList { get; set; } = new();
 }

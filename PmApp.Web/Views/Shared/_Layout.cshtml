@@ -345,17 +345,26 @@
                             <i class="bi bi-box-seam"></i>
                             <span>Part</span>
                         </a>
-                        <a class="nav-link" asp-controller="PartCodeCategory" asp-action="Index">
-                            <i class="bi bi-tags"></i>
-                            <span>Kategori Part</span>
-                        </a>
-                        <a class="nav-link" asp-controller="SubGrupCategory" asp-action="Index">
-                            <i class="bi bi-tags-fill"></i>
-                            <span>Sub Kategori Part</span>
-                        </a>
                         <a class="nav-link" asp-controller="Bom" asp-action="Index">
                             <i class="bi bi-diagram-3"></i>
                             <span>Pemasangan (BOM)</span>
+                        </a>
+                        <!-- Klasifikasi PM -->
+                        <a class="nav-link" asp-controller="Unit" asp-action="Index">
+                            <i class="bi bi-cpu"></i>
+                            <span>Unit</span>
+                        </a>
+                        <a class="nav-link" asp-controller="SubUnit" asp-action="Index">
+                            <i class="bi bi-diagram-3"></i>
+                            <span>Sub Unit</span>
+                        </a>
+                        <a class="nav-link" asp-controller="Metode" asp-action="Index">
+                            <i class="bi bi-wrench"></i>
+                            <span>Metode</span>
+                        </a>
+                        <a class="nav-link" asp-controller="Standar" asp-action="Index">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span>Standar</span>
                         </a>
                     </div>
                 </div>
@@ -493,8 +502,9 @@
             const path = window.location.pathname.toLowerCase();
 
             const urlMap = {
-                'masterdata':     ['/asset', '/part', '/bom', '/plant', '/line', '/area',
-                                   '/product', '/brand', '/mccategory', '/machinefunction'],
+                'masterdata': ['/asset', '/part', '/bom', '/plant', '/line', '/area',
+               '/product', '/brand', '/mccategory', '/machinefunction',
+               '/unit', '/subunit', '/metode', '/standar'],
                 'schedule':       ['/pmschedule', '/export'],
                 'implementation': ['/pmupdate'],
                 'report':         ['/report']

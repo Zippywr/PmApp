@@ -27,13 +27,9 @@
             </div>
             <div class="col-md-2">
                 <small class="text-muted">Kategori</small>
-                <p class="mb-0">@(part.PartCodeCategory?.Name ?? "-")</p>
+                <p class="mb-0">@(part.Category ?? "-")</p>
             </div>
-            <div class="col-md-3">
-                <small class="text-muted">Sub Kategori</small>
-                <p class="mb-0">@(part.SubGrupCategory?.Name ?? "-")</p>
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <small class="text-muted">Brand</small>
                 <p class="mb-0">@(part.Brand?.Name ?? "-")</p>
             </div>
@@ -44,14 +40,6 @@
             <div class="col-md-2">
                 <small class="text-muted">Stock</small>
                 <p class="mb-0">@part.StockQty (min @part.MinQty / max @part.MaxQty)</p>
-            </div>
-            <div class="col-md-2">
-                <small class="text-muted">Lokasi</small>
-                <p class="mb-0">@(part.Location ?? "-")</p>
-            </div>
-            <div class="col-md-2">
-                <small class="text-muted">Harga</small>
-                <p class="mb-0">@part.Price.ToString("N0")</p>
             </div>
         </div>
         @if (!string.IsNullOrEmpty(part.Description))

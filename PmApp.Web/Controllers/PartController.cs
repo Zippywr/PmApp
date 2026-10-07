@@ -19,8 +19,6 @@ public class PartController : Controller
     public async Task<IActionResult> Index()
     {
         var list = await _db.Parts
-            .Include(p => p.PartCodeCategory)
-            .Include(p => p.SubGrupCategory)
             .Include(p => p.Brand)
             .Include(p => p.AssetParts)
             .OrderBy(p => p.PartNo)
@@ -31,8 +29,6 @@ public class PartController : Controller
     public async Task<IActionResult> Details(int id)
     {
         var part = await _db.Parts
-            .Include(p => p.PartCodeCategory)
-            .Include(p => p.SubGrupCategory)
             .Include(p => p.Brand)
             .FirstOrDefaultAsync(p => p.Id == id);
 
@@ -78,10 +74,9 @@ public class PartController : Controller
             PartNo = vm.PartNo,
             Name = vm.Name,
             Type = vm.Type,
+            Category = vm.Category,
             Unit = vm.Unit,
             Description = vm.Description,
-            PartCodeCategoryId = vm.PartCodeCategoryId,
-            SubGrupCategoryId = vm.SubGrupCategoryId,
             BrandId = vm.BrandId,
             StockQty = vm.StockQty,
             MinQty = vm.MinQty,
@@ -109,10 +104,9 @@ public class PartController : Controller
             PartNo = part.PartNo,
             Name = part.Name,
             Type = part.Type,
+            Category = part.Category,
             Unit = part.Unit,
             Description = part.Description,
-            PartCodeCategoryId = part.PartCodeCategoryId,
-            SubGrupCategoryId = part.SubGrupCategoryId,
             BrandId = part.BrandId,
             StockQty = part.StockQty,
             MinQty = part.MinQty,
@@ -150,10 +144,9 @@ public class PartController : Controller
         part.PartNo = vm.PartNo;
         part.Name = vm.Name;
         part.Type = vm.Type;
+        part.Category = vm.Category;
         part.Unit = vm.Unit;
         part.Description = vm.Description;
-        part.PartCodeCategoryId = vm.PartCodeCategoryId;
-        part.SubGrupCategoryId = vm.SubGrupCategoryId;
         part.BrandId = vm.BrandId;
         part.StockQty = vm.StockQty;
         part.MinQty = vm.MinQty;
@@ -196,16 +189,6 @@ public class PartController : Controller
 
     private async Task PopulateDropdownsAsync(PartFormViewModel vm)
     {
-        vm.PartCodeCategoryList = await _db.PartCodeCategories
-            .OrderBy(c => c.Code)
-            .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Code + " - " + c.Name })
-            .ToListAsync();
-
-        vm.SubGrupCategoryList = await _db.SubGrupCategories
-            .OrderBy(s => s.Code)
-            .Select(s => new SelectListItem { Value = s.Id.ToString(), Text = s.Code + " - " + s.Name })
-            .ToListAsync();
-
         vm.BrandList = await _db.Brands
             .OrderBy(b => b.Code)
             .Select(b => new SelectListItem { Value = b.Id.ToString(), Text = b.Code + " - " + b.Name })

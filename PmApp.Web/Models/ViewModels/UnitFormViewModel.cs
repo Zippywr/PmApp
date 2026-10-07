@@ -2,18 +2,18 @@
 
 namespace PmApp.Web.Models.ViewModels;
 
-public class PartCodeCategoryFormViewModel
+public class UnitFormViewModel
 {
     public int Id { get; set; }
 
-    [Required(ErrorMessage = "Kode kategori wajib diisi")]
+    [Required(ErrorMessage = "Kode unit wajib diisi")]
     [MaxLength(50)]
-    [Display(Name = "Kode Kategori")]
+    [Display(Name = "Kode Unit")]
     public string Code { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Nama kategori wajib diisi")]
+    [Required(ErrorMessage = "Nama unit wajib diisi")]
     [MaxLength(200)]
-    [Display(Name = "Nama Kategori")]
+    [Display(Name = "Nama Unit")]
     public string Name { get; set; } = string.Empty;
 
     [MaxLength(500)]

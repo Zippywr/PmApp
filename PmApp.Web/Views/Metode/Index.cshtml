@@ -1,6 +1,6 @@
-﻿@model IEnumerable<PmApp.Web.Models.Entities.SubGrupCategory>
+﻿@model IEnumerable<PmApp.Web.Models.Entities.Metode>
 @{
-    ViewData["Title"] = "Sub Kategori Part";
+    ViewData["Title"] = "Daftar Metode";
 }
 
 @if (TempData["Success"] != null)
@@ -19,9 +19,9 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0"><i class="bi bi-tags-fill"></i> Sub Kategori Part</h4>
+    <h4 class="mb-0"><i class="bi bi-wrench"></i> Daftar Metode</h4>
     <a asp-action="Create" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Tambah Sub Kategori
+        <i class="bi bi-plus-circle"></i> Tambah Metode
     </a>
 </div>
 
@@ -31,10 +31,10 @@
             <thead class="table-light">
                 <tr>
                     <th>Kode</th>
-                    <th>Nama Sub Kategori</th>
-                    <th>Kategori Utama</th>
+                    <th>Nama Metode</th>
+                    <th>Initial</th>
+                    <th>Kondisi Mesin</th>
                     <th>Deskripsi</th>
-                    <th>Part</th>
                     <th width="180">Aksi</th>
                 </tr>
             </thead>
@@ -44,9 +44,22 @@
                     <tr>
                         <td><strong>@item.Code</strong></td>
                         <td>@item.Name</td>
-                        <td><span class="badge bg-info">@item.PartCodeCategory?.Name</span></td>
+                        <td>@item.Initial</td>
+                        <td>
+                            @if (item.MachineState == PmApp.Web.Models.MachineRunningState.ON)
+                            {
+                                <span class="badge bg-success">ON</span>
+                            }
+                            else if (item.MachineState == PmApp.Web.Models.MachineRunningState.OFF)
+                            {
+                                <span class="badge bg-danger">OFF</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Either</span>
+                            }
+                        </td>
                         <td>@item.Description</td>
-                        <td><span class="badge bg-primary">@item.Parts.Count</span></td>
                         <td>
                             <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
                                 <i class="bi bi-pencil"></i>
@@ -75,7 +88,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                Yakin ingin menghapus sub kategori <strong id="deleteName"></strong>?
+                Yakin ingin menghapus metode <strong id="deleteName"></strong>?
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>

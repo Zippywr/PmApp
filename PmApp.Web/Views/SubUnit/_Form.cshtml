@@ -1,17 +1,24 @@
-﻿@model PmApp.Web.Models.ViewModels.PartCodeCategoryFormViewModel
+﻿@model PmApp.Web.Models.ViewModels.SubUnitFormViewModel
 
 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
 <div class="row">
     <div class="col-md-4 mb-3">
         <label asp-for="Code" class="form-label"></label>
-        <input asp-for="Code" class="form-control" placeholder="Contoh: CAT-01" />
+        <input asp-for="Code" class="form-control" placeholder="Contoh: SU-01" />
         <span asp-validation-for="Code" class="text-danger small"></span>
     </div>
     <div class="col-md-8 mb-3">
         <label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" placeholder="Contoh: Bearing" />
+        <input asp-for="Name" class="form-control" placeholder="Contoh: Tanki Hidrolik 1" />
         <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="UnitId" class="form-label"></label>
+        <select asp-for="UnitId" asp-items="Model.UnitList" class="form-select">
+            <option value="">-- Pilih Unit --</option>
+        </select>
+        <span asp-validation-for="UnitId" class="text-danger small"></span>
     </div>
     <div class="col-12 mb-3">
         <label asp-for="Description" class="form-label"></label>

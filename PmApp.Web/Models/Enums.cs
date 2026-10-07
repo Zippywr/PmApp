@@ -47,3 +47,9 @@ public enum MachineCondition
     Partial,
     NG
 }
+public enum MachineRunningState
+{
+    ON,       // Mesin harus jalan saat cek
+    OFF,      // Mesin harus mati saat cek
+    Either    // Bisa ON atau OFF
+}

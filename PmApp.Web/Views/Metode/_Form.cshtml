@@ -1,0 +1,29 @@
+﻿@model PmApp.Web.Models.ViewModels.MetodeFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label asp-for="Code" class="form-label"></label>
+        <input asp-for="Code" class="form-control" placeholder="Contoh: M01" />
+        <span asp-validation-for="Code" class="text-danger small"></span>
+    </div>
+    <div class="col-md-5 mb-3">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" placeholder="Contoh: Change" />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+    <div class="col-md-2 mb-3">
+        <label asp-for="Initial" class="form-label"></label>
+        <input asp-for="Initial" class="form-control" placeholder="Chg" />
+    </div>
+    <div class="col-md-2 mb-3">
+        <label asp-for="MachineState" class="form-label"></label>
+        <select asp-for="MachineState" class="form-select"
+                asp-items="Html.GetEnumSelectList<PmApp.Web.Models.MachineRunningState>()"></select>
+    </div>
+    <div class="col-12 mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+    </div>
+</div>

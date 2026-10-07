@@ -6,37 +6,37 @@ using PmApp.Web.Models.ViewModels;
 
 namespace PmApp.Web.Controllers;
 
-public class PartCodeCategoryController : Controller
+public class UnitController : Controller
 {
     private readonly AppDbContext _db;
 
-    public PartCodeCategoryController(AppDbContext db)
+    public UnitController(AppDbContext db)
     {
         _db = db;
     }
 
     public async Task<IActionResult> Index()
     {
-        var list = await _db.PartCodeCategories.OrderBy(c => c.Code).ToListAsync();
+        var list = await _db.Units.OrderBy(u => u.Code).ToListAsync();
         return View(list);
     }
 
     [HttpGet]
-    public IActionResult Create() => View(new PartCodeCategoryFormViewModel());
+    public IActionResult Create() => View(new UnitFormViewModel());
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(PartCodeCategoryFormViewModel vm)
+    public async Task<IActionResult> Create(UnitFormViewModel vm)
     {
         if (!ModelState.IsValid) return View(vm);
 
-        if (await _db.PartCodeCategories.AnyAsync(c => c.Code == vm.Code))
+        if (await _db.Units.AnyAsync(u => u.Code == vm.Code))
         {
-            ModelState.AddModelError(nameof(vm.Code), "Kode sudah digunakan");
+            ModelState.AddModelError(nameof(vm.Code), "Kode unit sudah digunakan");
             return View(vm);
         }
 
-        _db.PartCodeCategories.Add(new PartCodeCategory
+        _db.Units.Add(new Unit
         {
             Code = vm.Code,
             Name = vm.Name,
@@ -44,17 +44,17 @@ public class PartCodeCategoryController : Controller
         });
 
         await _db.SaveChangesAsync();
-        TempData["Success"] = "Kategori berhasil ditambahkan.";
+        TempData["Success"] = "Unit berhasil ditambahkan.";
         return RedirectToAction(nameof(Index));
     }
 
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var item = await _db.PartCodeCategories.FirstOrDefaultAsync(c => c.Id == id);
+        var item = await _db.Units.FirstOrDefaultAsync(u => u.Id == id);
         if (item == null) return NotFound();
 
-        return View(new PartCodeCategoryFormViewModel
+        return View(new UnitFormViewModel
         {
             Id = item.Id,
             Code = item.Code,
@@ -65,17 +65,17 @@ public class PartCodeCategoryController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, PartCodeCategoryFormViewModel vm)
+    public async Task<IActionResult> Edit(int id, UnitFormViewModel vm)
     {
         if (id != vm.Id) return BadRequest();
         if (!ModelState.IsValid) return View(vm);
 
-        var item = await _db.PartCodeCategories.FirstOrDefaultAsync(c => c.Id == id);
+        var item = await _db.Units.FirstOrDefaultAsync(u => u.Id == id);
         if (item == null) return NotFound();
 
-        if (await _db.PartCodeCategories.AnyAsync(c => c.Code == vm.Code && c.Id != id))
+        if (await _db.Units.AnyAsync(u => u.Code == vm.Code && u.Id != id))
         {
-            ModelState.AddModelError(nameof(vm.Code), "Kode sudah digunakan");
+            ModelState.AddModelError(nameof(vm.Code), "Kode unit sudah digunakan");
             return View(vm);
         }
 
@@ -84,7 +84,7 @@ public class PartCodeCategoryController : Controller
         item.Description = vm.Description;
 
         await _db.SaveChangesAsync();
-        TempData["Success"] = "Kategori berhasil diperbarui.";
+        TempData["Success"] = "Unit berhasil diperbarui.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -92,27 +92,26 @@ public class PartCodeCategoryController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
-        var item = await _db.PartCodeCategories
-            .Include(c => c.SubCategories)
-            .Include(c => c.Parts)
-            .FirstOrDefaultAsync(c => c.Id == id);
+        var item = await _db.Units
+            .Include(u => u.SubUnits)
+            .FirstOrDefaultAsync(u => u.Id == id);
 
         if (item == null)
         {
-            TempData["Error"] = "Kategori tidak ditemukan.";
+            TempData["Error"] = "Unit tidak ditemukan.";
             return RedirectToAction(nameof(Index));
         }
 
-        if (item.SubCategories.Any() || item.Parts.Any())
+        if (item.SubUnits.Any())
         {
-            TempData["Error"] = "Kategori tidak bisa dihapus, masih punya sub-kategori atau part.";
+            TempData["Error"] = "Unit tidak bisa dihapus, masih punya sub unit.";
             return RedirectToAction(nameof(Index));
         }
 
         item.IsDeleted = true;
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = "Kategori berhasil dihapus.";
+        TempData["Success"] = "Unit berhasil dihapus.";
         return RedirectToAction(nameof(Index));
     }
 }

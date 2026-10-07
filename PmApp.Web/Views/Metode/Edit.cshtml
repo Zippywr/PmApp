@@ -1,18 +1,18 @@
-﻿@model PmApp.Web.Models.ViewModels.PartCodeCategoryFormViewModel
+﻿@model PmApp.Web.Models.ViewModels.MetodeFormViewModel
 @{
-    ViewData["Title"] = "Edit Kategori Part";
+    ViewData["Title"] = "Edit Metode";
 }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-action="Index">Kategori Part</a></li>
+        <li class="breadcrumb-item"><a asp-action="Index">Metode</a></li>
         <li class="breadcrumb-item active">Edit</li>
     </ol>
 </nav>
 
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-warning">
-        <h5 class="mb-0"><i class="bi bi-pencil"></i> Edit Kategori</h5>
+        <h5 class="mb-0"><i class="bi bi-pencil"></i> Edit Metode</h5>
     </div>
     <div class="card-body">
         <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
