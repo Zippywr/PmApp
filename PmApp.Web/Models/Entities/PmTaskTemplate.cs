@@ -2,46 +2,55 @@
 
 namespace PmApp.Web.Models.Entities;
 
-/// <summary>
-/// Template task PM — terhubung ke PART di BOM (bukan langsung ke mesin).
-/// 1 part bisa punya banyak task dengan frekuensi berbeda.
-/// </summary>
 public class PmTaskTemplate : BaseEntity
 {
-    [Display(Name = "Part BOM")]
-    public int AssetPartId { get; set; }
-    public AssetPart? AssetPart { get; set; }
+    [MaxLength(20)]
+    [Display(Name = "ID PM")]
+    public string IdPm { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Nama task wajib diisi")]
-    [MaxLength(300)]
-    [Display(Name = "Nama Task")]
-    public string TaskName { get; set; } = string.Empty;
+    [Display(Name = "No Line")]
+    public int LineSequence { get; set; }
 
-    [MaxLength(200)]
-    [Display(Name = "Sub Unit")]
-    public string? SubUnit { get; set; }
+    [Display(Name = "No Mesin")]
+    public int MachineSequence { get; set; }
 
-    [Display(Name = "Metode")]
-    public MaintenanceMethod Method { get; set; } = MaintenanceMethod.Visual;
+    [Display(Name = "No Task")]
+    public int TaskSequence { get; set; }
 
-    [MaxLength(300)]
-    [Display(Name = "Standar")]
-    public string? Standard { get; set; }
+    [Required]
+    public int AssetId { get; set; }
+    public Asset? Asset { get; set; }
 
-    [Display(Name = "Frekuensi")]
-    public FrequencyType FrequencyType { get; set; } = FrequencyType.Monthly;
+    public int? UnitId { get; set; }
+    public Unit? Unit { get; set; }
 
-    [Range(1, 3650, ErrorMessage = "Nilai frekuensi 1-3650")]
-    [Display(Name = "Nilai Frekuensi")]
-    public int FrequencyValue { get; set; } = 1;
+    public int? SubUnitId { get; set; }
+    public SubUnit? SubUnit { get; set; }
 
-    [MaxLength(200)]
-    [Display(Name = "Penanggung Jawab")]
-    public string? PIC { get; set; }
+    public int? MethodId { get; set; }
+    public Metode? Method { get; set; }
+
+    public int? StandardId { get; set; }
+    public Standar? Standard { get; set; }
+
+    [Display(Name = "Waktu (menit)")]
+    public int WorkHourMinutes { get; set; }
+
+    [Display(Name = "Man Power")]
+    public int ManPower { get; set; } = 1;
+
+    [Display(Name = "Kondisi Mesin")]
+    public MachineRunningState MachineState { get; set; } = MachineRunningState.OFF;
+
+    [Display(Name = "Periode (bulan)")]
+    public int PeriodeMonth { get; set; } = 1;
+
+    [Display(Name = "Mulai Bulan")]
+    public int StartMonth { get; set; } = 1;
 
     [MaxLength(500)]
-    [Display(Name = "Catatan")]
-    public string? Notes { get; set; }
+    [Display(Name = "Remark")]
+    public string? Remark { get; set; }
 
     [Display(Name = "Aktif")]
     public bool IsActive { get; set; } = true;

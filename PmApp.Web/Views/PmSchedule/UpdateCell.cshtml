@@ -1,0 +1,117 @@
+﻿@model PmApp.Web.Models.Entities.PmSchedule
+@{
+    ViewData["Title"] = "Update Jadwal PM";
+    var taskIdPm = (string?)ViewBag.TaskIdPm;
+    var assetCode = (string?)ViewBag.AssetCode;
+    var month = (int)ViewBag.Month;
+    var year = (int)ViewBag.Year;
+
+    var monthNames = new[] { "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+                             "Juli", "Agustus", "September", "Oktober", "November", "Desember" };
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index" asp-route-year="@year">Jadwal PM</a></li>
+        <li class="breadcrumb-item active">Update</li>
+    </ol>
+</nav>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-pencil-square"></i>
+            Update: @taskIdPm — @monthNames[month] @year
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <strong>ID-PM:</strong> @taskIdPm &nbsp;|&nbsp;
+            <strong>Mesin:</strong> @assetCode &nbsp;|&nbsp;
+            <strong>Periode:</strong> @monthNames[month] @year
+        </div>
+
+        <form asp-action="UpdateCell" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Actual Date</label>
+                    <input type="date" name="actualDate" class="form-control"
+                           value="@(Model.ActualDate?.ToString("yyyy-MM-dd"))" />
+                    <small class="text-muted">Kosongkan jika belum dikerjakan</small>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">PIC</label>
+                    <input type="text" name="pic" class="form-control"
+                           value="@Model.PIC" placeholder="Nama teknisi" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        @if (Model.Status == PmApp.Web.Models.PmStatus.Scheduled)
+                        {
+                            <option value="Scheduled" selected>Scheduled</option>
+                        }
+                        else
+                        {
+                            <option value="Scheduled">Scheduled</option>
+                        }
+
+                        @if (Model.Status == PmApp.Web.Models.PmStatus.InProgress)
+                        {
+                            <option value="InProgress" selected>InProgress</option>
+                        }
+                        else
+                        {
+                            <option value="InProgress">InProgress</option>
+                        }
+
+                        @if (Model.Status == PmApp.Web.Models.PmStatus.Done)
+                        {
+                            <option value="Done" selected>Done</option>
+                        }
+                        else
+                        {
+                            <option value="Done">Done</option>
+                        }
+
+                        @if (Model.Status == PmApp.Web.Models.PmStatus.Overdue)
+                        {
+                            <option value="Overdue" selected>Overdue</option>
+                        }
+                        else
+                        {
+                            <option value="Overdue">Overdue</option>
+                        }
+
+                        @if (Model.Status == PmApp.Web.Models.PmStatus.Cancelled)
+                        {
+                            <option value="Cancelled" selected>Cancelled</option>
+                        }
+                        else
+                        {
+                            <option value="Cancelled">Cancelled</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label class="form-label">Catatan</label>
+                    <textarea name="notes" class="form-control" rows="3">@Model.Notes</textarea>
+                </div>
+            </div>
+
+            <div class="mt-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Simpan
+                </button>
+                <a asp-action="Index" asp-route-year="@year" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Batal
+                </a>
+            </div>
+        </form>
+    </div>
+</div>

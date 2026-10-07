@@ -1,0 +1,144 @@
+﻿@model PmApp.Web.Models.ViewModels.PmTaskTemplateFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+@if (!string.IsNullOrEmpty(Model.IdPm))
+{
+    <div class="alert alert-info">
+        <strong>ID-PM:</strong> @Model.IdPm
+        <small class="text-muted">(auto-generated)</small>
+    </div>
+}
+
+<h6 class="text-primary border-bottom pb-2 mb-3">Mesin</h6>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="AssetId" class="form-label"></label>
+        <select asp-for="AssetId" asp-items="Model.AssetList" class="form-select">
+            <option value="">-- Pilih Mesin --</option>
+        </select>
+        <span asp-validation-for="AssetId" class="text-danger small"></span>
+    </div>
+</div>
+
+<h6 class="text-primary border-bottom pb-2 mb-3 mt-3">Detail Task</h6>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label asp-for="UnitId" class="form-label"></label>
+        <select asp-for="UnitId" asp-items="Model.UnitList" class="form-select">
+            <option value="">-- Pilih Unit --</option>
+        </select>
+        <span asp-validation-for="UnitId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="SubUnitId" class="form-label"></label>
+        <select asp-for="SubUnitId" asp-items="Model.SubUnitList" class="form-select">
+            <option value="">-- Pilih Sub Unit --</option>
+        </select>
+        <span asp-validation-for="SubUnitId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="MethodName" class="form-label"></label>
+        <select asp-for="MethodName" class="form-select select2-tags" id="methodSelect">
+            <option value="">-- Pilih atau ketik metode --</option>
+            @foreach (var m in Model.MethodSuggestion)
+            {
+                <option value="@m" selected="@(Model.MethodName == m)">@m</option>
+            }
+            @if (!string.IsNullOrEmpty(Model.MethodName) && !Model.MethodSuggestion.Contains(Model.MethodName))
+            {
+                <option value="@Model.MethodName" selected>@Model.MethodName</option>
+            }
+        </select>
+        <span asp-validation-for="MethodName" class="text-danger small"></span>
+        <small class="text-muted">Pilih dari daftar atau ketik metode baru</small>
+    </div>
+
+    <div class="col-md-12 mb-3">
+        <label asp-for="StandardName" class="form-label"></label>
+        <select asp-for="StandardName" class="form-select select2-tags" id="standardSelect">
+            <option value="">-- Pilih atau ketik standar --</option>
+            @foreach (var s in Model.StandardSuggestion)
+            {
+                <option value="@s" selected="@(Model.StandardName == s)">@s</option>
+            }
+            @if (!string.IsNullOrEmpty(Model.StandardName) && !Model.StandardSuggestion.Contains(Model.StandardName))
+            {
+                <option value="@Model.StandardName" selected>@Model.StandardName</option>
+            }
+        </select>
+        <span asp-validation-for="StandardName" class="text-danger small"></span>
+        <small class="text-muted">Pilih dari daftar atau ketik standar baru</small>
+    </div>
+</div>
+
+<h6 class="text-primary border-bottom pb-2 mb-3 mt-3">Waktu & Frekuensi</h6>
+
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label asp-for="WorkHourMinutes" class="form-label"></label>
+        <input asp-for="WorkHourMinutes" type="number" class="form-control" min="1" />
+        <span asp-validation-for="WorkHourMinutes" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="ManPower" class="form-label"></label>
+        <input asp-for="ManPower" type="number" class="form-control" min="1" />
+        <span asp-validation-for="ManPower" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="PeriodeMonth" class="form-label"></label>
+        <input asp-for="PeriodeMonth" type="number" class="form-control" min="1" />
+        <span asp-validation-for="PeriodeMonth" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="StartMonth" class="form-label"></label>
+        <input asp-for="StartMonth" type="number" class="form-control" min="1" max="12" />
+        <span asp-validation-for="StartMonth" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <label asp-for="MachineState" class="form-label"></label>
+        <select asp-for="MachineState" class="form-select"
+                asp-items="Html.GetEnumSelectList<PmApp.Web.Models.MachineRunningState>()"></select>
+    </div>
+
+    <div class="col-md-4 mb-3 d-flex align-items-center">
+        <div class="form-check mt-4">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label"></label>
+        </div>
+    </div>
+
+    <div class="col-12 mb-3">
+        <label asp-for="Remark" class="form-label"></label>
+        <textarea asp-for="Remark" class="form-control" rows="2"></textarea>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('.select2-tags').select2({
+                theme: 'bootstrap-5',
+                tags: true,
+                placeholder: '-- Pilih atau ketik --',
+                allowClear: true,
+                createTag: function (params) {
+                    var term = $.trim(params.term);
+                    if (term === '') return null;
+                    return {
+                        id: term,
+                        text: term,
+                        newTag: true
+                    };
+                },
+                language: {
+                    noResults: function () { return "Tidak ada hasil. Ketik untuk tambah baru."; },
+                    searching: function () { return "Mencari..."; }
+                }
+            });
+        });
+    </script>
+}

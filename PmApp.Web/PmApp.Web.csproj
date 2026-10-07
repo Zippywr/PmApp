@@ -30,7 +30,6 @@
 
   <ItemGroup>
     <Folder Include="Repositories\" />
-    <Folder Include="Services\" />
 	<Folder Include="Views\PmTemplate\" />
 	<Folder Include="Views\PmSchedule\" />
 	<Folder Include="Views\WorkOrder\" />

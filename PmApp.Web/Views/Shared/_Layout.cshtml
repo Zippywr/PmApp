@@ -9,6 +9,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
     <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 
     <style>
         html, body {
@@ -24,9 +26,7 @@
             overflow: hidden;
         }
 
-        /* ============================================
-           SIDEBAR
-           ============================================ */
+        /* SIDEBAR */
         .app-sidebar {
             width: 250px;
             background-color: #1e293b;
@@ -41,7 +41,6 @@
             width: 65px;
         }
 
-        /* Brand */
         .app-sidebar .brand {
             padding: 1rem;
             font-size: 1.1rem;
@@ -79,9 +78,7 @@
             color: #fff;
         }
 
-        /* ============================================
-           NAV SCROLLABLE
-           ============================================ */
+        /* NAV SCROLLABLE */
         .sidebar-nav {
             flex: 1;
             overflow-y: auto;
@@ -97,9 +94,7 @@
         }
         .sidebar-nav::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
-        /* ============================================
-           MENU GROUP (COLLAPSIBLE)
-           ============================================ */
+        /* MENU GROUP (COLLAPSIBLE) */
         .menu-group {
             margin-bottom: 0.2rem;
         }
@@ -155,7 +150,6 @@
             color: #fff;
         }
 
-        /* Submenu */
         .menu-group-body {
             overflow: hidden;
             max-height: 0;
@@ -163,12 +157,10 @@
         }
 
         .menu-group.open .menu-group-body {
-            max-height: 600px;
+            max-height: 800px;
         }
 
-        /* ============================================
-           NAV LINK
-           ============================================ */
+        /* NAV LINK */
         .sidebar-nav .nav-link {
             color: #cbd5e1;
             padding: 0.6rem 1rem 0.6rem 2.75rem;
@@ -207,12 +199,10 @@
             font-weight: 500;
         }
 
-        /* Standalone link (Dashboard) */
         .sidebar-nav .nav-link.standalone {
             padding-left: 1rem;
         }
 
-        /* Collapsed sidebar */
         .app-sidebar.collapsed .menu-group-header .group-label,
         .app-sidebar.collapsed .menu-group-header .group-chevron,
         .app-sidebar.collapsed .nav-link span {
@@ -233,9 +223,7 @@
             justify-content: center;
         }
 
-        /* ============================================
-           FOOTER
-           ============================================ */
+        /* FOOTER */
         .sidebar-footer {
             padding: 0.75rem 1rem;
             font-size: 0.75rem;
@@ -245,9 +233,7 @@
             white-space: nowrap;
         }
 
-        /* ============================================
-           MAIN AREA
-           ============================================ */
+        /* MAIN AREA */
         .app-main {
             flex: 1;
             display: flex;
@@ -278,12 +264,9 @@
 <body>
     <div class="app-wrapper">
 
-        <!-- ================================================
-             SIDEBAR
-             ================================================ -->
+        <!-- SIDEBAR -->
         <aside class="app-sidebar" id="sidebar">
 
-            <!-- BRAND -->
             <div class="brand">
                 <i class="bi bi-gear-wide-connected"></i>
                 <span class="brand-text">PM System</span>
@@ -292,16 +275,15 @@
                 </button>
             </div>
 
-            <!-- NAV SCROLLABLE -->
             <nav class="sidebar-nav">
 
-                <!-- ============ DASHBOARD (standalone) ============ -->
+                <!-- DASHBOARD -->
                 <a class="nav-link standalone" asp-controller="Home" asp-action="Index">
                     <i class="bi bi-speedometer2"></i>
                     <span>Dashboard</span>
                 </a>
 
-                <!-- ============ MASTER DATA ============ -->
+                <!-- MASTER DATA -->
                 <div class="menu-group" data-group="masterdata">
                     <button class="menu-group-header" onclick="toggleGroup('masterdata')">
                         <i class="bi bi-database group-icon"></i>
@@ -349,7 +331,6 @@
                             <i class="bi bi-diagram-3"></i>
                             <span>Pemasangan (BOM)</span>
                         </a>
-                        <!-- Klasifikasi PM -->
                         <a class="nav-link" asp-controller="Unit" asp-action="Index">
                             <i class="bi bi-cpu"></i>
                             <span>Unit</span>
@@ -369,7 +350,7 @@
                     </div>
                 </div>
 
-                <!-- ============ SCHEDULE ============ -->
+                                               <!-- SCHEDULE -->
                 <div class="menu-group" data-group="schedule">
                     <button class="menu-group-header" onclick="toggleGroup('schedule')">
                         <i class="bi bi-calendar-event group-icon"></i>
@@ -377,22 +358,22 @@
                         <i class="bi bi-chevron-right group-chevron"></i>
                     </button>
                     <div class="menu-group-body">
-                        <a class="nav-link" asp-controller="PmSchedule" asp-action="InputPm">
-                            <i class="bi bi-pencil-square"></i>
+                        <a class="nav-link" asp-controller="PmTaskTemplate" asp-action="ListPm">
+                            <i class="bi bi-list-ul"></i>
+                            <span>List PM</span>
+                        </a>
+                        <a class="nav-link" asp-controller="PmTaskTemplate" asp-action="Index">
+                            <i class="bi bi-clipboard-check"></i>
                             <span>Input PM</span>
                         </a>
                         <a class="nav-link" asp-controller="PmSchedule" asp-action="Index">
-                            <i class="bi bi-calendar-week"></i>
+                            <i class="bi bi-table"></i>
                             <span>Jadwal PM</span>
-                        </a>
-                        <a class="nav-link" asp-controller="Export" asp-action="Schedule">
-                            <i class="bi bi-download"></i>
-                            <span>Export Schedule</span>
                         </a>
                     </div>
                 </div>
 
-                <!-- ============ IMPLEMENTATION ============ -->
+                <!-- IMPLEMENTATION -->
                 <div class="menu-group" data-group="implementation">
                     <button class="menu-group-header" onclick="toggleGroup('implementation')">
                         <i class="bi bi-tools group-icon"></i>
@@ -411,7 +392,7 @@
                     </div>
                 </div>
 
-                <!-- ============ REPORT ============ -->
+                <!-- REPORT -->
                 <div class="menu-group" data-group="report">
                     <button class="menu-group-header" onclick="toggleGroup('report')">
                         <i class="bi bi-file-earmark-bar-graph group-icon"></i>
@@ -432,16 +413,13 @@
 
             </nav>
 
-            <!-- FOOTER -->
             <div class="sidebar-footer">
                 <i class="bi bi-info-circle"></i>
                 <span class="brand-text">Versi 1.0 — Lokal</span>
             </div>
         </aside>
 
-        <!-- ================================================
-             MAIN
-             ================================================ -->
+        <!-- MAIN -->
         <main class="app-main">
             <header class="app-topbar">
                 <h5 class="mb-0 text-secondary">
@@ -461,27 +439,52 @@
         </main>
     </div>
 
-    <!-- ================================================
-         SCRIPTS (CDN)
-         ================================================ -->
+    <!-- SCRIPTS (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 
+    <!-- SELECT2 INIT — SETELAH jQuery & Select2 load -->
     <script>
-        // ============================================
-        // TOGGLE GROUP (COLLAPSIBLE MENU)
-        // ============================================
+        $(document).ready(function () {
+            if (typeof $.fn.select2 !== 'undefined') {
+                $('.select2-tags').select2({
+                    theme: 'bootstrap-5',
+                    tags: true,
+                    placeholder: '-- Pilih atau ketik --',
+                    allowClear: true,
+                    width: '100%',
+                    createTag: function (params) {
+                        var term = $.trim(params.term);
+                        if (term === '') return null;
+                        return {
+                            id: term,
+                            text: term,
+                            newTag: true
+                        };
+                    },
+                    language: {
+                        noResults: function () { return "Tidak ada hasil. Ketik untuk tambah baru."; },
+                        searching: function () { return "Mencari..."; }
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- MENU & UI SCRIPTS -->
+    <script>
+        // TOGGLE GROUP
         function toggleGroup(groupName) {
-            const group = document.querySelector(`.menu-group[data-group="${groupName}"]`);
+            const group = document.querySelector('.menu-group[data-group="' + groupName + '"]');
             if (!group) return;
 
             const isOpen = group.classList.contains('open');
 
-            // Tutup grup lain (accordion mode)
             document.querySelectorAll('.menu-group.open').forEach(g => {
                 if (g !== group) g.classList.remove('open');
             });
@@ -495,24 +498,22 @@
             }
         }
 
-        // ============================================
         // AUTO-OPEN GROUP BERDASARKAN URL
-        // ============================================
         function autoOpenByUrl() {
             const path = window.location.pathname.toLowerCase();
 
             const urlMap = {
                 'masterdata': ['/asset', '/part', '/bom', '/plant', '/line', '/area',
-               '/product', '/brand', '/mccategory', '/machinefunction',
-               '/unit', '/subunit', '/metode', '/standar'],
-                'schedule':       ['/pmschedule', '/export'],
+                               '/product', '/brand', '/mccategory', '/machinefunction',
+                               '/unit', '/subunit', '/metode', '/standar'],
+                'schedule': ['/pmtasktemplate', '/pmschedule', '/export'],
                 'implementation': ['/pmupdate'],
-                'report':         ['/report']
+                'report': ['/report']
             };
 
-            for (const [groupName, prefixes] of Object.entries(urlMap)) {
-                if (prefixes.some(p => path.startsWith(p))) {
-                    const group = document.querySelector(`.menu-group[data-group="${groupName}"]`);
+            for (const groupName in urlMap) {
+                if (urlMap[groupName].some(p => path.startsWith(p))) {
+                    const group = document.querySelector('.menu-group[data-group="' + groupName + '"]');
                     if (group) group.classList.add('open');
                     localStorage.setItem('menuOpen', groupName);
                     return;
@@ -521,14 +522,12 @@
 
             const lastOpen = localStorage.getItem('menuOpen');
             if (lastOpen) {
-                const group = document.querySelector(`.menu-group[data-group="${lastOpen}"]`);
+                const group = document.querySelector('.menu-group[data-group="' + lastOpen + '"]');
                 if (group) group.classList.add('open');
             }
         }
 
-        // ============================================
         // HIGHLIGHT ACTIVE LINK
-        // ============================================
         function highlightActiveLink() {
             const path = window.location.pathname.toLowerCase();
 
@@ -546,18 +545,14 @@
             });
         }
 
-        // ============================================
         // TOGGLE SIDEBAR COLLAPSE
-        // ============================================
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('collapsed');
             localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
         }
 
-        // ============================================
         // INIT
-        // ============================================
         document.addEventListener('DOMContentLoaded', function () {
             if (localStorage.getItem('sidebarCollapsed') === 'true') {
                 document.getElementById('sidebar').classList.add('collapsed');
@@ -566,7 +561,6 @@
             autoOpenByUrl();
             highlightActiveLink();
 
-            // DataTables auto-init
             if (typeof $ !== 'undefined' && $.fn.DataTable) {
                 $('.datatable').DataTable({
                     language: {

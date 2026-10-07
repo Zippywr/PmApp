@@ -15,159 +15,166 @@ public static class DbSeeder
         // ============================================================
         var plants = new List<Plant>
         {
-            new() { Code = "PLT-01", Name = "Plant Utama", Description = "Plant produksi utama",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "PLT-02", Name = "Plant 2", Description = "Plant produksi kedua",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "PLT-03", Name = "Gudang", Description = "Area pergudangan",
-                    CreatedBy = "system", CreatedDate = DateTime.Now }
+            new() { Code = "PLT-01", Name = "Plant Utama", Description = "Plant produksi utama", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "PLT-02", Name = "Plant 2", Description = "Plant produksi kedua", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "PLT-03", Name = "Gudang", Description = "Area pergudangan", CreatedBy = "system", CreatedDate = DateTime.Now }
         };
         db.Plants.AddRange(plants);
-
         await db.SaveChangesAsync();
 
         // ============================================================
-        // 2. LINES (di bawah Plant)
+        // 2. LINES
         // ============================================================
         var lines = new List<Line>
         {
-            new() { Code = "LN-01", Name = "Line Produksi 1", PlantId = plants[0].Id,
-                    Description = "Line utama produksi",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "LN-02", Name = "Line Produksi 2", PlantId = plants[0].Id,
-                    Description = "Line kedua",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "LN-03", Name = "Line Assembly", PlantId = plants[0].Id,
-                    Description = "Line perakitan",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "LN-04", Name = "Line Packing", PlantId = plants[1].Id,
-                    Description = "Line pengepakan",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "LN-05", Name = "Line Utility", PlantId = plants[1].Id,
-                    Description = "Line utilitas",
-                    CreatedBy = "system", CreatedDate = DateTime.Now }
+            new() { Code = "LN-01", Name = "Conrod", PlantId = plants[0].Id, Description = "Line Conrod", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "LN-02", Name = "Line Produksi 2", PlantId = plants[0].Id, Description = "Line kedua", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "LN-03", Name = "Line Assembly", PlantId = plants[0].Id, Description = "Line perakitan", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "LN-04", Name = "Line Packing", PlantId = plants[1].Id, Description = "Line pengepakan", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "LN-05", Name = "Line Utility", PlantId = plants[1].Id, Description = "Line utilitas", CreatedBy = "system", CreatedDate = DateTime.Now }
         };
         db.Lines.AddRange(lines);
-
         await db.SaveChangesAsync();
 
         // ============================================================
-        // 3. AREAS (di bawah Line)
+        // 3. AREAS
         // ============================================================
         var areas = new List<Area>
         {
-            new() { Code = "AR-01", Name = "5C & QC Machining", LineId = lines[0].Id,
-                    Description = "Area mesin besar",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "AR-02", Name = "Area Produksi B", LineId = lines[0].Id,
-                    Description = "Area mesin kecil",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "AR-03", Name = "Area QC", LineId = lines[0].Id,
-                    Description = "Quality control",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "AR-04", Name = "Area Gudang", LineId = lines[3].Id,
-                    Description = "Penyimpanan",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "AR-05", Name = "Area Utility", LineId = lines[4].Id,
-                    Description = "Area utilitas",
-                    CreatedBy = "system", CreatedDate = DateTime.Now }
+            new() { Code = "AR-01", Name = "5C & QC Machining", LineId = lines[0].Id, Description = "Area mesin besar", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "AR-02", Name = "Area Produksi B", LineId = lines[0].Id, Description = "Area mesin kecil", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "AR-03", Name = "Area QC", LineId = lines[0].Id, Description = "Quality control", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "AR-04", Name = "Area Gudang", LineId = lines[3].Id, Description = "Penyimpanan", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "AR-05", Name = "Area Utility", LineId = lines[4].Id, Description = "Area utilitas", CreatedBy = "system", CreatedDate = DateTime.Now }
         };
         db.Areas.AddRange(areas);
+        await db.SaveChangesAsync();
 
         // ============================================================
         // 4. PRODUCTS
         // ============================================================
         var products = new List<Product>
         {
-            new() { Code = "PRD-001", Name = "Conrod", Description = "Connecting Rod",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "PRD-002", Name = "Shaft B", Description = "Shaft baja tipe B",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "PRD-003", Name = "Gear C", Description = "Gear baja tipe C",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "PRD-004", Name = "Housing D", Description = "Housing cast iron tipe D",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "PRD-005", Name = "Cover E", Description = "Tutup plastik tipe E",
-                    CreatedBy = "system", CreatedDate = DateTime.Now }
+            new() { Code = "PRD-001", Name = "Conrod", Description = "Connecting Rod", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "PRD-002", Name = "Shaft B", Description = "Shaft baja tipe B", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "PRD-003", Name = "Gear C", Description = "Gear baja tipe C", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "PRD-004", Name = "Housing D", Description = "Housing cast iron tipe D", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "PRD-005", Name = "Cover E", Description = "Tutup plastik tipe E", CreatedBy = "system", CreatedDate = DateTime.Now }
         };
         db.Products.AddRange(products);
-
-        // ============================================================
-        // 5. BRANDS (mesin + part)
-        // ============================================================
-        var brands = new List<Brand>
-        {
-            new() { Code = "BRD-001", Name = "Yasunaga", Description = "Maker mesin CNC",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "BRD-002", Name = "Fanuc", Description = "Maker controller & servo",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "BRD-003", Name = "SKF", Description = "Maker bearing",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "BRD-004", Name = "NOK", Description = "Maker seal",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "BRD-005", Name = "Shell", Description = "Maker oli & grease",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "BRD-006", Name = "Mitsuboshi", Description = "Maker belt",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "BRD-007", Name = "Siemens", Description = "Maker electrical",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "BRD-008", Name = "Omron", Description = "Maker sensor",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "BRD-009", Name = "CKI", Description = "Maker mesin numbering",
-                    CreatedBy = "system", CreatedDate = DateTime.Now }
-        };
-        db.Brands.AddRange(brands);
-
-        // ============================================================
-        // 6. MC CATEGORY (Kategori Mesin)
-        // ============================================================
-        var mcCategories = new List<McCategory>
-        {
-            new() { Code = "MCC-01", Name = "Machining Center",
-                    Description = "Pusat permesinan CNC",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "MCC-02", Name = "Numbering / Barcode",
-                    Description = "Mesin penomoran / barcode",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "MCC-03", Name = "Welding",
-                    Description = "Mesin las / welding",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "MCC-04", Name = "Grinding",
-                    Description = "Mesin gerinda",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "MCC-05", Name = "Turning",
-                    Description = "Mesin bubut",
-                    CreatedBy = "system", CreatedDate = DateTime.Now }
-        };
-        db.McCategories.AddRange(mcCategories);
-
-        // ============================================================
-        // 7. MACHINE FUNCTION (Fungsi Mesin)
-        // ============================================================
-        var machineFunctions = new List<MachineFunction>
-        {
-            new() { Code = "MF-01", Name = "Main Machine",
-                    Description = "Mesin utama produksi",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "MF-02", Name = "Support",
-                    Description = "Mesin pendukung",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "MF-03", Name = "Utility",
-                    Description = "Mesin utilitas",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "MF-04", Name = "Quality Control",
-                    Description = "Mesin QC",
-                    CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "MF-05", Name = "Packing",
-                    Description = "Mesin pengepakan",
-                    CreatedBy = "system", CreatedDate = DateTime.Now }
-        };
-        db.MachineFunctions.AddRange(machineFunctions);
-
         await db.SaveChangesAsync();
 
         // ============================================================
-        // 8. ASSETS (Mesin) — pakai FK ke master
+        // 5. BRANDS
+        // ============================================================
+        var brands = new List<Brand>
+        {
+            new() { Code = "BRD-001", Name = "Yasunaga", Description = "Maker mesin CNC", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "BRD-002", Name = "Fanuc", Description = "Maker controller & servo", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "BRD-003", Name = "SKF", Description = "Maker bearing", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "BRD-004", Name = "NOK", Description = "Maker seal", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "BRD-005", Name = "Shell", Description = "Maker oli & grease", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "BRD-006", Name = "Mitsuboshi", Description = "Maker belt", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "BRD-007", Name = "Siemens", Description = "Maker electrical", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "BRD-008", Name = "Omron", Description = "Maker sensor", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "BRD-009", Name = "CKI", Description = "Maker mesin numbering", CreatedBy = "system", CreatedDate = DateTime.Now }
+        };
+        db.Brands.AddRange(brands);
+        await db.SaveChangesAsync();
+
+        // ============================================================
+        // 6. MC CATEGORIES
+        // ============================================================
+        var mcCategories = new List<McCategory>
+        {
+            new() { Code = "MCC-01", Name = "Machining Center", Description = "Pusat permesinan CNC", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "MCC-02", Name = "Numbering / Barcode", Description = "Mesin penomoran", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "MCC-03", Name = "Welding", Description = "Mesin las", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "MCC-04", Name = "Grinding", Description = "Mesin gerinda", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "MCC-05", Name = "Turning", Description = "Mesin bubut", CreatedBy = "system", CreatedDate = DateTime.Now }
+        };
+        db.McCategories.AddRange(mcCategories);
+        await db.SaveChangesAsync();
+
+        // ============================================================
+        // 7. MACHINE FUNCTIONS
+        // ============================================================
+        var machineFunctions = new List<MachineFunction>
+        {
+            new() { Code = "MF-01", Name = "Main Machine", Description = "Mesin utama produksi", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "MF-02", Name = "Support", Description = "Mesin pendukung", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "MF-03", Name = "Utility", Description = "Mesin utilitas", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "MF-04", Name = "Quality Control", Description = "Mesin QC", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "MF-05", Name = "Packing", Description = "Mesin pengepakan", CreatedBy = "system", CreatedDate = DateTime.Now }
+        };
+        db.MachineFunctions.AddRange(machineFunctions);
+        await db.SaveChangesAsync();
+
+        // ============================================================
+        // 8. UNITS — WAJIB SAVE DULU sebelum SubUnits
+        // ============================================================
+        var units = new List<Unit>
+        {
+            new() { Code = "U-01", Name = "Hydraulic Equipment", Description = "Peralatan hidrolik", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "U-02", Name = "Electrical Equipment", Description = "Peralatan listrik", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "U-03", Name = "Mechanical Equipment", Description = "Peralatan mekanik", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "U-04", Name = "Pneumatic Equipment", Description = "Peralatan pneumatik", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "U-05", Name = "Cooling System", Description = "Sistem pendingin", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "U-06", Name = "Lubrication System", Description = "Sistem pelumasan", CreatedBy = "system", CreatedDate = DateTime.Now }
+        };
+        db.Units.AddRange(units);
+        await db.SaveChangesAsync();
+
+        // ============================================================
+        // 9. SUB UNITS
+        // ============================================================
+        var subUnits = new List<SubUnit>
+        {
+            new() { Code = "SU-01", Name = "Tanki Hidrolik 1", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "SU-02", Name = "Tanki Hidrolik 2", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "SU-03", Name = "Motorpump", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "SU-04", Name = "Oil Cooler Pompa Hidrolik 1", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "SU-05", Name = "Oil Cooler Pompa Hidrolik 2", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "SU-06", Name = "Panel Listrik Utama", UnitId = units[1].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "SU-07", Name = "Kipas Pendingin", UnitId = units[4].Id, CreatedBy = "system", CreatedDate = DateTime.Now }
+        };
+        db.SubUnits.AddRange(subUnits);
+        await db.SaveChangesAsync();
+
+        // ============================================================
+        // 10. METODES
+        // ============================================================
+        var metodes = new List<Metode>
+        {
+            new() { Code = "M01", Name = "Change", Initial = "Chg", MachineState = MachineRunningState.OFF, Description = "Ganti part/komponen", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "M02", Name = "Check", Initial = "Chk", MachineState = MachineRunningState.ON, Description = "Pengecekan kondisi", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "M03", Name = "Cleaning", Initial = "Cln", MachineState = MachineRunningState.OFF, Description = "Pembersihan", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "M04", Name = "Repair", Initial = "Rpr", MachineState = MachineRunningState.OFF, Description = "Perbaikan", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "M05", Name = "Inspect", Initial = "Ins", MachineState = MachineRunningState.ON, Description = "Inspeksi visual", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "M06", Name = "Replace", Initial = "Rpl", MachineState = MachineRunningState.OFF, Description = "Ganti total", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Code = "M07", Name = "Greasing", Initial = "Grs", MachineState = MachineRunningState.OFF, Description = "Pelumasan", CreatedBy = "system", CreatedDate = DateTime.Now }
+        };
+        db.Metodes.AddRange(metodes);
+        await db.SaveChangesAsync();
+
+        // ============================================================
+        // 11. STANDARS
+        // ============================================================
+        var standars = new List<Standar>
+        {
+            new() { Name = "Ganti oli dengan Shell Tellus 32", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Name = "Tidak over noise, tidak vibrasi", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Name = "Bersih dari debu, tidak ada endapan kotoran", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Name = "Level oli antara MIN-MAX", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Name = "Tidak ada kebocoran", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Name = "Vibrasi < 2 mm/s", CreatedBy = "system", CreatedDate = DateTime.Now },
+            new() { Name = "Temperatur normal < 70 C", CreatedBy = "system", CreatedDate = DateTime.Now }
+        };
+        db.Standars.AddRange(standars);
+        await db.SaveChangesAsync();
+
+        // ============================================================
+        // 12. ASSETS
         // ============================================================
         var assets = new List<Asset>
         {
@@ -176,12 +183,12 @@ public static class DbSeeder
                 Code = "1-MC-01",
                 Name = "CNC Milling 01",
                 OpNo = "OP-120",
-                LineId = lines[0].Id,                      // LN-01
-                AreaId = areas[0].Id,                      // AR-01 5C & QC Machining
-                McCategoryId = mcCategories[0].Id,         // MCC-01 Machining Center
-                MachineFunctionId = machineFunctions[0].Id,// MF-01 Main Machine
-                BrandId = brands[0].Id,                    // BRD-001 Yasunaga
-                ProductId = products[0].Id,                // PRD-001 Conrod
+                LineId = lines[0].Id,
+                AreaId = areas[0].Id,
+                McCategoryId = mcCategories[0].Id,
+                MachineFunctionId = machineFunctions[0].Id,
+                BrandId = brands[0].Id,
+                ProductId = products[0].Id,
                 Model = "F25M",
                 SerialNumber = "M3975",
                 YearMade = 2012,
@@ -222,9 +229,9 @@ public static class DbSeeder
                 OpNo = "OP-140",
                 LineId = lines[0].Id,
                 AreaId = areas[0].Id,
-                McCategoryId = mcCategories[1].Id,         // MCC-02 Numbering/barcode
+                McCategoryId = mcCategories[1].Id,
                 MachineFunctionId = machineFunctions[0].Id,
-                BrandId = brands[8].Id,                    // BRD-009 CKI
+                BrandId = brands[8].Id,
                 ProductId = products[0].Id,
                 Model = "SPM",
                 SerialNumber = "M3978",
@@ -237,11 +244,10 @@ public static class DbSeeder
             }
         };
         db.Assets.AddRange(assets);
-
         await db.SaveChangesAsync();
 
         // ============================================================
-        // 9. PARTS — 32 part
+        // 13. PARTS
         // ============================================================
         var parts = new List<Part>();
 
@@ -279,15 +285,13 @@ public static class DbSeeder
         parts.Add(new() { PartNo = "447", Name = "Contactor 25A", Type = "Contactor", Category = "Electrical", Unit = "PCS", BrandId = brands[6].Id, StockQty = 5, MinQty = 2, MaxQty = 8, Price = 320000m, Location = "E-02", CreatedBy = "system", CreatedDate = DateTime.Now });
 
         db.Parts.AddRange(parts);
-
         await db.SaveChangesAsync();
 
         // ============================================================
-        // 10. BOM — 32 baris (2 mesin × 16 part)
+        // 14. BOM
         // ============================================================
         var bom = new List<AssetPart>();
 
-        // Mesin 1 (1-MC-01) — pakai part 321–336
         for (int i = 0; i < 16; i++)
         {
             bom.Add(new AssetPart
@@ -301,7 +305,6 @@ public static class DbSeeder
             });
         }
 
-        // Mesin 2 (1-MC-02) — pakai part 432–447
         for (int i = 16; i < 32; i++)
         {
             bom.Add(new AssetPart
@@ -316,189 +319,61 @@ public static class DbSeeder
         }
 
         db.AssetParts.AddRange(bom);
-
         await db.SaveChangesAsync();
 
         // ============================================================
-        // 11. PM TASK TEMPLATES — untuk mesin 1
+        // 15. PM TASK TEMPLATES
         // ============================================================
-        var bomCnc = await db.AssetParts
-            .Where(ap => ap.AssetId == assets[0].Id)
-            .OrderBy(ap => ap.Part!.PartNo)
-            .Take(5)
-            .ToListAsync();
-
-        var tasks = new List<PmTaskTemplate>();
-        // ============================================================
-        // 12. UNIT (Unit Mesin)
-        // ============================================================
-        var units = new List<Unit>
+        var pmTasks = new List<PmTaskTemplate>
         {
-            new() { Code = "U-01", Name = "Hydraulic Equipment", Description = "Peralatan hidrolik", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "U-02", Name = "Electrical Equipment", Description = "Peralatan listrik", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "U-03", Name = "Mechanical Equipment", Description = "Peralatan mekanik", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "U-04", Name = "Pneumatic Equipment", Description = "Peralatan pneumatik", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "U-05", Name = "Cooling System", Description = "Sistem pendingin", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "U-06", Name = "Lubrication System", Description = "Sistem pelumasan", CreatedBy = "system", CreatedDate = DateTime.Now }
+            new()
+            {
+                IdPm = "010100", LineSequence = 1, MachineSequence = 1, TaskSequence = 0,
+                AssetId = assets[0].Id, UnitId = units[0].Id, SubUnitId = subUnits[0].Id,
+                MethodId = metodes[0].Id, StandardId = standars[0].Id,
+                WorkHourMinutes = 120, ManPower = 2,
+                MachineState = MachineRunningState.OFF, PeriodeMonth = 6, StartMonth = 6,
+                IsActive = true, CreatedBy = "system", CreatedDate = DateTime.Now
+            },
+            new()
+            {
+                IdPm = "010101", LineSequence = 1, MachineSequence = 1, TaskSequence = 1,
+                AssetId = assets[0].Id, UnitId = units[0].Id, SubUnitId = subUnits[1].Id,
+                MethodId = metodes[0].Id, StandardId = standars[3].Id,
+                WorkHourMinutes = 120, ManPower = 2,
+                MachineState = MachineRunningState.OFF, PeriodeMonth = 4, StartMonth = 4,
+                IsActive = true, CreatedBy = "system", CreatedDate = DateTime.Now
+            },
+            new()
+            {
+                IdPm = "010102", LineSequence = 1, MachineSequence = 1, TaskSequence = 2,
+                AssetId = assets[0].Id, UnitId = units[0].Id, SubUnitId = subUnits[2].Id,
+                MethodId = metodes[1].Id, StandardId = standars[1].Id,
+                WorkHourMinutes = 50, ManPower = 2,
+                MachineState = MachineRunningState.ON, PeriodeMonth = 6, StartMonth = 1,
+                IsActive = true, CreatedBy = "system", CreatedDate = DateTime.Now
+            },
+            new()
+            {
+                IdPm = "010103", LineSequence = 1, MachineSequence = 1, TaskSequence = 3,
+                AssetId = assets[0].Id, UnitId = units[0].Id, SubUnitId = subUnits[3].Id,
+                MethodId = metodes[2].Id, StandardId = standars[2].Id,
+                WorkHourMinutes = 15, ManPower = 1,
+                MachineState = MachineRunningState.OFF, PeriodeMonth = 12, StartMonth = 7,
+                IsActive = true, CreatedBy = "system", CreatedDate = DateTime.Now
+            },
+            new()
+            {
+                IdPm = "010104", LineSequence = 1, MachineSequence = 1, TaskSequence = 4,
+                AssetId = assets[0].Id, UnitId = units[0].Id, SubUnitId = subUnits[4].Id,
+                MethodId = metodes[2].Id, StandardId = standars[2].Id,
+                WorkHourMinutes = 15, ManPower = 1,
+                MachineState = MachineRunningState.OFF, PeriodeMonth = 12, StartMonth = 8,
+                IsActive = true, CreatedBy = "system", CreatedDate = DateTime.Now
+            }
         };
-        db.Units.AddRange(units);
 
-        await db.SaveChangesAsync();
-
-        // ============================================================
-        // 13. SUB UNIT
-        // ============================================================
-        var subUnits = new List<SubUnit>
-        {
-            new() { Code = "SU-01", Name = "Tanki Hidrolik 1", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SU-02", Name = "Tanki Hidrolik 2", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SU-03", Name = "Motorpump", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SU-04", Name = "Oil Cooler Pompa Hidrolik 1", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SU-05", Name = "Oil Cooler Pompa Hidrolik 2", UnitId = units[0].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SU-06", Name = "Panel Listrik Utama", UnitId = units[1].Id, CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "SU-07", Name = "Kipas Pendingin", UnitId = units[4].Id, CreatedBy = "system", CreatedDate = DateTime.Now }
-        };
-        db.SubUnits.AddRange(subUnits);
-
-        await db.SaveChangesAsync();
-
-        // ============================================================
-        // 14. METODE
-        // ============================================================
-        var metodes = new List<Metode>
-        {
-            new() { Code = "M01", Name = "Change", Initial = "Chg", MachineState = MachineRunningState.OFF, Description = "Ganti part/komponen", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "M02", Name = "Check", Initial = "Chk", MachineState = MachineRunningState.ON, Description = "Pengecekan kondisi", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "M03", Name = "Cleaning", Initial = "Cln", MachineState = MachineRunningState.OFF, Description = "Pembersihan", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "M04", Name = "Repair", Initial = "Rpr", MachineState = MachineRunningState.OFF, Description = "Perbaikan", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "M05", Name = "Inspect", Initial = "Ins", MachineState = MachineRunningState.ON, Description = "Inspeksi visual", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "M06", Name = "Replace", Initial = "Rpl", MachineState = MachineRunningState.OFF, Description = "Ganti total", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Code = "M07", Name = "Greasing", Initial = "Grs", MachineState = MachineRunningState.OFF, Description = "Pelumasan", CreatedBy = "system", CreatedDate = DateTime.Now }
-        };
-        db.Metodes.AddRange(metodes);
-
-        await db.SaveChangesAsync();
-
-        // ============================================================
-        // 15. STANDAR
-        // ============================================================
-        var standars = new List<Standar>
-        {
-            new() { Name = "Ganti oli dengan Shell Tellus 32", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Name = "Tidak over noise, tidak vibrasi", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Name = "Bersih dari debu, tidak ada endapan kotoran", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Name = "Level oli antara MIN-MAX", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Name = "Tidak ada kebocoran", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Name = "Vibrasi < 2 mm/s", CreatedBy = "system", CreatedDate = DateTime.Now },
-            new() { Name = "Temperatur normal < 70°C", CreatedBy = "system", CreatedDate = DateTime.Now }
-        };
-        db.Standars.AddRange(standars);
-
-        await db.SaveChangesAsync();
-        if (bomCnc.Count >= 1)
-        {
-            tasks.Add(new PmTaskTemplate
-            {
-                AssetPartId = bomCnc[0].Id,
-                TaskName = "Cek visual bearing",
-                SubUnit = "Spindle Drive End",
-                Method = MaintenanceMethod.Visual,
-                Standard = "Tidak ada getaran abnormal, tidak ada kebocoran",
-                FrequencyType = FrequencyType.Weekly,
-                FrequencyValue = 6,
-                PIC = "Budi Santoso",
-                IsActive = true,
-                CreatedBy = "system",
-                CreatedDate = DateTime.Now
-            });
-
-            tasks.Add(new PmTaskTemplate
-            {
-                AssetPartId = bomCnc[0].Id,
-                TaskName = "Greasing bearing",
-                SubUnit = "Spindle Drive End",
-                Method = MaintenanceMethod.Lubricate,
-                Standard = "Grease EP2 secukupnya",
-                FrequencyType = FrequencyType.Monthly,
-                FrequencyValue = 3,
-                PIC = "Budi Santoso",
-                IsActive = true,
-                CreatedBy = "system",
-                CreatedDate = DateTime.Now
-            });
-
-            tasks.Add(new PmTaskTemplate
-            {
-                AssetPartId = bomCnc[0].Id,
-                TaskName = "Ganti bearing",
-                SubUnit = "Spindle Drive End",
-                Method = MaintenanceMethod.Replace,
-                Standard = "Bearing 6205 baru",
-                FrequencyType = FrequencyType.Yearly,
-                FrequencyValue = 2,
-                PIC = "Andi Wijaya",
-                IsActive = true,
-                CreatedBy = "system",
-                CreatedDate = DateTime.Now
-            });
-        }
-
-        if (bomCnc.Count >= 2)
-        {
-            tasks.Add(new PmTaskTemplate
-            {
-                AssetPartId = bomCnc[1].Id,
-                TaskName = "Cek vibrasi bearing",
-                SubUnit = "Spindle Non-Drive End",
-                Method = MaintenanceMethod.Measure,
-                Standard = "Vibrasi < 2 mm/s",
-                FrequencyType = FrequencyType.Weekly,
-                FrequencyValue = 6,
-                PIC = "Budi Santoso",
-                IsActive = true,
-                CreatedBy = "system",
-                CreatedDate = DateTime.Now
-            });
-        }
-
-        if (bomCnc.Count >= 3)
-        {
-            tasks.Add(new PmTaskTemplate
-            {
-                AssetPartId = bomCnc[2].Id,
-                TaskName = "Cek kebocoran seal",
-                SubUnit = "Spindle Shaft",
-                Method = MaintenanceMethod.Visual,
-                Standard = "Tidak ada kebocoran oli",
-                FrequencyType = FrequencyType.Weekly,
-                FrequencyValue = 6,
-                PIC = "Andi Wijaya",
-                IsActive = true,
-                CreatedBy = "system",
-                CreatedDate = DateTime.Now
-            });
-        }
-
-        if (bomCnc.Count >= 4)
-        {
-            tasks.Add(new PmTaskTemplate
-            {
-                AssetPartId = bomCnc[3].Id,
-                TaskName = "Cek oli hydraulic",
-                SubUnit = "Hydraulic Tank",
-                Method = MaintenanceMethod.Measure,
-                Standard = "Level oli MIN-MAX, warna bening",
-                FrequencyType = FrequencyType.Daily,
-                FrequencyValue = 7,
-                PIC = "Budi Santoso",
-                IsActive = true,
-                CreatedBy = "system",
-                CreatedDate = DateTime.Now
-            });
-        }
-
-        db.PmTaskTemplates.AddRange(tasks);
-
+        db.PmTaskTemplates.AddRange(pmTasks);
         await db.SaveChangesAsync();
     }
 }

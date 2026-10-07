@@ -1,0 +1,134 @@
+﻿@model IEnumerable<PmApp.Web.Models.Entities.PmTaskTemplate>
+@{
+    ViewData["Title"] = "Task PM";
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-clipboard-check"></i> Task Preventive Maintenance</h4>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Tambah Task PM
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <table class="table table-hover mb-0 datatable">
+            <thead class="table-light">
+                <tr>
+                    <th>ID-PM</th>
+                    <th>Mesin</th>
+                    <th>Unit</th>
+                    <th>Sub Unit</th>
+                    <th>Metode</th>
+                    <th>Standar</th>
+                    <th>W/H</th>
+                    <th>MP</th>
+                    <th>Kondisi</th>
+                    <th>Periode</th>
+                    <th>Mulai</th>
+                    <th width="150" class="text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td><strong>@item.IdPm</strong></td>
+                        <td>
+                            <strong>@item.Asset?.Code</strong><br />
+                            <small class="text-muted">@item.Asset?.Name</small>
+                        </td>
+                        <td>@item.Unit?.Name</td>
+                        <td>@item.SubUnit?.Name</td>
+                        <td>
+                            <span class="badge bg-secondary">@item.Method?.Name</span>
+                        </td>
+                        <td><small>@item.Standard?.Name</small></td>
+                        <td class="text-center">@item.WorkHourMinutes</td>
+                        <td class="text-center">@item.ManPower</td>
+                        <td>
+                            @if (item.MachineState == PmApp.Web.Models.MachineRunningState.ON)
+                            {
+                                <span class="badge bg-success">ON</span>
+                            }
+                            else if (item.MachineState == PmApp.Web.Models.MachineRunningState.OFF)
+                            {
+                                <span class="badge bg-danger">OFF</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Either</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-primary">@item.PeriodeMonth bulan</span>
+                        </td>
+                        <td class="text-center">Bulan @item.StartMonth</td>
+                        <td class="text-center">
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger"
+                                    onclick="confirmDelete(@item.Id, '@item.IdPm')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            <form id="deleteForm-@item.Id" asp-action="Delete"
+                                  asp-route-id="@item.Id" method="post" class="d-none">
+                                @Html.AntiForgeryToken()
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-trash"></i> Konfirmasi Hapus</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Yakin ingin menghapus task <strong id="deleteName"></strong>?
+                <br />
+                <small class="text-muted">Jadwal PM terkait juga akan dihapus.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let deleteId = null;
+        function confirmDelete(id, idPm) {
+            deleteId = id;
+            document.getElementById('deleteName').textContent = idPm;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+        document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+            if (deleteId) document.getElementById('deleteForm-' + deleteId).submit();
+        });
+    </script>
+}

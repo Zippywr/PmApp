@@ -1,0 +1,159 @@
+﻿@model IEnumerable<PmApp.Web.Models.ViewModels.PmScheduleRowViewModel>
+@{
+    var year = (int)ViewBag.Year;
+    var assets = (List<PmApp.Web.Models.Entities.Asset>)ViewBag.Assets;
+    var assetId = (int?)ViewBag.AssetId;
+    ViewData["Title"] = "Jadwal PM " + year;
+    var monthNames = new[] { "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des" };
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-calendar-week"></i> Jadwal PM @year</h4>
+    <div>
+        <form asp-action="Regenerate" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="year" value="@year" />
+            <button type="submit" class="btn btn-success"
+                    onclick="return confirm('Regenerate jadwal untuk tahun @year? Jadwal yang sudah ada tidak akan terganti.');">
+                <i class="bi bi-arrow-repeat"></i> Regenerate
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Tahun</label>
+                <input type="number" name="year" class="form-control" value="@year" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Mesin</label>
+                <select name="assetId" class="form-select">
+                    <option value="">-- Semua Mesin --</option>
+                    @foreach (var a in assets)
+                    {
+                        if (assetId == a.Id)
+                        {
+                            <option value="@a.Id" selected>@a.Code - @a.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@a.Id">@a.Code - @a.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Filter</button>
+                <a asp-action="Index" class="btn btn-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-warning">
+        Belum ada task PM. Silakan tambah task dulu di <a asp-controller="PmTaskTemplate" asp-action="Create">Input PM</a>.
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0" style="overflow-x: auto;">
+            <table class="table table-bordered table-sm mb-0" style="min-width: 1400px; font-size: 0.8rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th rowspan="2" style="min-width: 90px;">ID-PM</th>
+                        <th rowspan="2" style="min-width: 90px;">Mesin</th>
+                        <th rowspan="2" style="min-width: 130px;">Sub Unit</th>
+                        <th rowspan="2" style="min-width: 80px;">Metode</th>
+                        <th rowspan="2" style="min-width: 60px;">W/H</th>
+                        <th rowspan="2" style="min-width: 40px;">MP</th>
+                        <th colspan="12" class="text-center">Bulan</th>
+                    </tr>
+                    <tr>
+                        @for (int m = 0; m < 12; m++)
+                        {
+                            <th class="text-center" style="min-width: 70px;">@monthNames[m]</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model)
+                    {
+                        <tr>
+                            <td><strong>@row.Task.IdPm</strong></td>
+                            <td>
+                                @row.Task.Asset?.Code
+                                <br />
+                                <small class="text-muted">@row.Task.Asset?.Name</small>
+                            </td>
+                            <td>@row.Task.SubUnit?.Name</td>
+                            <td><span class="badge bg-secondary">@row.Task.Method?.Name</span></td>
+                            <td class="text-center">@row.Task.WorkHourMinutes</td>
+                            <td class="text-center">@row.Task.ManPower</td>
+
+                            @foreach (var cell in row.Months)
+                            {
+                                <td class="text-center p-1" style="vertical-align: top;">
+                                    @if (cell.IsPlanned)
+                                    {
+                                        var badgeClass = cell.Status switch
+                                        {
+                                            "Done" => "bg-success",
+                                            "Overdue" => "bg-danger",
+                                            "InProgress" => "bg-primary",
+                                            "Cancelled" => "bg-secondary",
+                                            _ => "bg-warning text-dark"
+                                        };
+
+                                        <a asp-action="UpdateCell" asp-route-id="@cell.ScheduleId"
+                                           class="text-decoration-none"
+                                           title="Klik untuk update: @cell.Status">
+                                            <div class="badge @badgeClass w-100 mb-1">@cell.Status</div>
+                                            @if (cell.ActualDate.HasValue)
+                                            {
+                                                <small class="text-muted d-block">
+                                                    @cell.ActualDate.Value.ToString("dd/MM")
+                                                </small>
+                                            }
+                                            @if (!string.IsNullOrEmpty(cell.PIC))
+                                            {
+                                                <small class="text-muted d-block" style="font-size: 0.65rem;">
+                                                    @cell.PIC
+                                                </small>
+                                            }
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-2 small text-muted">
+        <strong>Keterangan:</strong>
+        <span class="badge bg-warning text-dark">Scheduled</span> Belum dikerjakan ·
+        <span class="badge bg-primary">InProgress</span> Sedang dikerjakan ·
+        <span class="badge bg-success">Done</span> Selesai ·
+        <span class="badge bg-danger">Overdue</span> Terlambat
+    </div>
+}

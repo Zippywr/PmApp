@@ -23,6 +23,10 @@ public class AppDbContext : DbContext
     // ============================================================
     public DbSet<McCategory> McCategories => Set<McCategory>();
     public DbSet<MachineFunction> MachineFunctions => Set<MachineFunction>();
+
+    // ============================================================
+    // DB SETS — MASTER PM KLASIFIKASI
+    // ============================================================
     public DbSet<Unit> Units => Set<Unit>();
     public DbSet<SubUnit> SubUnits => Set<SubUnit>();
     public DbSet<Metode> Metodes => Set<Metode>();
@@ -32,7 +36,6 @@ public class AppDbContext : DbContext
     // DB SETS — MASTER MESIN & PART
     // ============================================================
     public DbSet<Asset> Assets => Set<Asset>();
-
     public DbSet<Part> Parts => Set<Part>();
     public DbSet<AssetPart> AssetParts => Set<AssetPart>();
 
@@ -113,7 +116,44 @@ public class AppDbContext : DbContext
         });
 
         // ---------------------------------------------------------
-        // ASSET (Mesin) — dengan FK ke 6 master
+        // UNIT
+        // ---------------------------------------------------------
+        modelBuilder.Entity<Unit>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+        });
+
+        // ---------------------------------------------------------
+        // SUB UNIT
+        // ---------------------------------------------------------
+        modelBuilder.Entity<SubUnit>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+
+            e.HasOne(x => x.Unit)
+             .WithMany(u => u.SubUnits)
+             .HasForeignKey(x => x.UnitId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ---------------------------------------------------------
+        // METODE
+        // ---------------------------------------------------------
+        modelBuilder.Entity<Metode>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+        });
+
+        // ---------------------------------------------------------
+        // STANDAR
+        // ---------------------------------------------------------
+        modelBuilder.Entity<Standar>(e =>
+        {
+            e.HasIndex(x => x.Name);
+        });
+
+        // ---------------------------------------------------------
+        // ASSET (Mesin)
         // ---------------------------------------------------------
         modelBuilder.Entity<Asset>(e =>
         {
@@ -149,6 +189,7 @@ public class AppDbContext : DbContext
              .HasForeignKey(x => x.ProductId)
              .OnDelete(DeleteBehavior.Restrict);
         });
+
         // ---------------------------------------------------------
         // PART
         // ---------------------------------------------------------
@@ -183,21 +224,43 @@ public class AppDbContext : DbContext
         });
 
         // ---------------------------------------------------------
-        // PM TASK TEMPLATE
+        // PM TASK TEMPLATE (baru)
         // ---------------------------------------------------------
         modelBuilder.Entity<PmTaskTemplate>(e =>
         {
-            e.HasOne(x => x.AssetPart)
+            e.HasIndex(x => x.IdPm).IsUnique();
+
+            e.HasOne(x => x.Asset)
              .WithMany()
-             .HasForeignKey(x => x.AssetPartId)
+             .HasForeignKey(x => x.AssetId)
              .OnDelete(DeleteBehavior.Restrict);
 
-            e.HasIndex(x => x.AssetPartId);
+            e.HasOne(x => x.Unit)
+             .WithMany()
+             .HasForeignKey(x => x.UnitId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.SubUnit)
+             .WithMany()
+             .HasForeignKey(x => x.SubUnitId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.Method)
+             .WithMany()
+             .HasForeignKey(x => x.MethodId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.Standard)
+             .WithMany()
+             .HasForeignKey(x => x.StandardId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(x => x.AssetId);
             e.HasIndex(x => x.IsActive);
         });
 
         // ---------------------------------------------------------
-        // PM SCHEDULE
+        // PM SCHEDULE (baru)
         // ---------------------------------------------------------
         modelBuilder.Entity<PmSchedule>(e =>
         {
@@ -206,50 +269,13 @@ public class AppDbContext : DbContext
              .HasForeignKey(x => x.TaskTemplateId)
              .OnDelete(DeleteBehavior.Restrict);
 
-            e.HasOne(x => x.AssetPart)
+            e.HasOne(x => x.Asset)
              .WithMany()
-             .HasForeignKey(x => x.AssetPartId)
+             .HasForeignKey(x => x.AssetId)
              .OnDelete(DeleteBehavior.Restrict);
 
-            e.HasIndex(x => x.DueDate);
+            e.HasIndex(x => new { x.Year, x.Month });
             e.HasIndex(x => x.Status);
-        });
-
-        // ---------------------------------------------------------
-        // UNIT
-        // ---------------------------------------------------------
-        modelBuilder.Entity<Unit>(e =>
-        {
-            e.HasIndex(x => x.Code).IsUnique();
-        });
-
-        // ---------------------------------------------------------
-        // SUB UNIT
-        // ---------------------------------------------------------
-        modelBuilder.Entity<SubUnit>(e =>
-        {
-            e.HasIndex(x => x.Code).IsUnique();
-
-            e.HasOne(x => x.Unit)
-             .WithMany(u => u.SubUnits)
-             .HasForeignKey(x => x.UnitId)
-             .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        // ---------------------------------------------------------
-        // METODE
-        // ---------------------------------------------------------
-        modelBuilder.Entity<Metode>(e =>
-        {
-            e.HasIndex(x => x.Code).IsUnique();
-        });
-
-        // ---------------------------------------------------------
-        // STANDAR
-        // ---------------------------------------------------------
-        modelBuilder.Entity<Standar>(e =>
-        {
-            e.HasIndex(x => x.Name);
         });
 
         // =========================================================

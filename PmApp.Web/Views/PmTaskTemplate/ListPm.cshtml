@@ -1,0 +1,278 @@
+﻿@model IEnumerable<PmApp.Web.Models.ViewModels.PmMachineGroupViewModel>
+@{
+    ViewData["Title"] = "List PM";
+    var lines = (List<PmApp.Web.Models.Entities.Line>)ViewBag.Lines;
+    var assets = (List<PmApp.Web.Models.Entities.Asset>)ViewBag.Assets;
+    var lineId = (int?)ViewBag.LineId;
+    var assetId = (int?)ViewBag.AssetId;
+    var search = (string?)ViewBag.Search;
+    int totalMachines = Model.Count();
+    int totalTasks = Model.Sum(g => g.Tasks.Count);
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+        <i class="bi bi-list-ul"></i> List PM
+        <small class="text-muted">
+            (@totalMachines mesin, @totalTasks task)
+        </small>
+    </h4>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Tambah Task PM
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Line</label>
+                <select name="lineId" class="form-select">
+                    <option value="">-- Semua Line --</option>
+                    @foreach (var l in lines)
+                    {
+                        if (lineId == l.Id)
+                        {
+                            <option value="@l.Id" selected>@l.Code - @l.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@l.Id">@l.Code - @l.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Mesin</label>
+                <select name="assetId" class="form-select">
+                    <option value="">-- Semua Mesin --</option>
+                    @foreach (var a in assets)
+                    {
+                        if (assetId == a.Id)
+                        {
+                            <option value="@a.Id" selected>@a.Code - @a.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@a.Id">@a.Code - @a.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Cari</label>
+                <input type="text" name="search" class="form-control"
+                       placeholder="ID-PM, kode mesin, sub unit..."
+                       value="@search" />
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+                <a asp-action="ListPm" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-info-circle"></i>
+        Belum ada task PM. Silakan tambah dulu di
+        <a asp-action="Create">Input PM</a>.
+    </div>
+}
+else
+{
+    <div class="accordion" id="machineAccordion">
+        @{ int idx = 0; }
+        @foreach (var group in Model)
+        {
+            idx++;
+            var collapseId = "machine-" + group.Asset.Id;
+            var isOpen = Model.Count() == 1; // kalau cuma 1 mesin, langsung buka
+
+            <div class="accordion-item mb-2 border-0 shadow-sm">
+                <h2 class="accordion-header" id="heading-@group.Asset.Id">
+                    <button class="accordion-button @(isOpen ? "" : "collapsed")"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#@collapseId"
+                            aria-expanded="@(isOpen ? "true" : "false")">
+                        <div class="d-flex flex-wrap align-items-center gap-3 w-100 me-3">
+                            <div>
+                                <i class="bi bi-gear-fill text-primary"></i>
+                                <strong class="ms-1">@group.Asset.Code</strong>
+                                <span class="text-muted ms-2">@group.Asset.Name</span>
+                            </div>
+                            <div class="ms-auto d-flex gap-2">
+                                @if (group.Asset.Line != null)
+                                {
+                                    <span class="badge bg-info">
+                                        <i class="bi bi-diagram-2"></i> @group.Asset.Line.Name
+                                    </span>
+                                }
+                                @if (group.Asset.Area != null)
+                                {
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-grid-3x3-gap"></i> @group.Asset.Area.Name
+                                    </span>
+                                }
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-list-check"></i> @group.Tasks.Count Task
+                                </span>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+
+                <div id="@collapseId"
+                     class="accordion-collapse collapse @(isOpen ? "show" : "")"
+                     data-bs-parent="#machineAccordion">
+                    <div class="accordion-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 90px;">ID-PM</th>
+                                        <th>Unit</th>
+                                        <th>Sub Unit</th>
+                                        <th>Metode</th>
+                                        <th>Standar</th>
+                                        <th class="text-center" style="width: 60px;">W/H</th>
+                                        <th class="text-center" style="width: 50px;">MP</th>
+                                        <th class="text-center" style="width: 70px;">Kondisi</th>
+                                        <th class="text-center" style="width: 90px;">Periode</th>
+                                        <th class="text-center" style="width: 80px;">Mulai</th>
+                                        <th class="text-center" style="width: 100px;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var task in group.Tasks)
+                                    {
+                                        <tr>
+                                            <td><strong>@task.IdPm</strong></td>
+                                            <td>@task.Unit?.Name</td>
+                                            <td>@task.SubUnit?.Name</td>
+                                            <td>
+                                                <span class="badge bg-secondary">@task.Method?.Name</span>
+                                            </td>
+                                            <td><small>@task.Standard?.Name</small></td>
+                                            <td class="text-center">@task.WorkHourMinutes</td>
+                                            <td class="text-center">@task.ManPower</td>
+                                            <td class="text-center">
+                                                @if (task.MachineState == PmApp.Web.Models.MachineRunningState.ON)
+                                                {
+                                                    <span class="badge bg-success">ON</span>
+                                                }
+                                                else if (task.MachineState == PmApp.Web.Models.MachineRunningState.OFF)
+                                                {
+                                                    <span class="badge bg-danger">OFF</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">-</span>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-primary">@task.PeriodeMonth bulan</span>
+                                            </td>
+                                            <td class="text-center">Bulan @task.StartMonth</td>
+                                            <td class="text-center">
+                                                <a asp-action="Edit" asp-route-id="@task.Id"
+                                                   class="btn btn-sm btn-warning" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-danger"
+                                                        onclick="confirmDelete(@task.Id, '@task.IdPm')"
+                                                        title="Hapus">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                                <form id="deleteForm-@task.Id" asp-action="Delete"
+                                                      asp-route-id="@task.Id" method="post" class="d-none">
+                                                    @Html.AntiForgeryToken()
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="mt-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="expandAll()">
+            <i class="bi bi-arrows-expand"></i> Buka Semua
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="collapseAll()">
+            <i class="bi bi-arrows-collapse"></i> Tutup Semua
+        </button>
+    </div>
+}
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-trash"></i> Konfirmasi Hapus</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Yakin ingin menghapus task <strong id="deleteName"></strong>?
+                <br />
+                <small class="text-muted">Jadwal PM terkait juga akan dihapus.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let deleteId = null;
+        function confirmDelete(id, idPm) {
+            deleteId = id;
+            document.getElementById('deleteName').textContent = idPm;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+        document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+            if (deleteId) document.getElementById('deleteForm-' + deleteId).submit();
+        });
+
+        function expandAll() {
+            document.querySelectorAll('.accordion-collapse').forEach(el => {
+                if (typeof bootstrap !== 'undefined') {
+                    let c = bootstrap.Collapse.getInstance(el) || new bootstrap.Collapse(el, { toggle: false });
+                    c.show();
+                }
+            });
+        }
+
+        function collapseAll() {
+            document.querySelectorAll('.accordion-collapse').forEach(el => {
+                if (typeof bootstrap !== 'undefined') {
+                    let c = bootstrap.Collapse.getInstance(el) || new bootstrap.Collapse(el, { toggle: false });
+                    c.hide();
+                }
+            });
+        }
+    </script>
+}
