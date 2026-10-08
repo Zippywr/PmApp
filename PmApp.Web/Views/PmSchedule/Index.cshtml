@@ -15,9 +15,24 @@
     </div>
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h4 class="mb-0"><i class="bi bi-calendar-week"></i> Jadwal PM @year</h4>
-    <div>
+    <div class="d-flex gap-2">
+        <a asp-controller="Export" asp-action="ScheduleExcel"
+           asp-route-year="@year" asp-route-assetId="@assetId"
+           class="btn btn-outline-success" title="Export ke Excel">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+        </a>
+        <a asp-controller="Export" asp-action="SchedulePdf"
+           asp-route-year="@year" asp-route-assetId="@assetId"
+           class="btn btn-outline-danger" title="Export ke PDF">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+        </a>
+        <a asp-controller="Export" asp-action="ScheduleCsv"
+           asp-route-year="@year" asp-route-assetId="@assetId"
+           class="btn btn-outline-secondary" title="Export ke CSV">
+            <i class="bi bi-file-earmark-text"></i> CSV
+        </a>
         <form asp-action="Regenerate" method="post" class="d-inline">
             @Html.AntiForgeryToken()
             <input type="hidden" name="year" value="@year" />

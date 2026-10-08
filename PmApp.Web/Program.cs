@@ -9,6 +9,8 @@ builder.Services.AddSingleton<AuditInterceptor>();
 
 builder.Services.AddScoped<PmApp.Web.Services.PmScheduleGeneratorService>();
 
+builder.Services.AddScoped<PmApp.Web.Services.PmExportService>();
+
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlServer(

@@ -95,125 +95,138 @@
 }
 else
 {
-    <div class="accordion" id="machineAccordion">
-        @{ int idx = 0; }
-        @foreach (var group in Model)
-        {
-            idx++;
-            var collapseId = "machine-" + group.Asset.Id;
-            var isOpen = Model.Count() == 1; // kalau cuma 1 mesin, langsung buka
+    foreach (var group in Model)
+    {
+        var collapseId = "machine-" + group.Asset.Id;
+        var isOpen = Model.Count() == 1;
 
-            <div class="accordion-item mb-2 border-0 shadow-sm">
-                <h2 class="accordion-header" id="heading-@group.Asset.Id">
-                    <button class="accordion-button @(isOpen ? "" : "collapsed")"
-                            type="button"
-                            data-bs-toggle="collapse"
-                            data-bs-target="#@collapseId"
-                            aria-expanded="@(isOpen ? "true" : "false")">
-                        <div class="d-flex flex-wrap align-items-center gap-3 w-100 me-3">
-                            <div>
-                                <i class="bi bi-gear-fill text-primary"></i>
-                                <strong class="ms-1">@group.Asset.Code</strong>
-                                <span class="text-muted ms-2">@group.Asset.Name</span>
-                            </div>
-                            <div class="ms-auto d-flex gap-2">
-                                @if (group.Asset.Line != null)
-                                {
-                                    <span class="badge bg-info">
-                                        <i class="bi bi-diagram-2"></i> @group.Asset.Line.Name
-                                    </span>
-                                }
-                                @if (group.Asset.Area != null)
-                                {
-                                    <span class="badge bg-secondary">
-                                        <i class="bi bi-grid-3x3-gap"></i> @group.Asset.Area.Name
-                                    </span>
-                                }
-                                <span class="badge bg-primary">
-                                    <i class="bi bi-list-check"></i> @group.Tasks.Count Task
-                                </span>
-                            </div>
-                        </div>
-                    </button>
-                </h2>
+        <div class="card mb-2 border-0 shadow-sm">
 
-                <div id="@collapseId"
-                     class="accordion-collapse collapse @(isOpen ? "show" : "")"
-                     data-bs-parent="#machineAccordion">
-                    <div class="accordion-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover table-sm mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th style="width: 90px;">ID-PM</th>
-                                        <th>Unit</th>
-                                        <th>Sub Unit</th>
-                                        <th>Metode</th>
-                                        <th>Standar</th>
-                                        <th class="text-center" style="width: 60px;">W/H</th>
-                                        <th class="text-center" style="width: 50px;">MP</th>
-                                        <th class="text-center" style="width: 70px;">Kondisi</th>
-                                        <th class="text-center" style="width: 90px;">Periode</th>
-                                        <th class="text-center" style="width: 80px;">Mulai</th>
-                                        <th class="text-center" style="width: 100px;">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var task in group.Tasks)
-                                    {
-                                        <tr>
-                                            <td><strong>@task.IdPm</strong></td>
-                                            <td>@task.Unit?.Name</td>
-                                            <td>@task.SubUnit?.Name</td>
-                                            <td>
-                                                <span class="badge bg-secondary">@task.Method?.Name</span>
-                                            </td>
-                                            <td><small>@task.Standard?.Name</small></td>
-                                            <td class="text-center">@task.WorkHourMinutes</td>
-                                            <td class="text-center">@task.ManPower</td>
-                                            <td class="text-center">
-                                                @if (task.MachineState == PmApp.Web.Models.MachineRunningState.ON)
-                                                {
-                                                    <span class="badge bg-success">ON</span>
-                                                }
-                                                else if (task.MachineState == PmApp.Web.Models.MachineRunningState.OFF)
-                                                {
-                                                    <span class="badge bg-danger">OFF</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-secondary">-</span>
-                                                }
-                                            </td>
-                                            <td class="text-center">
-                                                <span class="badge bg-primary">@task.PeriodeMonth bulan</span>
-                                            </td>
-                                            <td class="text-center">Bulan @task.StartMonth</td>
-                                            <td class="text-center">
-                                                <a asp-action="Edit" asp-route-id="@task.Id"
-                                                   class="btn btn-sm btn-warning" title="Edit">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
-                                                <button type="button" class="btn btn-sm btn-danger"
-                                                        onclick="confirmDelete(@task.Id, '@task.IdPm')"
-                                                        title="Hapus">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                                <form id="deleteForm-@task.Id" asp-action="Delete"
-                                                      asp-route-id="@task.Id" method="post" class="d-none">
-                                                    @Html.AntiForgeryToken()
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
+            <div class="card-header bg-light d-flex align-items-center gap-2">
+
+                <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1"
+                     data-bs-toggle="collapse"
+                     data-bs-target="#@collapseId"
+                     role="button"
+                     style="cursor: pointer;">
+                    <div>
+                        <i class="bi bi-gear-fill text-primary"></i>
+                        <strong class="ms-1">@group.Asset.Code</strong>
+                        <span class="text-muted ms-2">@group.Asset.Name</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 ms-3">
+                        @if (group.Asset.Line != null)
+                        {
+                            <span class="badge bg-info">
+                                <i class="bi bi-diagram-2"></i> @group.Asset.Line.Name
+                            </span>
+                        }
+                        @if (group.Asset.Area != null)
+                        {
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-grid-3x3-gap"></i> @group.Asset.Area.Name
+                            </span>
+                        }
+                        <span class="badge bg-primary">
+                            <i class="bi bi-list-check"></i> @group.Tasks.Count Task
+                        </span>
                     </div>
                 </div>
+
+                <div class="d-flex gap-1">
+                    <a asp-controller="Export" asp-action="MachineExcel"
+                       asp-route-assetId="@group.Asset.Id"
+                       class="btn btn-sm btn-outline-success"
+                       title="Export Excel">
+                        <i class="bi bi-file-earmark-excel"></i> Excel
+                    </a>
+                    <a asp-controller="Export" asp-action="MachinePdf"
+                       asp-route-assetId="@group.Asset.Id"
+                       class="btn btn-sm btn-outline-danger"
+                       title="Export PDF">
+                        <i class="bi bi-file-earmark-pdf"></i> PDF
+                    </a>
+                    <a asp-controller="Export" asp-action="MachineCsv"
+                       asp-route-assetId="@group.Asset.Id"
+                       class="btn btn-sm btn-outline-secondary"
+                       title="Export CSV">
+                        <i class="bi bi-file-earmark-text"></i> CSV
+                    </a>
+                </div>
             </div>
-        }
-    </div>
+
+            <div id="@collapseId" class="collapse @(isOpen ? "show" : "")">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 90px;">ID-PM</th>
+                                <th>Unit</th>
+                                <th>Sub Unit</th>
+                                <th>Metode</th>
+                                <th>Standar</th>
+                                <th class="text-center" style="width: 60px;">W/H</th>
+                                <th class="text-center" style="width: 50px;">MP</th>
+                                <th class="text-center" style="width: 70px;">Kondisi</th>
+                                <th class="text-center" style="width: 90px;">Periode</th>
+                                <th class="text-center" style="width: 80px;">Mulai</th>
+                                <th class="text-center" style="width: 100px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var task in group.Tasks)
+                            {
+                                <tr>
+                                    <td><strong>@task.IdPm</strong></td>
+                                    <td>@task.Unit?.Name</td>
+                                    <td>@task.SubUnit?.Name</td>
+                                    <td>
+                                        <span class="badge bg-secondary">@task.Method?.Name</span>
+                                    </td>
+                                    <td><small>@task.Standard?.Name</small></td>
+                                    <td class="text-center">@task.WorkHourMinutes</td>
+                                    <td class="text-center">@task.ManPower</td>
+                                    <td class="text-center">
+                                        @if (task.MachineState == PmApp.Web.Models.MachineRunningState.ON)
+                                        {
+                                            <span class="badge bg-success">ON</span>
+                                        }
+                                        else if (task.MachineState == PmApp.Web.Models.MachineRunningState.OFF)
+                                        {
+                                            <span class="badge bg-danger">OFF</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">@task.PeriodeMonth bulan</span>
+                                    </td>
+                                    <td class="text-center">Bulan @task.StartMonth</td>
+                                    <td class="text-center">
+                                        <a asp-action="Edit" asp-route-id="@task.Id"
+                                           class="btn btn-sm btn-warning" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-danger"
+                                                onclick="confirmDelete(@task.Id, '@task.IdPm')"
+                                                title="Hapus">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <form id="deleteForm-@task.Id" asp-action="Delete"
+                                              asp-route-id="@task.Id" method="post" class="d-none">
+                                            @Html.AntiForgeryToken()
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
 
     <div class="mt-2">
         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="expandAll()">
@@ -258,7 +271,7 @@ else
         });
 
         function expandAll() {
-            document.querySelectorAll('.accordion-collapse').forEach(el => {
+            document.querySelectorAll('.collapse').forEach(el => {
                 if (typeof bootstrap !== 'undefined') {
                     let c = bootstrap.Collapse.getInstance(el) || new bootstrap.Collapse(el, { toggle: false });
                     c.show();
@@ -267,7 +280,7 @@ else
         }
 
         function collapseAll() {
-            document.querySelectorAll('.accordion-collapse').forEach(el => {
+            document.querySelectorAll('.collapse').forEach(el => {
                 if (typeof bootstrap !== 'undefined') {
                     let c = bootstrap.Collapse.getInstance(el) || new bootstrap.Collapse(el, { toggle: false });
                     c.hide();

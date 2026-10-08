@@ -20,6 +20,9 @@ public class PmTaskTemplateController : Controller
         _generator = generator;
     }
 
+    // ============================================================
+    // INDEX
+    // ============================================================
     public async Task<IActionResult> Index()
     {
         var list = await _db.PmTaskTemplates
@@ -33,6 +36,9 @@ public class PmTaskTemplateController : Controller
         return View(list);
     }
 
+    // ============================================================
+    // LIST PM — Grouped by Machine
+    // ============================================================
     public async Task<IActionResult> ListPm(int? lineId, int? assetId, string? search)
     {
         var tasksQuery = _db.PmTaskTemplates
@@ -88,6 +94,9 @@ public class PmTaskTemplateController : Controller
         return View(grouped);
     }
 
+    // ============================================================
+    // CREATE — GET
+    // ============================================================
     [HttpGet]
     public async Task<IActionResult> Create()
     {
@@ -96,6 +105,9 @@ public class PmTaskTemplateController : Controller
         return View(vm);
     }
 
+    // ============================================================
+    // CREATE — POST
+    // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(PmTaskTemplateFormViewModel vm)
@@ -106,7 +118,7 @@ public class PmTaskTemplateController : Controller
             return View(vm);
         }
 
-        var idPm = await _generator.GenerateIdPmAsync(vm.AssetId);
+        var idPm = await GenerateUniqueIdPmAsync(vm.AssetId);
 
         var methodId = await GetOrCreateMetodeAsync(vm.MethodName);
         var standardId = await GetOrCreateStandarAsync(vm.StandardName);
@@ -137,6 +149,9 @@ public class PmTaskTemplateController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // ============================================================
+    // EDIT — GET
+    // ============================================================
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
@@ -168,6 +183,9 @@ public class PmTaskTemplateController : Controller
         return View(vm);
     }
 
+    // ============================================================
+    // EDIT — POST
+    // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, PmTaskTemplateFormViewModel vm)
@@ -207,6 +225,9 @@ public class PmTaskTemplateController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // ============================================================
+    // DELETE — POST
+    // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
@@ -234,6 +255,43 @@ public class PmTaskTemplateController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // ============================================================
+    // SAFETY — Generate IdPm unik, cek duplikat, increment sampai unik
+    // ============================================================
+    private async Task<string> GenerateUniqueIdPmAsync(int assetId)
+    {
+        var idPm = await _generator.GenerateIdPmAsync(assetId);
+
+        int safety = 0;
+        while (await _db.PmTaskTemplates.AnyAsync(t => t.IdPm == idPm))
+        {
+            if (idPm.Length != 6) break;
+
+            var prefix = idPm.Substring(0, 4);
+            var taskSeqStr = idPm.Substring(4, 2);
+
+            if (!int.TryParse(taskSeqStr, out var taskSeq))
+                break;
+
+            taskSeq++;
+
+            if (taskSeq > 99)
+            {
+                taskSeq = 0;
+            }
+
+            idPm = prefix + taskSeq.ToString("D2");
+
+            safety++;
+            if (safety > 200) break;
+        }
+
+        return idPm;
+    }
+
+    // ============================================================
+    // HELPER — Get or Create Metode (auto-create dari form)
+    // ============================================================
     private async Task<int?> GetOrCreateMetodeAsync(string? methodName)
     {
         if (string.IsNullOrWhiteSpace(methodName)) return null;
@@ -281,6 +339,9 @@ public class PmTaskTemplateController : Controller
         return newMetode.Id;
     }
 
+    // ============================================================
+    // HELPER — Get or Create Standar (auto-create dari form)
+    // ============================================================
     private async Task<int?> GetOrCreateStandarAsync(string? standardName)
     {
         if (string.IsNullOrWhiteSpace(standardName)) return null;
@@ -304,6 +365,9 @@ public class PmTaskTemplateController : Controller
         return newStandar.Id;
     }
 
+    // ============================================================
+    // HELPER — Populate Dropdowns
+    // ============================================================
     private async Task PopulateDropdownsAsync(PmTaskTemplateFormViewModel vm)
     {
         vm.AssetList = await _db.Assets
