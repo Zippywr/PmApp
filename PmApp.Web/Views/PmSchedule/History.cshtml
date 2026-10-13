@@ -1,0 +1,220 @@
+﻿@model IEnumerable<PmApp.Web.Models.Entities.PmScheduleHistory>
+@{
+    var idPm = (string?)ViewBag.IdPm;
+    var assetCode = (string?)ViewBag.AssetCode;
+    var subUnitName = (string?)ViewBag.SubUnitName;
+    var methodName = (string?)ViewBag.MethodName;
+    var month = (int)ViewBag.Month;
+    var year = (int)ViewBag.Year;
+    var monthNames = new[] { "", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember" };
+    ViewData["Title"] = "History — " + idPm;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index" asp-route-year="@year">Jadwal PM @year</a></li>
+        <li class="breadcrumb-item active">History</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-clock-history"></i> History Perubahan
+        <span class="badge bg-primary ms-2">@idPm</span>
+    </h4>
+    <div class="d-flex gap-2">
+        <a asp-action="UpdateCell" asp-route-id="@ViewBag.Schedule?.Id"
+           class="btn btn-warning">
+            <i class="bi bi-pencil-square"></i> Update Task
+        </a>
+        <a asp-action="Index" asp-route-year="@year" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Kembali
+        </a>
+    </div>
+</div>
+
+<!-- INFO TASK -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <small class="text-muted">ID-PM</small>
+                <p class="mb-0"><strong>@idPm</strong></p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Mesin</small>
+                <p class="mb-0"><strong>@assetCode</strong></p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Sub Unit</small>
+                <p class="mb-0">@subUnitName</p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Periode</small>
+                <p class="mb-0">@monthNames[month] @year</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TIMELINE -->
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        Belum ada history perubahan untuk task ini.
+        <br />
+        <small class="text-muted">History akan tercatat otomatis saat Anda mengubah Status, Hasil, PIC, Plan Date, Actual Date, atau Catatan.</small>
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light">
+            <strong>@Model.Count() perubahan tercatat</strong>
+        </div>
+        <div class="card-body">
+            <div class="timeline">
+                @foreach (var h in Model)
+                {
+                    <div class="timeline-item mb-4 pb-3 border-bottom">
+                        <div class="d-flex align-items-start gap-3">
+                            <!-- Icon -->
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                                     style="width: 45px; height: 45px;">
+                                    <i class="bi bi-pencil-square" style="font-size: 1.2rem;"></i>
+                                </div>
+                            </div>
+
+                            <!-- Content -->
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                                    <div>
+                                        <strong>
+                                            <i class="bi bi-person-circle"></i>
+                                            @h.ActionBy
+                                        </strong>
+                                        <span class="text-muted ms-2">
+                                            <i class="bi bi-clock"></i>
+                                            @h.ActionDate.ToString("dd MMM yyyy, HH:mm")
+                                        </span>
+                                    </div>
+                                    <span class="badge bg-secondary">
+                                        #@h.Id
+                                    </span>
+                                </div>
+
+                                <!-- Summary -->
+                                <div class="alert alert-light border mb-2 py-2">
+                                    <small><strong>Ringkasan:</strong> @h.Summary</small>
+                                </div>
+
+                                <!-- Detail tabel -->
+                                <table class="table table-sm table-borderless mb-0" style="font-size: 0.85rem;">
+                                    <tbody>
+                                        @if (h.StatusBefore != h.StatusAfter)
+                                        {
+                                            <tr>
+                                                <td width="120" class="text-muted">Status</td>
+                                                <td width="30">:</td>
+                                                <td>
+                                                    <span class="badge bg-light text-dark border">@h.StatusBefore</span>
+                                                    <i class="bi bi-arrow-right mx-1"></i>
+                                                    <span class="badge @GetStatusBadge(h.StatusAfter)">@h.StatusAfter</span>
+                                                </td>
+                                            </tr>
+                                        }
+
+                                        @if (h.ResultBefore != h.ResultAfter)
+                                        {
+                                            <tr>
+                                                <td class="text-muted">Hasil</td>
+                                                <td>:</td>
+                                                <td>
+                                                    <span class="badge @GetResultBadge(h.ResultBefore)">@h.ResultBefore</span>
+                                                    <i class="bi bi-arrow-right mx-1"></i>
+                                                    <span class="badge @GetResultBadge(h.ResultAfter)">@h.ResultAfter</span>
+                                                </td>
+                                            </tr>
+                                        }
+
+                                        @if (h.PICBefore != h.PICAfter)
+                                        {
+                                            <tr>
+                                                <td class="text-muted">PIC</td>
+                                                <td>:</td>
+                                                <td>@(h.PICBefore ?? "-") → <strong>@(h.PICAfter ?? "-")</strong></td>
+                                            </tr>
+                                        }
+
+                                        @if (h.PlanDateBefore != h.PlanDateAfter)
+                                        {
+                                            <tr>
+                                                <td class="text-muted">Plan Date</td>
+                                                <td>:</td>
+                                                <td>
+                                                    @(h.PlanDateBefore?.ToString("dd/MM/yyyy") ?? "-")
+                                                    →
+                                                    <strong>@(h.PlanDateAfter?.ToString("dd/MM/yyyy") ?? "-")</strong>
+                                                </td>
+                                            </tr>
+                                        }
+
+                                        @if (h.ActualDateBefore != h.ActualDateAfter)
+                                        {
+                                            <tr>
+                                                <td class="text-muted">Actual Date</td>
+                                                <td>:</td>
+                                                <td>
+                                                    @(h.ActualDateBefore?.ToString("dd/MM/yyyy") ?? "-")
+                                                    →
+                                                    <strong>@(h.ActualDateAfter?.ToString("dd/MM/yyyy") ?? "-")</strong>
+                                                </td>
+                                            </tr>
+                                        }
+
+                                        @if (h.NotesBefore != h.NotesAfter)
+                                        {
+                                            <tr>
+                                                <td class="text-muted">Catatan</td>
+                                                <td>:</td>
+                                                <td>
+                                                    <div class="small">
+                                                        <div class="text-muted">Sebelum: @(h.NotesBefore ?? "-")</div>
+                                                        <div><strong>Sesudah:</strong> @(h.NotesAfter ?? "-")</div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@functions {
+    string GetStatusBadge(string? status) => status switch
+    {
+        "Done" => "bg-success",
+        "Overdue" => "bg-delay",
+        "InProgress" => "bg-primary",
+        "Cancelled" => "bg-secondary",
+        "Scheduled" => "bg-warning text-dark",
+        _ => "bg-light text-dark border"
+    };
+
+    string GetResultBadge(string? result) => result switch
+    {
+        "OK" => "bg-success",
+        "NG" => "bg-danger",
+        "Partial" => "bg-warning text-dark",
+        "Pending" => "bg-light text-dark border",
+        _ => "bg-light text-dark border"
+    };
+}

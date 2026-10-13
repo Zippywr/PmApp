@@ -1,0 +1,324 @@
+﻿@model PmApp.Web.Models.ViewModels.PmReportViewModel
+@{
+    ViewData["Title"] = "Report PM Graph";
+    var filter = (PmApp.Web.Models.ViewModels.PmReportFilterViewModel)ViewBag.Filter;
+}
+
+<h4 class="mb-3">
+    <i class="bi bi-graph-up"></i> Report PM Graph
+    <small class="text-muted">Tahun @Model.Year</small>
+</h4>
+
+<!-- FILTER -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Tahun</label>
+                <select name="year" class="form-select">
+                    @foreach (var y in filter.Years)
+                    {
+                        <option value="@y.Value" selected="@y.Selected">@y.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Bulan</label>
+                <select name="month" class="form-select">
+                    <option value="">-- Semua --</option>
+                    @foreach (var m in filter.Months)
+                    {
+                        <option value="@m.Value" selected="@m.Selected">@m.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Line</label>
+                <select name="lineId" class="form-select">
+                    <option value="">-- Semua --</option>
+                    @foreach (var l in filter.Lines)
+                    {
+                        <option value="@l.Value" selected="@l.Selected">@l.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Mesin</label>
+                <select name="assetId" class="form-select">
+                    <option value="">-- Semua --</option>
+                    @foreach (var a in filter.Assets)
+                    {
+                        <option value="@a.Value" selected="@a.Selected">@a.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">-- Semua --</option>
+                    @foreach (var s in filter.Statuses)
+                    {
+                        <option value="@s.Value" selected="@s.Selected">@s.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- KPI CARDS -->
+<div class="row g-3 mb-4">
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm text-white bg-primary">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Total</div>
+                <h4 class="mb-0">@Model.TotalScheduled</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm text-white bg-success">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Selesai</div>
+                <h4 class="mb-0">@Model.TotalDone</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm text-white bg-info">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Tepat Waktu</div>
+                <h4 class="mb-0">@Model.TotalOnTime</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm text-white bg-danger">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Overdue</div>
+                <h4 class="mb-0">@Model.TotalOverdue</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm text-white bg-warning">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Pending</div>
+                <h4 class="mb-0">@Model.TotalPending</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm text-white bg-dark">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Compliance</div>
+                <h4 class="mb-0">@Model.ComplianceRate%</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CHARTS -->
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <strong><i class="bi bi-pie-chart"></i> Distribusi Status PM</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <strong><i class="bi bi-clipboard-check"></i> Distribusi Hasil Pengecekan</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="resultChart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <strong><i class="bi bi-graph-up-arrow"></i> Trend Bulanan — Plan vs Done vs On Time</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="trendChart" height="110"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <strong><i class="bi bi-diagram-3"></i> PM per Line</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="lineChart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <strong><i class="bi bi-bar-chart"></i> Top 10 Mesin — Jumlah PM</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="machineChart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        const statusData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.StatusChart));
+        const resultData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ResultChart));
+        const lineData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PerLineChart));
+        const trendData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyTrend));
+        const machineData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PerMachineChart));
+
+        const palette = ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6c757d', '#0dcaf0', '#fd7e14', '#6f42c1'];
+
+        // Status Colors
+        const statusColorMap = {
+            'Scheduled': '#ffc107',
+            'InProgress': '#0d6efd',
+            'Done': '#198754',
+            'Overdue': '#dc3545',
+            'Cancelled': '#6c757d'
+        };
+
+        // Result Colors
+        const resultColorMap = {
+            'Pending': '#6c757d',
+            'OK': '#198754',
+            'Partial': '#ffc107',
+            'NG': '#dc3545'
+        };
+
+        // === STATUS PIE ===
+        new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: statusData.map(x => x.Label),
+                datasets: [{
+                    data: statusData.map(x => x.Value),
+                    backgroundColor: statusData.map(x => statusColorMap[x.Label] || '#6c757d')
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // === RESULT PIE ===
+        new Chart(document.getElementById('resultChart'), {
+            type: 'doughnut',
+            data: {
+                labels: resultData.map(x => x.Label),
+                datasets: [{
+                    data: resultData.map(x => x.Value),
+                    backgroundColor: resultData.map(x => resultColorMap[x.Label] || '#6c757d')
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // === LINE PIE ===
+        new Chart(document.getElementById('lineChart'), {
+            type: 'pie',
+            data: {
+                labels: lineData.map(x => x.Label),
+                datasets: [{
+                    data: lineData.map(x => x.Value),
+                    backgroundColor: palette
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // === TREND LINE ===
+        new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: trendData.map(x => x.Month),
+                datasets: [
+                    {
+                        label: 'Dijadwalkan',
+                        data: trendData.map(x => x.Scheduled),
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Selesai',
+                        data: trendData.map(x => x.Done),
+                        borderColor: '#198754',
+                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Tepat Waktu',
+                        data: trendData.map(x => x.OnTime),
+                        borderColor: '#ffc107',
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+
+        // === MACHINE BAR ===
+        new Chart(document.getElementById('machineChart'), {
+            type: 'bar',
+            data: {
+                labels: machineData.map(x => x.Label),
+                datasets: [{
+                    label: 'Jumlah PM',
+                    data: machineData.map(x => x.Value),
+                    backgroundColor: '#0d6efd'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+    </script>
+}

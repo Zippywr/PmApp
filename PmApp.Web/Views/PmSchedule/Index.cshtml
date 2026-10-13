@@ -41,6 +41,14 @@
                 <i class="bi bi-arrow-repeat"></i> Regenerate
             </button>
         </form>
+        <form asp-action="ResetRegenerate" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="year" value="@year" />
+            <button type="submit" class="btn btn-danger"
+                    onclick="return confirm('⚠️ RESET & REGENERATE\n\nSemua jadwal yang BELUM Done akan DIHAPUS dan di-generate ulang.\nJadwal yang sudah Done akan tetap tersimpan.\n\nLanjutkan?');">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset & Regenerate
+            </button>
+        </form>
     </div>
 </div>
 
@@ -86,7 +94,7 @@ else
 {
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0" style="overflow-x: auto;">
-            <table class="table table-bordered table-sm mb-0" style="min-width: 1400px; font-size: 0.8rem;">
+            <table class="table table-bordered table-sm mb-0" style="min-width: 1500px; font-size: 0.8rem;">
                 <thead class="table-light">
                     <tr>
                         <th rowspan="2" style="min-width: 90px;">ID-PM</th>
@@ -96,11 +104,12 @@ else
                         <th rowspan="2" style="min-width: 60px;">W/H</th>
                         <th rowspan="2" style="min-width: 40px;">MP</th>
                         <th colspan="12" class="text-center">Bulan</th>
+                        <th rowspan="2" style="min-width: 90px;" class="text-center">Aksi</th>
                     </tr>
                     <tr>
                         @for (int m = 0; m < 12; m++)
                         {
-                            <th class="text-center" style="min-width: 70px;">@monthNames[m]</th>
+                            <th class="text-center" style="min-width: 80px;">@monthNames[m]</th>
                         }
                     </tr>
                 </thead>
@@ -124,19 +133,35 @@ else
                                 <td class="text-center p-1" style="vertical-align: top;">
                                     @if (cell.IsPlanned)
                                     {
-                                        var badgeClass = cell.Status switch
+                                        <div class="badge bg-info w-100 mb-1" style="font-size: 0.55rem;">
+                                            W@(row.Task.Week)
+                                        </div>
+                                        var statusText = cell.Status == "Overdue" ? "Delay" : cell.Status;
+
+                                        var statusBadge = cell.Status switch
                                         {
                                             "Done" => "bg-success",
-                                            "Overdue" => "bg-danger",
+                                            "Overdue" => "bg-delay",
                                             "InProgress" => "bg-primary",
                                             "Cancelled" => "bg-secondary",
                                             _ => "bg-warning text-dark"
                                         };
 
+                                        var resultBadge = cell.Result switch
+                                        {
+                                            "OK" => "bg-success",
+                                            "NG" => "bg-danger",
+                                            "Partial" => "bg-warning text-dark",
+                                            _ => "bg-light text-dark border"
+                                        };
+
                                         <a asp-action="UpdateCell" asp-route-id="@cell.ScheduleId"
                                            class="text-decoration-none"
-                                           title="Klik untuk update: @cell.Status">
-                                            <div class="badge @badgeClass w-100 mb-1">@cell.Status</div>
+                                           title="Klik untuk update: @statusText / @cell.Result">
+                                            <div class="badge @statusBadge w-100 mb-1" style="font-size: 0.6rem;">@statusText</div>
+                                            <div class="badge @resultBadge w-100 mb-1" style="font-size: 0.6rem;">
+                                                @(cell.Result ?? "Pending")
+                                            </div>
                                             @if (cell.ActualDate.HasValue)
                                             {
                                                 <small class="text-muted d-block">
@@ -145,10 +170,17 @@ else
                                             }
                                             @if (!string.IsNullOrEmpty(cell.PIC))
                                             {
-                                                <small class="text-muted d-block" style="font-size: 0.65rem;">
+                                                <small class="text-muted d-block" style="font-size: 0.6rem;">
                                                     @cell.PIC
                                                 </small>
                                             }
+                                        </a>
+                                        <a asp-action="History" asp-route-id="@cell.ScheduleId"
+                                           class="text-decoration-none d-block mt-1"
+                                           title="Lihat history perubahan">
+                                            <small class="text-primary" style="font-size: 0.6rem;">
+                                                <i class="bi bi-clock-history"></i> H
+                                            </small>
                                         </a>
                                     }
                                     else
@@ -157,6 +189,14 @@ else
                                     }
                                 </td>
                             }
+
+                            <td class="text-center">
+                                <a asp-action="Detail" asp-route-id="@row.Task.Id" asp-route-year="@year"
+                                   class="btn btn-sm btn-info text-white"
+                                   title="Lihat Detail Lengkap">
+                                    <i class="bi bi-eye"></i> Detail
+                                </a>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -165,10 +205,19 @@ else
     </div>
 
     <div class="mt-2 small text-muted">
-        <strong>Keterangan:</strong>
-        <span class="badge bg-warning text-dark">Scheduled</span> Belum dikerjakan ·
-        <span class="badge bg-primary">InProgress</span> Sedang dikerjakan ·
+        <strong>Keterangan Status:</strong>
+        <span class="badge bg-warning text-dark">Scheduled</span> Belum ·
+        <span class="badge bg-primary">InProgress</span> Proses ·
         <span class="badge bg-success">Done</span> Selesai ·
-        <span class="badge bg-danger">Overdue</span> Terlambat
+        <span class="badge bg-delay">Delay</span> Terlambat
+        <br />
+        <strong>Keterangan Hasil:</strong>
+        <span class="badge bg-light text-dark border">Pending</span> Belum dicek ·
+        <span class="badge bg-success">OK</span> Baik ·
+        <span class="badge bg-warning text-dark">Partial</span> Sebagian ·
+        <span class="badge bg-danger">NG</span> Rusak
+        <br />
+        <i class="bi bi-info-circle text-primary"></i>
+        Klik <strong>badge</strong> untuk update · Klik <strong>H</strong> untuk lihat history perubahan.
     </div>
 }

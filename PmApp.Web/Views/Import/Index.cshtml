@@ -1,0 +1,171 @@
+﻿@{
+    ViewData["Title"] = "Import Excel";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-upload"></i> Import Excel Master Data</h4>
+</div>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    Pilih master data yang mau di-import. Setiap halaman punya
+    <strong>template Excel</strong> yang bisa di-download, diisi, lalu di-upload kembali.
+</div>
+
+<div class="row g-3">
+    <div class="col-md-3">
+        <a asp-action="Plant" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-building text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Plant</h5>
+                    <small class="text-muted">Import Excel Plant</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3">
+        <a asp-action="Line" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-diagram-2 text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Line</h5>
+                    <small class="text-muted">Import Excel Line</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3">
+        <a asp-action="Area" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-grid-3x3-gap text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Area</h5>
+                    <small class="text-muted">Import Excel Area</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3">
+        <a asp-action="Product" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-box text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Product</h5>
+                    <small class="text-muted">Import Excel Product</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3">
+        <a asp-action="Brand" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-award text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Brand</h5>
+                    <small class="text-muted">Import Excel Brand</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3">
+        <a asp-action="McCategory" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-cpu text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Kategori Mesin</h5>
+                    <small class="text-muted">Import Excel</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3">
+        <a asp-action="MachineFunction" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-tools text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Fungsi Mesin</h5>
+                    <small class="text-muted">Import Excel</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3">
+        <a asp-action="Unit" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-boxes text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Unit</h5>
+                    <small class="text-muted">Import Excel</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3">
+        <a asp-action="SubUnit" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-box-seam text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Sub Unit</h5>
+                    <small class="text-muted">Import Excel</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3">
+        <a asp-action="Metode" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-wrench text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Metode</h5>
+                    <small class="text-muted">Import Excel</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3">
+        <a asp-action="Standar" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-rulers text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Standar</h5>
+                    <small class="text-muted">Import Excel</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3">
+        <a asp-action="Asset" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-gear text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Mesin</h5>
+                    <small class="text-muted">Import Excel Mesin</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3">
+        <a asp-action="Part" class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-box-seam text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-2 mb-1">Part</h5>
+                    <small class="text-muted">Import Excel Part</small>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>

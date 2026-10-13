@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PmApp.Web.Data;
 using PmApp.Web.Models;
 using PmApp.Web.Models.Entities;
+using PmApp.Web.Models.ViewModels;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -892,6 +893,292 @@ public class PmExportService
         });
 
         return doc.GeneratePdf();
+    }
+    // ============================================================
+    // DETAIL TASK — Excel (12 bulan vertikal)
+    // ============================================================
+    public byte[] ToDetailExcel(PmScheduleDetailViewModel vm)
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.AddWorksheet("Detail " + vm.IdPm);
+
+        int row = 1;
+
+        // Title
+        ws.Cell(row, 1).Value = "DETAIL TASK PM";
+        ws.Cell(row, 1).Style.Font.Bold = true;
+        ws.Cell(row, 1).Style.Font.FontSize = 14;
+        ws.Range(row, 1, row, 7).Merge();
+        ws.Range(row, 1, row, 7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        row += 2;
+
+        void AddDetail(string label, string? value)
+        {
+            ws.Cell(row, 1).Value = label;
+            ws.Cell(row, 1).Style.Font.Bold = true;
+            ws.Cell(row, 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+            ws.Cell(row, 2).Value = value ?? "-";
+            ws.Range(row, 2, row, 7).Merge();
+            row++;
+        }
+
+        AddDetail("ID-PM", vm.IdPm);
+        AddDetail("Kode Mesin", vm.AssetCode);
+        AddDetail("Nama Mesin", vm.AssetName);
+        AddDetail("Line", vm.LineName);
+        AddDetail("Area", vm.AreaName);
+        AddDetail("OP No", vm.OpNo);
+        AddDetail("Unit", vm.UnitName);
+        AddDetail("Sub Unit", vm.SubUnitName);
+        AddDetail("Metode", vm.MethodName);
+        AddDetail("Standar", vm.StandardName);
+        AddDetail("W/H (menit)", vm.WorkHourMinutes.ToString());
+        AddDetail("Man Power", vm.ManPower.ToString());
+        AddDetail("Kondisi Mesin", vm.MachineState);
+        AddDetail("Periode / Mulai", vm.PeriodeMonth + " bulan / Bulan " + vm.StartMonth);
+        AddDetail("Remark", vm.Remark);
+
+        row += 2;
+
+        // Table header
+        string[] headers = { "Bulan", "Plan", "Actual", "PIC", "Status", "Hasil", "Catatan" };
+        for (int i = 0; i < headers.Length; i++)
+        {
+            var cell = ws.Cell(row, i + 1);
+            cell.Value = headers[i];
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = XLColor.CornflowerBlue;
+            cell.Style.Font.FontColor = XLColor.White;
+            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        }
+        row++;
+
+        foreach (var m in vm.Months)
+        {
+            ws.Cell(row, 1).Value = m.MonthName;
+            ws.Cell(row, 2).Value = m.IsPlanned
+                ? (m.PlanDate?.ToString("dd/MM/yyyy") ?? "-") : "-";
+            ws.Cell(row, 3).Value = m.IsPlanned
+                ? (m.ActualDate?.ToString("dd/MM/yyyy") ?? "-") : "-";
+            ws.Cell(row, 4).Value = m.IsPlanned ? (m.PIC ?? "-") : "-";
+            ws.Cell(row, 5).Value = m.IsPlanned ? m.Status : "-";
+            ws.Cell(row, 6).Value = m.IsPlanned ? m.Result : "-";
+            ws.Cell(row, 7).Value = m.IsPlanned ? (m.Notes ?? "-") : "-";
+
+            for (int c = 1; c <= 7; c++)
+            {
+                ws.Cell(row, c).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            }
+
+            // Warna status
+            if (m.IsPlanned)
+            {
+                var bg = m.Status switch
+                {
+                    "Done" => XLColor.LightGreen,
+                    "Overdue" => XLColor.LightPink,
+                    "InProgress" => XLColor.LightBlue,
+                    "Cancelled" => XLColor.LightGray,
+                    _ => XLColor.LightYellow
+                };
+                ws.Cell(row, 5).Style.Fill.BackgroundColor = bg;
+            }
+
+            row++;
+        }
+
+        ws.Columns().AdjustToContents();
+        ws.Column(7).Width = 40;
+
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        return ms.ToArray();
+    }
+
+    // ============================================================
+    // DETAIL TASK — PDF (12 bulan vertikal)
+    // ============================================================
+    public byte[] ToDetailPdf(PmScheduleDetailViewModel vm)
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+
+        var doc = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Portrait());
+                page.Margin(25);
+                page.DefaultTextStyle(t => t.FontSize(9));
+
+                page.Header().Column(col =>
+                {
+                    col.Item().Text("DETAIL TASK PM").FontSize(14).Bold();
+                    col.Item().Text("Dicetak: " + DateTime.Now.ToString("dd MMM yyyy HH:mm"))
+                        .FontSize(8).FontColor(Colors.Grey.Darken1);
+                });
+
+                page.Content().PaddingVertical(10).Column(col =>
+                {
+                    // Info Task
+                    col.Item().Border(1).BorderColor(Colors.Grey.Lighten1).Padding(8).Column(box =>
+                    {
+                        box.Item().Table(tbl =>
+                        {
+                            tbl.ColumnsDefinition(c =>
+                            {
+                                c.ConstantColumn(110);
+                                c.RelativeColumn(1);
+                                c.ConstantColumn(110);
+                                c.RelativeColumn(1);
+                            });
+
+                            void Row(string l1, string? v1, string l2, string? v2)
+                            {
+                                tbl.Cell().Text(l1).Bold();
+                                tbl.Cell().Text(v1 ?? "-");
+                                tbl.Cell().Text(l2).Bold();
+                                tbl.Cell().Text(v2 ?? "-");
+                            }
+
+                            Row("ID-PM", vm.IdPm, "Kode Mesin", vm.AssetCode);
+                            Row("Nama Mesin", vm.AssetName, "Line", vm.LineName);
+                            Row("Area", vm.AreaName, "OP No", vm.OpNo);
+                            Row("Unit", vm.UnitName, "Sub Unit", vm.SubUnitName);
+                            Row("Metode", vm.MethodName, "W/H", vm.WorkHourMinutes + " menit");
+                            Row("Man Power", vm.ManPower + " orang", "Kondisi", vm.MachineState);
+                            Row("Periode", vm.PeriodeMonth + " bulan", "Mulai", "Bulan " + vm.StartMonth);
+                            Row("Standar", vm.StandardName, "Remark", vm.Remark ?? "-");
+                        });
+                    });
+
+                    col.Item().PaddingTop(10).Text("JADWAL " + vm.Year).Bold().FontSize(11);
+
+                    // Jadwal 12 bulan
+                    col.Item().PaddingTop(5).Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.ConstantColumn(65);
+                            cols.ConstantColumn(70);
+                            cols.ConstantColumn(70);
+                            cols.ConstantColumn(75);
+                            cols.ConstantColumn(60);
+                            cols.ConstantColumn(50);
+                            cols.RelativeColumn(2);
+                        });
+
+                        table.Header(h =>
+                        {
+                            void Cell(string text)
+                            {
+                                h.Cell().Background(Colors.Blue.Lighten3).Padding(3)
+                                    .Text(text).Bold().FontSize(8);
+                            }
+                            Cell("Bulan");
+                            Cell("Plan");
+                            Cell("Actual");
+                            Cell("PIC");
+                            Cell("Status");
+                            Cell("Hasil");
+                            Cell("Catatan");
+                        });
+
+                        foreach (var m in vm.Months)
+                        {
+                            void Cell(string text)
+                            {
+                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2)
+                                    .Padding(2).Text(text ?? "-").FontSize(8);
+                            }
+
+                            Cell(m.MonthName);
+                            Cell(m.IsPlanned ? (m.PlanDate?.ToString("dd/MM/yyyy") ?? "-") : "-");
+                            Cell(m.IsPlanned ? (m.ActualDate?.ToString("dd/MM/yyyy") ?? "-") : "-");
+                            Cell(m.IsPlanned ? (m.PIC ?? "-") : "-");
+                            Cell(m.IsPlanned ? m.Status : "-");
+                            Cell(m.IsPlanned ? m.Result : "-");
+                            Cell(m.IsPlanned ? (m.Notes ?? "-") : "-");
+                        }
+                    });
+                });
+
+                page.Footer().AlignCenter().Text(x =>
+                {
+                    x.Span("Halaman "); x.CurrentPageNumber();
+                    x.Span(" dari "); x.TotalPages();
+                });
+            });
+        });
+
+        return doc.GeneratePdf();
+    }
+
+    // ============================================================
+    // GET DETAIL DATA
+    // ============================================================
+    public async Task<PmScheduleDetailViewModel?> GetDetailAsync(int taskId, int year)
+    {
+        var task = await _db.PmTaskTemplates
+            .Include(t => t.Asset).ThenInclude(a => a!.Line)
+            .Include(t => t.Asset).ThenInclude(a => a!.Area)
+            .Include(t => t.Unit)
+            .Include(t => t.SubUnit)
+            .Include(t => t.Method)
+            .Include(t => t.Standard)
+            .FirstOrDefaultAsync(t => t.Id == taskId);
+
+        if (task == null) return null;
+
+        var schedules = await _db.PmSchedules
+            .Where(s => s.TaskTemplateId == taskId && s.Year == year)
+            .ToListAsync();
+
+        string[] monthNames = { "", "Januari", "Februari", "Maret", "April", "Mei",
+                                "Juni", "Juli", "Agustus", "September",
+                                "Oktober", "November", "Desember" };
+
+        var vm = new PmScheduleDetailViewModel
+        {
+            TaskId = task.Id,
+            IdPm = task.IdPm,
+            Year = year,
+            AssetCode = task.Asset?.Code ?? "-",
+            AssetName = task.Asset?.Name ?? "-",
+            LineName = task.Asset?.Line?.Name ?? "-",
+            AreaName = task.Asset?.Area?.Name ?? "-",
+            OpNo = task.Asset?.OpNo ?? "-",
+            UnitName = task.Unit?.Name ?? "-",
+            SubUnitName = task.SubUnit?.Name ?? "-",
+            MethodName = task.Method?.Name ?? "-",
+            StandardName = task.Standard?.Name ?? "-",
+            WorkHourMinutes = task.WorkHourMinutes,
+            ManPower = task.ManPower,
+            MachineState = task.MachineState.ToString(),
+            PeriodeMonth = task.PeriodeMonth,
+            StartMonth = task.StartMonth,
+            Remark = task.Remark
+        };
+
+        for (int m = 1; m <= 12; m++)
+        {
+            var sched = schedules.FirstOrDefault(s => s.Month == m);
+            vm.Months.Add(new PmScheduleDetailRow
+            {
+                Month = m,
+                MonthName = monthNames[m],
+                IsPlanned = sched != null,
+                ScheduleId = sched?.Id,
+                PlanDate = sched?.PlanDate,
+                ActualDate = sched?.ActualDate,
+                PIC = sched?.PIC,
+                Status = sched?.Status.ToString() ?? "-",
+                Result = sched?.Result.ToString() ?? "-",
+                Notes = sched?.Notes
+            });
+        }
+
+        return vm;
     }
 }
 

@@ -34,7 +34,7 @@
 	<Folder Include="Views\PmSchedule\" />
 	<Folder Include="Views\WorkOrder\" />
 	<Folder Include="Views\Blackout\" />
-	<Folder Include="Views\Report\" />
+	<Folder Include="Views\PmReport\" />
 	<Folder Include="views\Kpi\" />
   </ItemGroup>
 

@@ -733,6 +733,9 @@ namespace PmApp.Web.Migrations
                     b.Property<DateTime?>("PlanDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("Result")
+                        .HasColumnType("int");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -760,6 +763,107 @@ namespace PmApp.Web.Migrations
                     b.HasIndex("Year", "Month");
 
                     b.ToTable("PmSchedules");
+                });
+
+            modelBuilder.Entity("PmApp.Web.Models.Entities.PmScheduleHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("ActionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ActualDateAfter")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ActualDateBefore")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NotesAfter")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("NotesBefore")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("PICAfter")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PICBefore")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("PlanDateAfter")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PlanDateBefore")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PmScheduleId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ResultAfter")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ResultBefore")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("StatusAfter")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("StatusBefore")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionDate");
+
+                    b.HasIndex("PmScheduleId");
+
+                    b.ToTable("PmScheduleHistories");
                 });
 
             modelBuilder.Entity("PmApp.Web.Models.Entities.PmTaskTemplate", b =>
@@ -842,6 +946,9 @@ namespace PmApp.Web.Migrations
 
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("Week")
+                        .HasColumnType("int");
 
                     b.Property<int>("WorkHourMinutes")
                         .HasColumnType("int");
@@ -1198,6 +1305,17 @@ namespace PmApp.Web.Migrations
                     b.Navigation("Asset");
 
                     b.Navigation("TaskTemplate");
+                });
+
+            modelBuilder.Entity("PmApp.Web.Models.Entities.PmScheduleHistory", b =>
+                {
+                    b.HasOne("PmApp.Web.Models.Entities.PmSchedule", "PmSchedule")
+                        .WithMany()
+                        .HasForeignKey("PmScheduleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PmSchedule");
                 });
 
             modelBuilder.Entity("PmApp.Web.Models.Entities.PmTaskTemplate", b =>

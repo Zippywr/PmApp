@@ -15,12 +15,19 @@
         <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Tambah Standar</h5>
     </div>
     <div class="card-body">
-        <form asp-action="Create" method="post">
+        <form asp-action="Create" method="post" class="form-confirm"
+              data-confirm-title="Konfirmasi Simpan"
+              data-confirm-message="Yakin simpan data standar baru ini?"
+              data-confirm-button="Ya, Simpan">
             @Html.AntiForgeryToken()
             <partial name="_Form" model="Model" />
             <div class="mt-3">
-                <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button>
-                <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Batal</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Simpan
+                </button>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Batal
+                </a>
             </div>
         </form>
     </div>

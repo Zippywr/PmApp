@@ -1,0 +1,230 @@
+﻿@model PmApp.Web.Models.ViewModels.PmScheduleDetailViewModel
+@{
+    ViewData["Title"] = "Detail Task PM — " + Model.IdPm;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a asp-action="Index" asp-route-year="@Model.Year">Jadwal PM @Model.Year</a>
+        </li>
+        <li class="breadcrumb-item active">@Model.IdPm</li>
+    </ol>
+</nav>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-info-circle"></i> Detail Task PM
+        <span class="badge bg-primary ms-2">@Model.IdPm</span>
+    </h4>
+    <div class="d-flex gap-2">
+        <a asp-controller="Export" asp-action="DetailExcel"
+           asp-route-id="@Model.TaskId" asp-route-year="@Model.Year"
+           class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+        </a>
+        <a asp-controller="Export" asp-action="DetailPdf"
+           asp-route-id="@Model.TaskId" asp-route-year="@Model.Year"
+           class="btn btn-outline-danger">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+        </a>
+        <a asp-action="Index" asp-route-year="@Model.Year" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Kembali
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> Info Task</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <small class="text-muted">ID-PM</small>
+                <p class="mb-0"><strong>@Model.IdPm</strong></p>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">Kode Mesin</small>
+                <p class="mb-0"><strong>@Model.AssetCode</strong></p>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">Nama Mesin</small>
+                <p class="mb-0">@Model.AssetName</p>
+            </div>
+
+            <div class="col-md-4">
+                <small class="text-muted">Line</small>
+                <p class="mb-0">@Model.LineName</p>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">Area</small>
+                <p class="mb-0">@Model.AreaName</p>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">OP No</small>
+                <p class="mb-0">@Model.OpNo</p>
+            </div>
+
+            <div class="col-md-4">
+                <small class="text-muted">Unit</small>
+                <p class="mb-0">@Model.UnitName</p>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">Sub Unit</small>
+                <p class="mb-0">@Model.SubUnitName</p>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">Metode</small>
+                <p class="mb-0"><span class="badge bg-secondary">@Model.MethodName</span></p>
+            </div>
+
+            <div class="col-12">
+                <small class="text-muted">Standar</small>
+                <p class="mb-0">@Model.StandardName</p>
+            </div>
+
+            <div class="col-md-3">
+                <small class="text-muted">Waktu (menit)</small>
+                <p class="mb-0">@Model.WorkHourMinutes</p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Man Power</small>
+                <p class="mb-0">@Model.ManPower orang</p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Kondisi Mesin</small>
+                <p class="mb-0">
+                    @if (Model.MachineState == "ON")
+                    {
+                        <span class="badge bg-success">ON</span>
+                    }
+                    else if (Model.MachineState == "OFF")
+                    {
+                        <span class="badge bg-danger">OFF</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">-</span>
+                    }
+                </p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Periode / Mulai</small>
+                <p class="mb-0">@Model.PeriodeMonth bulan / Bulan @Model.StartMonth</p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Remark))
+            {
+                <div class="col-12">
+                    <small class="text-muted">Remark</small>
+                    <p class="mb-0">@Model.Remark</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-light">
+        <h5 class="mb-0"><i class="bi bi-calendar-week"></i> Jadwal @Model.Year</h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover table-bordered mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 130px;">Bulan</th>
+                    <th style="width: 110px;">Plan</th>
+                    <th style="width: 110px;">Actual</th>
+                    <th style="width: 150px;">PIC</th>
+                    <th style="width: 110px;">Status</th>
+                    <th style="width: 100px;">Hasil</th>
+                    <th>Catatan</th>
+                    <th style="width: 90px;" class="text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in Model.Months)
+                {
+                    var statusText = m.Status == "Overdue" ? "Delay" : m.Status;
+
+                    var statusBadge = m.Status switch
+                    {
+                        "Done" => "bg-success",
+                        "Overdue" => "bg-delay",
+                        "InProgress" => "bg-primary",
+                        "Cancelled" => "bg-secondary",
+                        "Scheduled" => "bg-warning text-dark",
+                        _ => "bg-light text-dark border"
+                    };
+
+                    var resultBadge = m.Result switch
+                    {
+                        "OK" => "bg-success",
+                        "NG" => "bg-danger",
+                        "Partial" => "bg-warning text-dark",
+                        _ => "bg-light text-dark border"
+                    };
+
+                    <tr>
+                        <td>
+                            <strong>@m.MonthName</strong>
+                            @if (m.IsPlanned)
+                            {
+                                <i class="bi bi-check-circle-fill text-success ms-1" title="Ada jadwal"></i>
+                            }
+                        </td>
+
+                        @if (m.IsPlanned)
+                        {
+                            <td>@(m.PlanDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td>@(m.ActualDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td>@(m.PIC ?? "-")</td>
+                            <td><span class="badge @statusBadge">@statusText</span></td>
+                            <td><span class="badge @resultBadge">@m.Result</span></td>
+                            <td><small>@(m.Notes ?? "-")</small></td>
+                            <td class="text-center">
+                                <a asp-action="UpdateCell" asp-route-id="@m.ScheduleId"
+                                   class="btn btn-sm btn-warning" title="Update">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </td>
+                        }
+                        else
+                        {
+                            <td class="text-muted">-</td>
+                            <td class="text-muted">-</td>
+                            <td class="text-muted">-</td>
+                            <td><span class="badge bg-light text-muted border">Tidak dijadwalkan</span></td>
+                            <td class="text-muted">-</td>
+                            <td class="text-muted">-</td>
+                            <td class="text-center text-muted">-</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-3 small text-muted">
+    <strong>Keterangan:</strong>
+    <span class="badge bg-warning text-dark">Scheduled</span> Belum ·
+    <span class="badge bg-primary">InProgress</span> Proses ·
+    <span class="badge bg-success">Done</span> Selesai ·
+    <span class="badge bg-delay">Delay</span> Terlambat
+    <br />
+    <strong>Hasil:</strong>
+    <span class="badge bg-light text-dark border">Pending</span> Belum dicek ·
+    <span class="badge bg-success">OK</span> Baik ·
+    <span class="badge bg-warning text-dark">Partial</span> Sebagian ·
+    <span class="badge bg-danger">NG</span> Rusak
+</div>

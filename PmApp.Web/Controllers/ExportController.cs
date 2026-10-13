@@ -118,4 +118,34 @@ public class ExportController : Controller
         return File(bytes, "text/csv",
             $"JadwalPM_{y}_{DateTime.Now:yyyyMMdd_HHmm}.csv");
     }
+    // ============================================================
+    // DETAIL TASK — Excel
+    // ============================================================
+    public async Task<IActionResult> DetailExcel(int id, int? year)
+    {
+        var y = year ?? DateTime.Today.Year;
+        var vm = await _export.GetDetailAsync(id, y);
+        if (vm == null) return NotFound();
+
+        var bytes = _export.ToDetailExcel(vm);
+
+        return File(bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"Detail_{vm.IdPm}_{y}_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+    }
+
+    // ============================================================
+    // DETAIL TASK — PDF
+    // ============================================================
+    public async Task<IActionResult> DetailPdf(int id, int? year)
+    {
+        var y = year ?? DateTime.Today.Year;
+        var vm = await _export.GetDetailAsync(id, y);
+        if (vm == null) return NotFound();
+
+        var bytes = _export.ToDetailPdf(vm);
+
+        return File(bytes, "application/pdf",
+            $"Detail_{vm.IdPm}_{y}_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
+    }
 }

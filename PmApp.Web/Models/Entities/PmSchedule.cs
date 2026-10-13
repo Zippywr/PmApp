@@ -33,6 +33,9 @@ public class PmSchedule : BaseEntity
     [Display(Name = "Status")]
     public PmStatus Status { get; set; } = PmStatus.Scheduled;
 
+    [Display(Name = "Hasil Pengecekan")]
+    public MachineCondition Result { get; set; } = MachineCondition.Pending;
+
     [MaxLength(500)]
     [Display(Name = "Catatan")]
     public string? Notes { get; set; }

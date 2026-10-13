@@ -5,24 +5,31 @@
 
 @if (TempData["Success"] != null)
 {
-    <div class="alert alert-success alert-dismissible fade show">
-        <i class="bi bi-check-circle"></i> @TempData["Success"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            showNotify('success', '@Html.Raw(TempData["Success"]?.ToString()?.Replace("'", "\\'"))');
+        });
+    </script>
 }
 @if (TempData["Error"] != null)
 {
-    <div class="alert alert-danger alert-dismissible fade show">
-        <i class="bi bi-exclamation-triangle"></i> @TempData["Error"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            showNotify('danger', '@Html.Raw(TempData["Error"]?.ToString()?.Replace("'", "\\'"))');
+        });
+    </script>
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-gear"></i> Daftar Mesin</h4>
-    <a asp-action="Create" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Tambah Mesin
-    </a>
+    <div class="d-flex gap-2">
+        <a asp-controller="Import" asp-action="Asset" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-excel"></i> Import Excel
+        </a>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Tambah Mesin
+        </a>
+    </div>
 </div>
 
 <div class="card border-0 shadow-sm">
@@ -32,14 +39,12 @@
                 <tr>
                     <th>Kode</th>
                     <th>Nama Mesin</th>
-                    <th>OP No</th>
-                    <th>Area</th>
                     <th>Line</th>
                     <th>Kategori</th>
                     <th>Brand</th>
                     <th>Model</th>
-                    <th>Kritikalitas</th>
-                    <th width="200">Aksi</th>
+                    <th>Status</th>
+                    <th width="180">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -48,45 +53,39 @@
                     <tr>
                         <td><strong>@item.Code</strong></td>
                         <td>@item.Name</td>
-                        <td>@item.OpNo</td>
-                        <td>@item.Area?.Name</td>
                         <td>@item.Line?.Name</td>
                         <td>@item.McCategory?.Name</td>
                         <td>@item.Brand?.Name</td>
                         <td>@item.Model</td>
                         <td>
-                            @switch (item.Criticality)
+                            @if (item.IsActive)
                             {
-                                case PmApp.Web.Models.Criticality.Critical:
-                                    <span class="badge bg-danger">Critical</span>
-                                    break;
-                                case PmApp.Web.Models.Criticality.High:
-                                    <span class="badge bg-warning text-dark">High</span>
-                                    break;
-                                case PmApp.Web.Models.Criticality.Normal:
-                                    <span class="badge bg-info text-dark">Normal</span>
-                                    break;
-                                default:
-                                    <span class="badge bg-secondary">Low</span>
-                                    break;
+                                <span class="badge bg-success">Aktif</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Nonaktif</span>
                             }
                         </td>
                         <td>
                             <a asp-action="Details" asp-route-id="@item.Id"
-                               class="btn btn-sm btn-info text-white">
+                               class="btn btn-sm btn-info text-white" title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
                             <a asp-action="Edit" asp-route-id="@item.Id"
-                               class="btn btn-sm btn-warning">
+                               class="btn btn-sm btn-warning" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <button type="button" class="btn btn-sm btn-danger"
-                                    onclick="confirmDelete(@item.Id, '@item.Name')">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                            <form id="deleteForm-@item.Id" asp-action="Delete"
-                                  asp-route-id="@item.Id" method="post" class="d-none">
+
+                            <form asp-action="Delete" asp-route-id="@item.Id"
+                                  method="post" class="d-inline">
                                 @Html.AntiForgeryToken()
+                                <button type="button"
+                                        class="btn btn-sm btn-danger btn-delete"
+                                        data-name="Mesin '@item.Name'"
+                                        data-detail="Kode: @item.Code">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                             </form>
                         </td>
                     </tr>
@@ -95,35 +94,3 @@
         </table>
     </div>
 </div>
-
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="bi bi-trash"></i> Konfirmasi Hapus</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                Yakin ingin menghapus mesin <strong id="deleteName"></strong>?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Ya, Hapus</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-@section Scripts {
-    <script>
-        let deleteId = null;
-        function confirmDelete(id, name) {
-            deleteId = id;
-            document.getElementById('deleteName').textContent = name;
-            new bootstrap.Modal(document.getElementById('deleteModal')).show();
-        }
-        document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
-            if (deleteId) document.getElementById('deleteForm-' + deleteId).submit();
-        });
-    </script>
-}

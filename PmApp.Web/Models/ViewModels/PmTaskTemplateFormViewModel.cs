@@ -48,6 +48,10 @@ public class PmTaskTemplateFormViewModel
     [Display(Name = "Mulai Bulan")]
     public int StartMonth { get; set; } = 1;
 
+    [Display(Name = "Minggu")]
+    [Range(1, 4, ErrorMessage = "Minggu harus antara 1-4")]
+    public int Week { get; set; } = 1;   // ← TAMBAH INI
+
     [MaxLength(500)]
     [Display(Name = "Remark")]
     public string? Remark { get; set; }

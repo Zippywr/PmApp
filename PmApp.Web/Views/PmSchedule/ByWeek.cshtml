@@ -1,0 +1,221 @@
+﻿@model PmApp.Web.Models.ViewModels.PmWeekViewModel
+@{
+    ViewData["Title"] = "Update PM per Week";
+    var monthNames = new[] { "", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des" };
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4 class="mb-0"><i class="bi bi-calendar3-week"></i> Update PM per Week</h4>
+</div>
+
+<!-- FILTER MINGGU -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Minggu (pilih salah satu tanggal)</label>
+                <input type="date" name="weekStart" class="form-control"
+                       value="@Model.WeekStart.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Tampilkan
+                </button>
+                <a asp-action="ByWeek" asp-route-weekStart="@DateTime.Today.ToString("yyyy-MM-dd")"
+                   class="btn btn-secondary">Minggu Ini</a>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="small text-muted">
+                    Periode:
+                    <strong>@Model.WeekStart.ToString("dd MMM yyyy")</strong>
+                    —
+                    <strong>@Model.WeekEnd.ToString("dd MMM yyyy")</strong>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- SUMMARY -->
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-white bg-primary">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Total Task</div>
+                <h4 class="mb-0">@Model.TotalTask</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-white bg-success">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Done</div>
+                <h4 class="mb-0">@Model.TotalDone</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-white bg-warning">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Pending</div>
+                <h4 class="mb-0">@Model.TotalPending</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-white bg-delay">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Delay</div>
+                <h4 class="mb-0">@Model.TotalDelay</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Rows.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        Tidak ada jadwal PM di minggu ini. Coba pilih minggu lain.
+    </div>
+}
+else
+{
+    <form asp-action="UpdateWeek" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="weekStart" value="@Model.WeekStart.ToString("yyyy-MM-dd")" />
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0" style="overflow-x: auto;">
+                <table class="table table-hover table-sm mb-0" style="font-size: 0.85rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="min-width: 90px;">ID-PM</th>
+                            <th style="min-width: 140px;">Mesin</th>
+                            <th style="min-width: 110px;">Sub Unit</th>
+                            <th style="min-width: 80px;">Metode</th>
+                            <th class="text-center" style="width: 50px;">W/H</th>
+                            <th class="text-center" style="width: 40px;">MP</th>
+                            <th style="min-width: 120px;">Plan</th>
+                            <th style="min-width: 120px;">Actual</th>
+                            <th style="min-width: 130px;">PIC</th>
+                            <th style="min-width: 110px;">Status</th>
+                            <th style="min-width: 110px;">Hasil</th>
+                            <th style="min-width: 160px;">Catatan</th>
+                            <th class="text-center" style="min-width: 140px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@row.IdPm</strong>
+                                    <input type="hidden" name="scheduleIds" value="@row.ScheduleId" />
+                                </td>
+                                <td>
+                                    @row.AssetCode
+                                    <br />
+                                    <small class="text-muted">@row.AssetName</small>
+                                </td>
+                                <td>@row.SubUnitName</td>
+                                <td><span class="badge bg-secondary">@row.MethodName</span></td>
+                                <td class="text-center">@row.WorkHourMinutes</td>
+                                <td class="text-center">@row.ManPower</td>
+
+                                <td>
+                                    <input type="date" name="planDates" class="form-control form-control-sm"
+                                           value="@(row.PlanDate?.ToString("yyyy-MM-dd"))" />
+                                </td>
+
+                                <td>
+                                    <input type="date" name="actualDates" class="form-control form-control-sm"
+                                           value="@(row.ActualDate?.ToString("yyyy-MM-dd"))" />
+                                </td>
+
+                                <td>
+                                    <input type="text" name="pics" class="form-control form-control-sm"
+                                           value="@row.PIC" placeholder="PIC" />
+                                </td>
+
+                                <td>
+                                    <select name="statuses" class="form-select form-select-sm">
+                                        @foreach (var s in Enum.GetNames(typeof(PmApp.Web.Models.PmStatus)))
+                                        {
+                                            var label = s == "Overdue" ? "Delay" : s;
+                                            if (row.Status.ToString() == s)
+                                            {
+                                                <option value="@s" selected>@label</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@s">@label</option>
+                                            }
+                                        }
+                                    </select>
+                                </td>
+
+                                <td>
+                                    <select name="results" class="form-select form-select-sm">
+                                        @foreach (var r in Enum.GetNames(typeof(PmApp.Web.Models.MachineCondition)))
+                                        {
+                                            if (row.Result.ToString() == r)
+                                            {
+                                                <option value="@r" selected>@r</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@r">@r</option>
+                                            }
+                                        }
+                                    </select>
+                                </td>
+
+                                <td>
+                                    <input type="text" name="notes" class="form-control form-control-sm"
+                                           value="@row.Notes" placeholder="Catatan" />
+                                </td>
+
+                                <!-- KOLOM AKSI -->
+                                <td class="text-center">
+                                    <a asp-controller="PmSchedule" asp-action="UpdateCell"
+                                       asp-route-id="@row.ScheduleId"
+                                       class="btn btn-sm btn-warning mb-1"
+                                       title="Update via Form Lengkap">
+                                        <i class="bi bi-pencil-square"></i> Update
+                                    </a>
+                                    <a asp-controller="PmSchedule" asp-action="History"
+                                       asp-route-id="@row.ScheduleId"
+                                       class="btn btn-sm btn-info text-white mb-1"
+                                       title="Lihat History Perubahan">
+                                        <i class="bi bi-clock-history"></i> History
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-light d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i>
+                        Update status, hasil, PIC, actual date untuk banyak task sekaligus.
+                        Klik <strong>Simpan Semua</strong> untuk menyimpan.
+                    </small>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Simpan Semua (@Model.TotalTask task)
+                </button>
+            </div>
+        </div>
+    </form>
+}

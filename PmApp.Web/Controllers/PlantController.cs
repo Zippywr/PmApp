@@ -124,14 +124,14 @@ public class PlantController : Controller
 
         if (plant.Lines.Any())
         {
-            TempData["Error"] = $"Plant '{plant.Name}' tidak bisa dihapus karena masih punya {plant.Lines.Count} line.";
+            TempData["Error"] = "Plant tidak bisa dihapus karena masih punya line.";
             return RedirectToAction(nameof(Index));
         }
 
         plant.IsDeleted = true;
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"Plant '{plant.Name}' berhasil dihapus.";
+        TempData["Success"] = "Plant '" + plant.Name + "' berhasil dihapus.";
         return RedirectToAction(nameof(Index));
     }
 }

@@ -5,97 +5,96 @@
     var assetCode = (string?)ViewBag.AssetCode;
     var month = (int)ViewBag.Month;
     var year = (int)ViewBag.Year;
-
-    var monthNames = new[] { "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-                             "Juli", "Agustus", "September", "Oktober", "November", "Desember" };
+    var monthsDelay = (int)(ViewBag.MonthsDelay ?? 0);
+    var monthNames = new[] { "", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember" };
 }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-action="Index" asp-route-year="@year">Jadwal PM</a></li>
+        <li class="breadcrumb-item"><a asp-action="Index" asp-route-year="@year">Jadwal PM @year</a></li>
         <li class="breadcrumb-item active">Update</li>
     </ol>
 </nav>
+
+@if (monthsDelay > 0)
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>Delay @monthsDelay bulan</strong> — jadwal ini sudah melewati batas waktu.
+    </div>
+}
 
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-primary text-white">
         <h5 class="mb-0">
             <i class="bi bi-pencil-square"></i>
-            Update: @taskIdPm — @monthNames[month] @year
+            Update: @taskIdPm — @assetCode — @monthNames[month] @year
         </h5>
     </div>
     <div class="card-body">
-        <div class="alert alert-info">
-            <strong>ID-PM:</strong> @taskIdPm &nbsp;|&nbsp;
-            <strong>Mesin:</strong> @assetCode &nbsp;|&nbsp;
-            <strong>Periode:</strong> @monthNames[month] @year
-        </div>
-
-        <form asp-action="UpdateCell" asp-route-id="@Model.Id" method="post">
+        <form asp-action="UpdateCell" method="post">
             @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Actual Date</label>
-                    <input type="date" name="actualDate" class="form-control"
-                           value="@(Model.ActualDate?.ToString("yyyy-MM-dd"))" />
-                    <small class="text-muted">Kosongkan jika belum dikerjakan</small>
+                    <label class="form-label">Rencana (Plan)</label>
+                    <input type="date" name="planDate" class="form-control"
+                           value="@(Model.PlanDate?.ToString("yyyy-MM-dd"))" />
+                    <small class="text-muted">Bisa diubah untuk atur tanggal spesifik.</small>
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">PIC</label>
+                    <label class="form-label">Tanggal Aktual</label>
+                    <input type="date" name="actualDate" class="form-control"
+                           value="@(Model.ActualDate?.ToString("yyyy-MM-dd"))" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">PIC / Penanggung Jawab</label>
                     <input type="text" name="pic" class="form-control"
-                           value="@Model.PIC" placeholder="Nama teknisi" />
+                           value="@Model.PIC" placeholder="Contoh: Budi Santoso" />
                 </div>
 
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Status</label>
                     <select name="status" class="form-select">
-                        @if (Model.Status == PmApp.Web.Models.PmStatus.Scheduled)
+                        @foreach (var s in Enum.GetNames(typeof(PmApp.Web.Models.PmStatus)))
                         {
-                            <option value="Scheduled" selected>Scheduled</option>
-                        }
-                        else
-                        {
-                            <option value="Scheduled">Scheduled</option>
-                        }
-
-                        @if (Model.Status == PmApp.Web.Models.PmStatus.InProgress)
-                        {
-                            <option value="InProgress" selected>InProgress</option>
-                        }
-                        else
-                        {
-                            <option value="InProgress">InProgress</option>
-                        }
-
-                        @if (Model.Status == PmApp.Web.Models.PmStatus.Done)
-                        {
-                            <option value="Done" selected>Done</option>
-                        }
-                        else
-                        {
-                            <option value="Done">Done</option>
-                        }
-
-                        @if (Model.Status == PmApp.Web.Models.PmStatus.Overdue)
-                        {
-                            <option value="Overdue" selected>Overdue</option>
-                        }
-                        else
-                        {
-                            <option value="Overdue">Overdue</option>
-                        }
-
-                        @if (Model.Status == PmApp.Web.Models.PmStatus.Cancelled)
-                        {
-                            <option value="Cancelled" selected>Cancelled</option>
-                        }
-                        else
-                        {
-                            <option value="Cancelled">Cancelled</option>
+                            var label = s == "Overdue" ? "Delay" : s;
+                            if (Model.Status.ToString() == s)
+                            {
+                                <option value="@s" selected>@label</option>
+                            }
+                            else
+                            {
+                                <option value="@s">@label</option>
+                            }
                         }
                     </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Hasil Pengecekan</label>
+                    <select name="result" class="form-select">
+                        @foreach (var r in Enum.GetNames(typeof(PmApp.Web.Models.MachineCondition)))
+                        {
+                            if (Model.Result.ToString() == r)
+                            {
+                                <option value="@r" selected>@r</option>
+                            }
+                            else
+                            {
+                                <option value="@r">@r</option>
+                            }
+                        }
+                    </select>
+                    <small class="text-muted">
+                        <strong>Pending</strong> — belum dicek ·
+                        <strong>OK</strong> — baik ·
+                        <strong>Partial</strong> — sebagian ·
+                        <strong>NG</strong> — rusak
+                    </small>
                 </div>
 
                 <div class="col-12 mb-3">
@@ -104,7 +103,7 @@
                 </div>
             </div>
 
-            <div class="mt-2">
+            <div class="mt-3">
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-save"></i> Simpan
                 </button>

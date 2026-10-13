@@ -92,10 +92,20 @@
         <input asp-for="PeriodeMonth" type="number" class="form-control" min="1" />
         <span asp-validation-for="PeriodeMonth" class="text-danger small"></span>
     </div>
-    <div class="col-md-3 mb-3">
-        <label asp-for="StartMonth" class="form-label"></label>
-        <input asp-for="StartMonth" type="number" class="form-control" min="1" max="12" />
-        <span asp-validation-for="StartMonth" class="text-danger small"></span>
+    <div class="col-md-4 mb-3">
+    <label asp-for="StartMonth" class="form-label"></label>
+    <input asp-for="StartMonth" type="number" class="form-control" min="1" max="12" />
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <label asp-for="Week" class="form-label"></label>
+        <select asp-for="Week" class="form-select">
+            <option value="1">Minggu 1 (tgl 1-7)</option>
+            <option value="2">Minggu 2 (tgl 8-14)</option>
+            <option value="3">Minggu 3 (tgl 15-21)</option>
+            <option value="4">Minggu 4 (tgl 22-28)</option>
+        </select>
+        <span asp-validation-for="Week" class="text-danger small"></span>
     </div>
 
     <div class="col-md-4 mb-3">

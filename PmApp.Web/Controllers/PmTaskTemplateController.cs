@@ -21,19 +21,11 @@ public class PmTaskTemplateController : Controller
     }
 
     // ============================================================
-    // INDEX
+    // INDEX — Redirect ke ListPm
     // ============================================================
-    public async Task<IActionResult> Index()
+    public IActionResult Index()
     {
-        var list = await _db.PmTaskTemplates
-            .Include(t => t.Asset)
-            .Include(t => t.Unit)
-            .Include(t => t.SubUnit)
-            .Include(t => t.Method)
-            .Include(t => t.Standard)
-            .OrderBy(t => t.IdPm)
-            .ToListAsync();
-        return View(list);
+        return RedirectToAction(nameof(ListPm));
     }
 
     // ============================================================
@@ -42,10 +34,8 @@ public class PmTaskTemplateController : Controller
     public async Task<IActionResult> ListPm(int? lineId, int? assetId, string? search)
     {
         var tasksQuery = _db.PmTaskTemplates
-            .Include(t => t.Asset)
-                .ThenInclude(a => a!.Line)
-            .Include(t => t.Asset)
-                .ThenInclude(a => a!.Area)
+            .Include(t => t.Asset).ThenInclude(a => a!.Line)
+            .Include(t => t.Asset).ThenInclude(a => a!.Area)
             .Include(t => t.Unit)
             .Include(t => t.SubUnit)
             .Include(t => t.Method)
@@ -118,10 +108,14 @@ public class PmTaskTemplateController : Controller
             return View(vm);
         }
 
+        // Generate ID-PM dengan safety check (termasuk soft-deleted)
         var idPm = await GenerateUniqueIdPmAsync(vm.AssetId);
 
         var methodId = await GetOrCreateMetodeAsync(vm.MethodName);
         var standardId = await GetOrCreateStandarAsync(vm.StandardName);
+
+        // Auto-assign Week
+        var week = await GetWeekNumberAsync(vm.AssetId, vm.Week);
 
         var task = new PmTaskTemplate
         {
@@ -136,14 +130,13 @@ public class PmTaskTemplateController : Controller
             MachineState = vm.MachineState,
             PeriodeMonth = vm.PeriodeMonth,
             StartMonth = vm.StartMonth,
+            Week = week,
             Remark = vm.Remark,
             IsActive = vm.IsActive
         };
 
         _db.PmTaskTemplates.Add(task);
         await _db.SaveChangesAsync();
-
-        await _generator.GenerateScheduleForTaskAsync(task.Id, DateTime.Today.Year);
 
         TempData["Success"] = "Task PM " + idPm + " berhasil ditambahkan.";
         return RedirectToAction(nameof(Index));
@@ -175,6 +168,7 @@ public class PmTaskTemplateController : Controller
             MachineState = task.MachineState,
             PeriodeMonth = task.PeriodeMonth,
             StartMonth = task.StartMonth,
+            Week = task.Week,
             Remark = task.Remark,
             IsActive = task.IsActive
         };
@@ -213,13 +207,11 @@ public class PmTaskTemplateController : Controller
         task.MachineState = vm.MachineState;
         task.PeriodeMonth = vm.PeriodeMonth;
         task.StartMonth = vm.StartMonth;
+        task.Week = vm.Week;
         task.Remark = vm.Remark;
         task.IsActive = vm.IsActive;
 
         await _db.SaveChangesAsync();
-
-        await _generator.DeleteSchedulesForTaskAsync(task.Id);
-        await _generator.GenerateScheduleForTaskAsync(task.Id, DateTime.Today.Year);
 
         TempData["Success"] = "Task PM berhasil diperbarui.";
         return RedirectToAction(nameof(Index));
@@ -256,14 +248,19 @@ public class PmTaskTemplateController : Controller
     }
 
     // ============================================================
-    // SAFETY — Generate IdPm unik, cek duplikat, increment sampai unik
+    // HELPER — Generate IdPm unik (termasuk soft-deleted)
     // ============================================================
     private async Task<string> GenerateUniqueIdPmAsync(int assetId)
     {
+        // Generate dari service
         var idPm = await _generator.GenerateIdPmAsync(assetId);
 
         int safety = 0;
-        while (await _db.PmTaskTemplates.AnyAsync(t => t.IdPm == idPm))
+
+        // Cek semua data — termasuk yang sudah soft-deleted
+        while (await _db.PmTaskTemplates
+            .IgnoreQueryFilters()
+            .AnyAsync(t => t.IdPm == idPm))
         {
             if (idPm.Length != 6) break;
 
@@ -274,11 +271,7 @@ public class PmTaskTemplateController : Controller
                 break;
 
             taskSeq++;
-
-            if (taskSeq > 99)
-            {
-                taskSeq = 0;
-            }
+            if (taskSeq > 99) taskSeq = 0;
 
             idPm = prefix + taskSeq.ToString("D2");
 
@@ -290,7 +283,25 @@ public class PmTaskTemplateController : Controller
     }
 
     // ============================================================
-    // HELPER — Get or Create Metode (auto-create dari form)
+    // HELPER — Auto-assign Week 1-4 dengan rotasi per mesin
+    // ============================================================
+    private async Task<int> GetWeekNumberAsync(int assetId, int inputWeek)
+    {
+        // Kalau user pilih manual (1-4), pakai itu
+        if (inputWeek >= 1 && inputWeek <= 4)
+            return inputWeek;
+
+        // Kalau 0 (Auto) → hitung jumlah task di mesin ini
+        var existingCount = await _db.PmTaskTemplates
+            .Where(t => t.AssetId == assetId && !t.IsDeleted)
+            .CountAsync();
+
+        // Rotasi: 1, 2, 3, 4, 1, 2, 3, 4, ...
+        return (existingCount % 4) + 1;
+    }
+
+    // ============================================================
+    // HELPER — Get or Create Metode
     // ============================================================
     private async Task<int?> GetOrCreateMetodeAsync(string? methodName)
     {
@@ -340,7 +351,7 @@ public class PmTaskTemplateController : Controller
     }
 
     // ============================================================
-    // HELPER — Get or Create Standar (auto-create dari form)
+    // HELPER — Get or Create Standar
     // ============================================================
     private async Task<int?> GetOrCreateStandarAsync(string? standardName)
     {

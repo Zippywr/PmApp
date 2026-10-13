@@ -1,0 +1,467 @@
+﻿@model PmApp.Web.Models.ViewModels.PmReportViewModel
+@{
+    ViewData["Title"] = "Report PM Graph";
+    var filter = (PmApp.Web.Models.ViewModels.PmReportFilterViewModel)ViewBag.Filter;
+}
+
+<h4 class="mb-3">
+    <i class="bi bi-graph-up"></i> Report PM Graph
+    <small class="text-muted">Tahun @Model.Year</small>
+</h4>
+
+<!-- FILTER -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Tahun</label>
+                <select name="year" class="form-select">
+                    @foreach (var y in filter.Years)
+                    {
+                        <option value="@y.Value" selected="@y.Selected">@y.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Bulan</label>
+                <select name="month" class="form-select">
+                    <option value="">-- Semua --</option>
+                    @foreach (var m in filter.Months)
+                    {
+                        <option value="@m.Value" selected="@m.Selected">@m.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Line</label>
+                <select name="lineId" class="form-select">
+                    <option value="">-- Semua --</option>
+                    @foreach (var l in filter.Lines)
+                    {
+                        <option value="@l.Value" selected="@l.Selected">@l.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Mesin</label>
+                <select name="assetId" class="form-select">
+                    <option value="">-- Semua --</option>
+                    @foreach (var a in filter.Assets)
+                    {
+                        <option value="@a.Value" selected="@a.Selected">@a.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">-- Semua --</option>
+                    @foreach (var s in filter.Statuses)
+                    {
+                        <option value="@s.Value" selected="@s.Selected">@s.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- KPI CARDS -->
+<div class="row g-3 mb-4">
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm text-white bg-primary">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Plan</div>
+                <h4 class="mb-0">@Model.TotalScheduled</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm text-white bg-success">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Actual</div>
+                <h4 class="mb-0">@Model.TotalDone</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm text-white bg-delay">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Delay</div>
+                <h4 class="mb-0">@Model.TotalOverdue</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm text-white bg-info">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Tepat Waktu</div>
+                <h4 class="mb-0">@Model.TotalOnTime</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm text-white bg-warning">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Pending</div>
+                <h4 class="mb-0">@Model.TotalPending</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm text-white bg-dark">
+            <div class="card-body text-center">
+                <div class="small opacity-75">Compliance</div>
+                <h4 class="mb-0">@Model.ComplianceRate%</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MAIN CHART: PLAN vs ACTUAL vs DELAY + LINE  -->
+<!-- ============================================ -->
+<div class="row g-3 mb-3">
+    <div class="col-md-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-bar-chart-line"></i> Plan vs Actual vs Delay + Performance %</strong>
+                <small class="text-muted">Performance = Actual / Plan × 100%</small>
+            </div>
+            <div class="card-body" style="height: 420px;">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SECONDARY CHARTS -->
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <strong><i class="bi bi-pie-chart"></i> Distribusi Status PM</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <strong><i class="bi bi-clipboard-check"></i> Distribusi Hasil Pengecekan</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="resultChart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <strong><i class="bi bi-diagram-3"></i> PM per Line</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="lineChart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <strong><i class="bi bi-bar-chart"></i> Top 10 Mesin — Jumlah PM</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="machineChart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        const statusData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.StatusChart));
+        const resultData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ResultChart));
+        const lineData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PerLineChart));
+        const trendData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyTrend));
+        const machineData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PerMachineChart));
+
+        const palette = ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6c757d', '#0dcaf0', '#fd7e14', '#6f42c1'];
+
+        // Warna
+        const COLOR_PLAN = '#0d6efd';     // Biru
+        const COLOR_ACTUAL = '#198754';   // Hijau
+        const COLOR_DELAY = '#fd7e14';    // Orange
+        const COLOR_PERF = '#ffc107';     // Kuning
+
+        // ============================================
+        // MAIN CHART — 3 Bar + 1 Line
+        // ============================================
+                new Chart(document.getElementById('mainChart'), {
+            data: {
+                labels: trendData.map(x => x.Month),
+                datasets: [
+                    // Bar 1: Plan
+                    {
+                        type: 'bar',
+                        label: 'Plan',
+                        data: trendData.map(x => x.Scheduled),
+                        backgroundColor: COLOR_PLAN,
+                        borderColor: COLOR_PLAN,
+                        borderWidth: 1,
+                        yAxisID: 'y',
+                        order: 3,
+                        barPercentage: 0.85,
+                        categoryPercentage: 0.75
+                    },
+                    // Bar 2: Actual
+                    {
+                        type: 'bar',
+                        label: 'Actual',
+                        data: trendData.map(x => x.Done),
+                        backgroundColor: COLOR_ACTUAL,
+                        borderColor: COLOR_ACTUAL,
+                        borderWidth: 1,
+                        yAxisID: 'y',
+                        order: 2,
+                        barPercentage: 0.85,
+                        categoryPercentage: 0.75
+                    },
+                    // Bar 3: Delay
+                    {
+                        type: 'bar',
+                        label: 'Delay',
+                        data: trendData.map(x => x.Delay),
+                        backgroundColor: COLOR_DELAY,
+                        borderColor: COLOR_DELAY,
+                        borderWidth: 1,
+                        yAxisID: 'y',
+                        order: 1,
+                        barPercentage: 0.85,
+                        categoryPercentage: 0.75
+                    },
+                    // Line: Performance %
+                    {
+                        type: 'line',
+                        label: 'Performance %',
+                        data: trendData.map(x => x.PerformanceRate),
+                        borderColor: COLOR_PERF,
+                        backgroundColor: 'rgba(255, 193, 7, 0.15)',
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: COLOR_PERF,
+                        pointBorderWidth: 3,
+                        tension: 0.3,
+                        fill: true,
+                        yAxisID: 'y1',
+                        order: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                layout: {
+                    padding: {
+                        top: 20,
+                        bottom: 10
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 12,
+                            padding: 15,
+                            font: { size: 13 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                        padding: 12,
+                        titleFont: { size: 14, weight: 'bold' },
+                        bodyFont: { size: 13 },
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                let val = context.parsed.y;
+                                if (context.dataset.type === 'line') {
+                                    return '  ' + label + ': ' + val + '%';
+                                }
+                                return '  ' + label + ': ' + val;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            font: { size: 12, weight: 'bold' },
+                            color: '#475569'
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'left',
+                        beginAtZero: true,
+                        // TIDAK pakai stepSize — biar auto-scale untuk ratusan/ribuan
+                        title: {
+                            display: true,
+                            text: 'Jumlah PM',
+                            color: '#0d6efd',
+                            font: { size: 13, weight: 'bold' }
+                        },
+                        ticks: {
+                            font: { size: 11 },
+                            color: '#0d6efd',
+                            padding: 5,
+                            // Format angka ribuan dengan pemisah
+                            callback: function(value) {
+                                if (value >= 1000) {
+                                    return (value / 1000).toFixed(value % 1000 === 0 ? 0 : 1) + 'k';
+                                }
+                                return value;
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        position: 'right',
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Performance (%)',
+                            color: COLOR_PERF,
+                            font: { size: 13, weight: 'bold' }
+                        },
+                        ticks: {
+                            color: COLOR_PERF,
+                            font: { size: 11, weight: 'bold' },
+                            padding: 5,
+                            stepSize: 20,
+                            callback: function(value) { return value + '%'; }
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // ============================================
+        // STATUS PIE
+        // ============================================
+        const statusColorMap = {
+            'Scheduled': '#ffc107',
+            'InProgress': '#0d6efd',
+            'Done': '#198754',
+            'Overdue': '#fd7e14',
+            'Cancelled': '#6c757d'
+        };
+
+        new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: statusData.map(x => x.Label === 'Overdue' ? 'Delay' : x.Label),
+                datasets: [{
+                    data: statusData.map(x => x.Value),
+                    backgroundColor: statusData.map(x => statusColorMap[x.Label] || '#6c757d')
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // ============================================
+        // RESULT PIE
+        // ============================================
+        const resultColorMap = {
+            'Pending': '#6c757d',
+            'OK': '#198754',
+            'Partial': '#ffc107',
+            'NG': '#dc3545'
+        };
+
+        new Chart(document.getElementById('resultChart'), {
+            type: 'doughnut',
+            data: {
+                labels: resultData.map(x => x.Label),
+                datasets: [{
+                    data: resultData.map(x => x.Value),
+                    backgroundColor: resultData.map(x => resultColorMap[x.Label] || '#6c757d')
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // ============================================
+        // LINE PIE
+        // ============================================
+        new Chart(document.getElementById('lineChart'), {
+            type: 'pie',
+            data: {
+                labels: lineData.map(x => x.Label),
+                datasets: [{
+                    data: lineData.map(x => x.Value),
+                    backgroundColor: palette
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // ============================================
+        // MACHINE BAR
+        // ============================================
+        new Chart(document.getElementById('machineChart'), {
+            type: 'bar',
+            data: {
+                labels: machineData.map(x => x.Label),
+                datasets: [{
+                    label: 'Jumlah PM',
+                    data: machineData.map(x => x.Value),
+                    backgroundColor: '#0d6efd'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+    </script>
+}

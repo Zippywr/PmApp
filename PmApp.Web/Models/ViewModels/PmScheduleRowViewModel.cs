@@ -4,7 +4,7 @@ namespace PmApp.Web.Models.ViewModels;
 
 public class PmScheduleRowViewModel
 {
-    public PmTaskTemplate Task { get; set; } = null!;
+    public PmTaskTemplate Task { get; set; } = new();
     public List<PmScheduleCell> Months { get; set; } = new();
 }
 
@@ -16,6 +16,11 @@ public class PmScheduleCell
     public DateTime? ActualDate { get; set; }
     public string? PIC { get; set; }
     public string? Status { get; set; }
+    public string? Result { get; set; }
     public string? Notes { get; set; }
     public bool IsPlanned { get; set; }
+
+    // Delay info
+    public bool IsDelay { get; set; }
+    public int MonthsDelay { get; set; }
 }

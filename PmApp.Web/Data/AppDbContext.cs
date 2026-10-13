@@ -44,7 +44,7 @@ public class AppDbContext : DbContext
     // ============================================================
     public DbSet<PmTaskTemplate> PmTaskTemplates => Set<PmTaskTemplate>();
     public DbSet<PmSchedule> PmSchedules => Set<PmSchedule>();
-
+    public DbSet<PmScheduleHistory> PmScheduleHistories => Set<PmScheduleHistory>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -277,7 +277,19 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.Year, x.Month });
             e.HasIndex(x => x.Status);
         });
+        // ---------------------------------------------------------
+        // PM SCHEDULE HISTORY
+        // ---------------------------------------------------------
+        modelBuilder.Entity<PmScheduleHistory>(e =>
+        {
+            e.HasOne(x => x.PmSchedule)
+             .WithMany()
+             .HasForeignKey(x => x.PmScheduleId)
+             .OnDelete(DeleteBehavior.Restrict);
 
+            e.HasIndex(x => x.PmScheduleId);
+            e.HasIndex(x => x.ActionDate);
+        });
         // =========================================================
         // GLOBAL QUERY FILTER — SOFT DELETE
         // =========================================================

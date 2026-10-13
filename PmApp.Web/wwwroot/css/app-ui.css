@@ -1,0 +1,111 @@
+﻿/* ============================================
+   SWEETALERT2 — STYLE MODAL BESAR
+   ============================================ */
+
+.swal-pm-popup {
+    border-radius: 12px !important;
+    padding: 30px 25px !important;
+    max-width: 500px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+}
+
+.swal-pm-title {
+    font-size: 1.75rem !important;
+    font-weight: 600 !important;
+    color: #545454 !important;
+    margin-bottom: 8px !important;
+    padding: 0 !important;
+}
+
+.swal2-html-container {
+    font-size: 1rem !important;
+    color: #999 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Ikon bulat besar */
+.swal2-icon {
+    width: 80px !important;
+    height: 80px !important;
+    margin: 20px auto 25px !important;
+    border-width: 4px !important;
+}
+
+    .swal2-icon .swal2-icon-content {
+        font-size: 3rem !important;
+        font-weight: 400 !important;
+    }
+
+    /* Warna ikon */
+    .swal2-icon.swal2-warning {
+        border-color: #facea8 !important;
+        color: #f8bb86 !important;
+    }
+
+    .swal2-icon.swal2-error {
+        border-color: #f27474 !important;
+        color: #f27474 !important;
+    }
+
+    .swal2-icon.swal2-success {
+        border-color: #a5dc86 !important;
+        color: #a5dc86 !important;
+    }
+
+    .swal2-icon.swal2-info {
+        border-color: #9de0f6 !important;
+        color: #3fc3ee !important;
+    }
+
+    .swal2-icon.swal2-question {
+        border-color: #c9dae1 !important;
+        color: #87adbd !important;
+    }
+
+/* Tombol */
+.swal2-actions {
+    gap: 12px !important;
+    margin-top: 25px !important;
+}
+
+.swal2-confirm,
+.swal2-cancel {
+    padding: 11px 28px !important;
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    border-radius: 5px !important;
+    box-shadow: none !important;
+}
+
+    .swal2-confirm:focus,
+    .swal2-cancel:focus {
+        box-shadow: 0 0 0 3px rgba(48, 133, 214, 0.35) !important;
+    }
+
+.swal2-cancel {
+    background-color: #d33 !important;
+    border: 1px solid #d33 !important;
+}
+
+    .swal2-cancel:hover {
+        background-color: #c82333 !important;
+        border-color: #bd2130 !important;
+    }
+
+/* Timer progress (untuk success auto-close) */
+.swal2-timer-progress-bar {
+    background: rgba(25, 135, 84, 0.4) !important;
+    height: 3px !important;
+}
+
+/* Backdrop */
+.swal2-backdrop-show {
+    background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Loading */
+.swal2-loading .swal2-title {
+    font-size: 1.25rem !important;
+    color: #545454 !important;
+}

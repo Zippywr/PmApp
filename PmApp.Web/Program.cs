@@ -11,6 +11,12 @@ builder.Services.AddScoped<PmApp.Web.Services.PmScheduleGeneratorService>();
 
 builder.Services.AddScoped<PmApp.Web.Services.PmExportService>();
 
+builder.Services.AddScoped<PmApp.Web.Services.PmScheduleHistoryService>();
+
+builder.Services.AddScoped<PmApp.Web.Services.ExcelImportService>();
+
+builder.Services.AddScoped<PmApp.Web.Services.PmOverdueService>();
+
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options.UseSqlServer(

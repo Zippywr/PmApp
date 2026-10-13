@@ -1,0 +1,230 @@
+﻿@model PmApp.Web.Models.ViewModels.PmReportViewModel
+@{
+    ViewData["Title"] = "Report PM Schedule";
+    var filter = (PmApp.Web.Models.ViewModels.PmReportFilterViewModel)ViewBag.Filter;
+}
+
+<h4 class="mb-3">
+    <i class="bi bi-table"></i> Report PM Schedule
+    <small class="text-muted">Tahun @Model.Year</small>
+</h4>
+
+<!-- FILTER -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Tahun</label>
+                <select name="year" class="form-select">
+                    @foreach (var y in filter.Years)
+                    {
+                        <option value="@y.Value" selected="@y.Selected">@y.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Bulan</label>
+                <select name="month" class="form-select">
+                    <option value="">-- Semua --</option>
+                    @foreach (var m in filter.Months)
+                    {
+                        <option value="@m.Value" selected="@m.Selected">@m.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Line</label>
+                <select name="lineId" class="form-select">
+                    <option value="">-- Semua --</option>
+                    @foreach (var l in filter.Lines)
+                    {
+                        <option value="@l.Value" selected="@l.Selected">@l.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Mesin</label>
+                <select name="assetId" class="form-select">
+                    <option value="">-- Semua --</option>
+                    @foreach (var a in filter.Assets)
+                    {
+                        <option value="@a.Value" selected="@a.Selected">@a.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">--</option>
+                    @foreach (var s in filter.Statuses)
+                    {
+                        <option value="@s.Value" selected="@s.Selected">@s.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">Hasil</label>
+                <select name="result" class="form-select">
+                    <option value="">--</option>
+                    @foreach (var r in filter.Results)
+                    {
+                        <option value="@r.Value" selected="@r.Selected">@r.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- KPI CARDS -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-white bg-primary">
+            <div class="card-body">
+                <div class="small opacity-75">Total Dijadwalkan</div>
+                <h3 class="mb-0">@Model.TotalScheduled</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-white bg-success">
+            <div class="card-body">
+                <div class="small opacity-75">Total Selesai</div>
+                <h3 class="mb-0">@Model.TotalDone</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-white bg-info">
+            <div class="card-body">
+                <div class="small opacity-75">PM Compliance</div>
+                <h3 class="mb-0">@Model.ComplianceRate%</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-white bg-warning">
+            <div class="card-body">
+                <div class="small opacity-75">PM Completion</div>
+                <h3 class="mb-0">@Model.CompletionRate%</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HASIL CARDS -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="small text-muted">Hasil OK</div>
+                <h4 class="mb-0 text-success">@Model.ResultOK</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="small text-muted">Hasil Partial</div>
+                <h4 class="mb-0 text-warning">@Model.ResultPartial</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="small text-muted">Hasil NG</div>
+                <h4 class="mb-0 text-danger">@Model.ResultNG</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="small text-muted">Hasil Pending</div>
+                <h4 class="mb-0 text-secondary">@Model.ResultPending</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TABLE -->
+@if (!Model.Rows.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        Tidak ada data PM untuk filter yang dipilih.
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0" style="overflow-x: auto;">
+            <table class="table table-hover table-sm mb-0 datatable" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID-PM</th>
+                        <th>Bulan</th>
+                        <th>Mesin</th>
+                        <th>Line</th>
+                        <th>Sub Unit</th>
+                        <th>Metode</th>
+                        <th class="text-center">W/H</th>
+                        <th class="text-center">MP</th>
+                        <th>Plan</th>
+                        <th>Actual</th>
+                        <th>PIC</th>
+                        <th>Status</th>
+                        <th>Hasil</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Rows)
+                    {
+                        var statusBadge = r.Status switch
+                        {
+                            "Done" => "bg-success",
+                            "Overdue" => "bg-danger",
+                            "InProgress" => "bg-primary",
+                            "Cancelled" => "bg-secondary",
+                            _ => "bg-warning text-dark"
+                        };
+                        var resultBadge = r.Result switch
+                        {
+                            "OK" => "bg-success",
+                            "NG" => "bg-danger",
+                            "Partial" => "bg-warning text-dark",
+                            _ => "bg-light text-dark border"
+                        };
+                        <tr>
+                            <td><strong>@r.IdPm</strong></td>
+                            <td>@r.MonthName</td>
+                            <td>@r.AssetCode<br /><small class="text-muted">@r.AssetName</small></td>
+                            <td>@r.LineName</td>
+                            <td>@r.SubUnitName</td>
+                            <td><span class="badge bg-secondary">@r.MethodName</span></td>
+                            <td class="text-center">@r.WorkHourMinutes</td>
+                            <td class="text-center">@r.ManPower</td>
+                            <td>@(r.PlanDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td>@(r.ActualDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td>@(r.PIC ?? "-")</td>
+                            <td>
+                                <span class="badge @statusBadge">@r.Status</span>
+                                @if (r.IsOnTime)
+                                {
+                                    <i class="bi bi-check-circle-fill text-success ms-1" title="On Time"></i>
+                                }
+                            </td>
+                            <td><span class="badge @resultBadge">@r.Result</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
