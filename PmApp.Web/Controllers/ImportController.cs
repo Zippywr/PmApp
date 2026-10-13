@@ -822,6 +822,179 @@ public class ImportController : Controller
     }
 
     // ============================================================
+    // ================ TASK PM ===================================
+    // ============================================================
+    public IActionResult PmTask()
+    {
+        SetConfig("Task PM", "bi-list-ul", "PmTask",
+            new[]
+            {
+                "Kode Mesin", "Unit", "Sub Unit", "Metode", "Standar",
+                "Waktu (menit)", "Man Power", "Kondisi Mesin",
+                "Periode (bulan)", "Mulai Bulan", "Week", "Remark"
+            }, "Template_PmTask.xlsx");
+        return View("Master");
+    }
+
+    public IActionResult TemplatePmTask()
+    {
+        var headers = new[]
+        {
+            "Kode Mesin", "Unit", "Sub Unit", "Metode", "Standar",
+            "Waktu (menit)", "Man Power", "Kondisi Mesin",
+            "Periode (bulan)", "Mulai Bulan", "Week", "Remark"
+        };
+        var bytes = _excel.GenerateTemplate(headers, "TaskPM");
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template_PmTask.xlsx");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> PmTask(IFormFile file)
+    {
+        SetConfig("Task PM", "bi-list-ul", "PmTask",
+            new[]
+            {
+                "Kode Mesin", "Unit", "Sub Unit", "Metode", "Standar",
+                "Waktu (menit)", "Man Power", "Kondisi Mesin",
+                "Periode (bulan)", "Mulai Bulan", "Week", "Remark"
+            }, "Template_PmTask.xlsx");
+
+        var rows = ReadOrError(file, out var err);
+        if (rows == null) { ViewBag.Error = err; return View("Master"); }
+
+        var assets = await _db.Assets.ToListAsync();
+        var units = await _db.Units.ToListAsync();
+        var subUnits = await _db.SubUnits.ToListAsync();
+        var metodes = await _db.Metodes.ToListAsync();
+        var standars = await _db.Standars.ToListAsync();
+
+        int success = 0; var errors = new List<string>(); int rowNum = 1;
+
+        foreach (var row in rows)
+        {
+            rowNum++;
+
+            var assetCode = row.GetValueOrDefault("Kode Mesin", "").Trim();
+
+            if (string.IsNullOrEmpty(assetCode))
+            { errors.Add($"Baris {rowNum}: Kode Mesin kosong"); continue; }
+
+            var asset = assets.FirstOrDefault(a => a.Code == assetCode);
+            if (asset == null)
+            { errors.Add($"Baris {rowNum}: Kode Mesin '{assetCode}' tidak ditemukan"); continue; }
+
+            // Cek FK (opsional)
+            var unitName = row.GetValueOrDefault("Unit", "").Trim();
+            var subUnitName = row.GetValueOrDefault("Sub Unit", "").Trim();
+            var metodeName = row.GetValueOrDefault("Metode", "").Trim();
+            var standarName = row.GetValueOrDefault("Standar", "").Trim();
+
+            var unit = string.IsNullOrEmpty(unitName) ? null : units.FirstOrDefault(u => u.Name.ToLower() == unitName.ToLower());
+            var subUnit = string.IsNullOrEmpty(subUnitName) ? null : subUnits.FirstOrDefault(s => s.Name.ToLower() == subUnitName.ToLower());
+            var metode = string.IsNullOrEmpty(metodeName) ? null : metodes.FirstOrDefault(m => m.Name.ToLower() == metodeName.ToLower());
+            var standar = string.IsNullOrEmpty(standarName) ? null : standars.FirstOrDefault(s => s.Name.ToLower() == standarName.ToLower());
+
+            if (!string.IsNullOrEmpty(unitName) && unit == null)
+            { errors.Add($"Baris {rowNum}: Unit '{unitName}' tidak ditemukan"); continue; }
+            if (!string.IsNullOrEmpty(subUnitName) && subUnit == null)
+            { errors.Add($"Baris {rowNum}: Sub Unit '{subUnitName}' tidak ditemukan"); continue; }
+            if (!string.IsNullOrEmpty(metodeName) && metode == null)
+            { errors.Add($"Baris {rowNum}: Metode '{metodeName}' tidak ditemukan"); continue; }
+            if (!string.IsNullOrEmpty(standarName) && standar == null)
+            { errors.Add($"Baris {rowNum}: Standar '{standarName}' tidak ditemukan"); continue; }
+
+            // Parse angka
+            int.TryParse(row.GetValueOrDefault("Waktu (menit)", "0"), out var wh);
+            int.TryParse(row.GetValueOrDefault("Man Power", "1"), out var mp);
+            if (mp < 1) mp = 1;
+            int.TryParse(row.GetValueOrDefault("Periode (bulan)", "1"), out var periode);
+            if (periode < 1) periode = 1;
+            int.TryParse(row.GetValueOrDefault("Mulai Bulan", "1"), out var startMonth);
+            if (startMonth < 1 || startMonth > 12) startMonth = 1;
+            int.TryParse(row.GetValueOrDefault("Week", "0"), out var week);
+            if (week < 0 || week > 4) week = 0;
+
+            // Parse Machine State
+            var stateStr = row.GetValueOrDefault("Kondisi Mesin", "OFF").Trim();
+            var machineState = MachineRunningState.OFF;
+            if (stateStr.Equals("ON", StringComparison.OrdinalIgnoreCase))
+                machineState = MachineRunningState.ON;
+            else if (stateStr.Equals("Either", StringComparison.OrdinalIgnoreCase))
+                machineState = MachineRunningState.Either;
+
+            // Auto-generate ID-PM
+            var idPm = await GenerateUniqueIdPmAsync(asset.Id);
+
+            // Auto-assign Week kalau 0
+            if (week == 0)
+            {
+                var existingCount = await _db.PmTaskTemplates
+                    .Where(t => t.AssetId == asset.Id && !t.IsDeleted)
+                    .CountAsync();
+                week = (existingCount % 4) + 1;
+            }
+
+            _db.PmTaskTemplates.Add(new PmTaskTemplate
+            {
+                IdPm = idPm,
+                AssetId = asset.Id,
+                UnitId = unit?.Id,
+                SubUnitId = subUnit?.Id,
+                MethodId = metode?.Id,
+                StandardId = standar?.Id,
+                WorkHourMinutes = wh,
+                ManPower = mp,
+                MachineState = machineState,
+                PeriodeMonth = periode,
+                StartMonth = startMonth,
+                Week = week,
+                Remark = row.GetValueOrDefault("Remark", "").Trim().NullIfEmpty(),
+                IsActive = true,
+                CreatedBy = "system",
+                CreatedDate = DateTime.Now
+            });
+            success++;
+        }
+
+        if (success > 0) await _db.SaveChangesAsync();
+        ViewBag.Uploaded = true; ViewBag.SuccessCount = success; ViewBag.TotalRows = rows.Count; ViewBag.Errors = errors;
+        return View("Master");
+    }
+
+    // ============================================================
+    // HELPER — Generate ID-PM unik untuk import
+    // ============================================================
+    private async Task<string> GenerateUniqueIdPmAsync(int assetId)
+    {
+        // Format: {LineSeq:D2}{MachineSeq:D2}{TaskSeq:D2}
+        // Ambil semua task di asset ini
+        var existing = await _db.PmTaskTemplates
+            .IgnoreQueryFilters()
+            .Where(t => t.AssetId == assetId)
+            .Select(t => t.IdPm)
+            .ToListAsync();
+
+        // Prefix berdasarkan assetId (contoh: 01, 02, dst)
+        // Kita pakai 2 digit line + 2 digit machine = dari asset.Code atau urutan
+        // Simplifikasi: pakai urutan global saja
+        var allTasks = await _db.PmTaskTemplates
+            .IgnoreQueryFilters()
+            .Select(t => t.IdPm)
+            .ToListAsync();
+
+        // Cari nomor urut yang belum dipakai
+        for (int i = 1; i <= 9999; i++)
+        {
+            var candidate = i.ToString("D6");
+            if (!allTasks.Contains(candidate))
+                return candidate;
+        }
+
+        return DateTime.Now.Ticks.ToString().Substring(10);
+    }
+
+    // ============================================================
     // HELPER — Baca file atau return error
     // ============================================================
     private List<Dictionary<string, string>>? ReadOrError(IFormFile file, out string? error)

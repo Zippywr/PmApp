@@ -1,13 +1,111 @@
-﻿@model IEnumerable<PmApp.Web.Models.Entities.Asset>
+﻿@model PmApp.Web.Models.ViewModels.HomeDashboardViewModel
 @{
     ViewData["Title"] = "Dashboard";
 }
 
-<h4 class="mb-4"><i class="bi bi-speedometer2"></i> Dashboard</h4>
+<style>
+    .bg-delay { background-color: #fd7e14 !important; }
 
-<!-- ============================================ -->
-<!-- SUMMARY CARDS -->
-<!-- ============================================ -->
+    .kanban-col {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .kanban-body {
+        max-height: 420px;
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+
+    .kanban-card {
+        border-left: 3px solid #dee2e6;
+        padding: 0.6rem 0.75rem;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.15s;
+    }
+
+    .kanban-card:hover {
+        background-color: #f8f9fa;
+    }
+
+    .kanban-card:last-child {
+        border-bottom: none;
+    }
+
+    .kanban-card .id-pm {
+        font-size: 0.75rem;
+        color: #6c757d;
+        font-weight: 600;
+    }
+
+    .kanban-card .asset-code {
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .kanban-card .sub-unit {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+
+    .tab-badge {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.6rem;
+    }
+
+    .pagination-sm .page-link {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+</style>
+
+<!-- ============================================================ -->
+<!-- FILTER BULAN/TAHUN                                            -->
+<!-- ============================================================ -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="tab" value="@Model.ActiveTab" />
+            <div class="col-md-3">
+                <label class="form-label">Bulan (KPI)</label>
+                <select name="month" class="form-select">
+                    @for (int i = 1; i <= 12; i++)
+                    {
+                        var name = new DateTime(2026, i, 1).ToString("MMMM");
+                        if (Model.SelectedMonth == i)
+                        {
+                            <option value="@i" selected>@name</option>
+                        }
+                        else
+                        {
+                            <option value="@i">@name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tahun</label>
+                <input type="number" name="year" class="form-control"
+                       value="@Model.SelectedYear" />
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Tampilkan
+                </button>
+                <a asp-action="Index" class="btn btn-secondary">Reset</a>
+            </div>
+            <div class="col-md-3 text-end">
+                <small class="text-muted">Periode KPI</small><br />
+                <strong>@Model.MonthName</strong>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- KPI CARDS                                                     -->
+<!-- ============================================================ -->
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="card border-0 shadow-sm text-white bg-primary">
@@ -15,7 +113,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <div class="small opacity-75">Total Mesin</div>
-                        <h2 class="mb-0">@ViewBag.TotalAssets</h2>
+                        <h3 class="mb-0">@Model.TotalAssets</h3>
                     </div>
                     <i class="bi bi-gear" style="font-size: 2.5rem; opacity: 0.5;"></i>
                 </div>
@@ -28,7 +126,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <div class="small opacity-75">Total Part</div>
-                        <h2 class="mb-0">@ViewBag.TotalParts</h2>
+                        <h3 class="mb-0">@Model.TotalParts</h3>
                     </div>
                     <i class="bi bi-box-seam" style="font-size: 2.5rem; opacity: 0.5;"></i>
                 </div>
@@ -38,134 +136,494 @@
     <div class="col-md-3">
         <div class="card border-0 shadow-sm text-white bg-info">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="small opacity-75">Pemasangan (BOM)</div>
-                        <h2 class="mb-0">@ViewBag.TotalBom</h2>
-                    </div>
-                    <i class="bi bi-diagram-3" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                <div class="small opacity-75">
+                    PM Compliance — @Model.MonthName
                 </div>
+                <h3 class="mb-0">@Model.Compliance%</h3>
+                <small class="opacity-75">
+                    @Model.TotalOnTime / @Model.TotalScheduled task
+                </small>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card border-0 shadow-sm text-white bg-warning">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="small opacity-75">Brand</div>
-                        <h2 class="mb-0">@ViewBag.TotalBrands</h2>
-                    </div>
-                    <i class="bi bi-award" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                <div class="small opacity-75">
+                    PM Completion — @Model.MonthName
                 </div>
+                <h3 class="mb-0">@Model.Completion%</h3>
+                <small class="opacity-75">
+                    @Model.TotalDone / @Model.TotalScheduled task
+                </small>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ============================================ -->
-<!-- MASTER DATA STATISTIK -->
-<!-- ============================================ -->
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small">Plant</div>
-                <h4 class="mb-0">@ViewBag.TotalPlants</h4>
+<!-- ============================================================ -->
+<!-- KANBAN BOARD — 4 KOLOM                                        -->
+<!-- ============================================================ -->
+<div class="row g-2 mb-3">
+
+    <!-- ============== DELAY ============== -->
+    <div class="col-12 col-md-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100 kanban-col">
+            <div class="card-header bg-delay text-white py-2 d-flex justify-content-between align-items-center">
+                <span class="small">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <strong>DELAY</strong>
+                </span>
+                <span class="badge bg-light text-dark">@Model.DelayCount</span>
+            </div>
+            <div class="kanban-body">
+                @if (!Model.DelayTasks.Any())
+                {
+                    <div class="p-3 text-center text-muted small">
+                        <i class="bi bi-check-circle" style="font-size: 1.8rem;"></i>
+                        <p class="mb-0 mt-1">Tidak ada</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var t in Model.DelayTasks)
+                    {
+                        <div class="kanban-card" style="border-left-color: #dc3545;">
+                            <div class="id-pm">@t.IdPm</div>
+                            <div class="asset-code">@t.AssetCode</div>
+                            <div class="sub-unit">@t.SubUnitName</div>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <span class="badge bg-danger" style="font-size: 0.7rem;">
+                                    @(Math.Abs(t.DaysLeft ?? 0)) hari
+                                </span>
+                                <a asp-controller="PmSchedule" asp-action="UpdateCell"
+                                   asp-route-id="@t.Id"
+                                   class="btn btn-sm btn-outline-warning py-0 px-2">
+                                    <i class="bi bi-play-fill"></i>
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    @if (Model.DelayCount > 10)
+                    {
+                        <div class="text-center py-2">
+                            <small class="text-muted">+@(Model.DelayCount - 10) lagi</small>
+                        </div>
+                    }
+                }
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small">Line</div>
-                <h4 class="mb-0">@ViewBag.TotalLines</h4>
+
+    <!-- ============== MINGGU INI ============== -->
+    <div class="col-12 col-md-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100 kanban-col">
+            <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+                <span class="small">
+                    <i class="bi bi-calendar-week"></i>
+                    <strong>MINGGU INI</strong>
+                </span>
+                <span class="badge bg-light text-primary">@Model.ThisWeekCount</span>
+            </div>
+            <div class="kanban-body">
+                @if (!Model.ThisWeekTasks.Any())
+                {
+                    <div class="p-3 text-center text-muted small">
+                        <i class="bi bi-calendar-check" style="font-size: 1.8rem;"></i>
+                        <p class="mb-0 mt-1">Tidak ada</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var t in Model.ThisWeekTasks)
+                    {
+                        <div class="kanban-card" style="border-left-color: #0d6efd;">
+                            <div class="id-pm">@t.IdPm</div>
+                            <div class="asset-code">@t.AssetCode</div>
+                            <div class="sub-unit">@t.SubUnitName</div>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <small class="text-muted">@t.PlanDate?.ToString("ddd, dd/MM")</small>
+                                <a asp-controller="PmSchedule" asp-action="UpdateCell"
+                                   asp-route-id="@t.Id"
+                                   class="btn btn-sm btn-outline-primary py-0 px-2">
+                                    <i class="bi bi-play-fill"></i>
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    @if (Model.ThisWeekCount > 10)
+                    {
+                        <div class="text-center py-2">
+                            <small class="text-muted">+@(Model.ThisWeekCount - 10) lagi</small>
+                        </div>
+                    }
+                }
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small">Area</div>
-                <h4 class="mb-0">@ViewBag.TotalAreas</h4>
+
+    <!-- ============== MINGGU DEPAN ============== -->
+    <div class="col-12 col-md-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100 kanban-col">
+            <div class="card-header bg-info text-white py-2 d-flex justify-content-between align-items-center">
+                <span class="small">
+                    <i class="bi bi-calendar-plus"></i>
+                    <strong>MINGGU DEPAN</strong>
+                </span>
+                <span class="badge bg-light text-dark">@Model.NextWeekCount</span>
+            </div>
+            <div class="kanban-body">
+                @if (!Model.NextWeekTasks.Any())
+                {
+                    <div class="p-3 text-center text-muted small">
+                        <i class="bi bi-calendar-x" style="font-size: 1.8rem;"></i>
+                        <p class="mb-0 mt-1">Tidak ada</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var t in Model.NextWeekTasks)
+                    {
+                        <div class="kanban-card" style="border-left-color: #0dcaf0;">
+                            <div class="id-pm">@t.IdPm</div>
+                            <div class="asset-code">@t.AssetCode</div>
+                            <div class="sub-unit">@t.SubUnitName</div>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <small class="text-muted">@t.PlanDate?.ToString("ddd, dd/MM")</small>
+                                <a asp-controller="PmSchedule" asp-action="UpdateCell"
+                                   asp-route-id="@t.Id"
+                                   class="btn btn-sm btn-outline-info py-0 px-2">
+                                    <i class="bi bi-play-fill"></i>
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    @if (Model.NextWeekCount > 10)
+                    {
+                        <div class="text-center py-2">
+                            <small class="text-muted">+@(Model.NextWeekCount - 10) lagi</small>
+                        </div>
+                    }
+                }
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small">Product</div>
-                <h4 class="mb-0">@ViewBag.TotalProducts</h4>
+
+    <!-- ============== SELESAI ============== -->
+    <div class="col-12 col-md-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100 kanban-col">
+            <div class="card-header bg-success text-white py-2 d-flex justify-content-between align-items-center">
+                <span class="small">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <strong>SELESAI</strong>
+                </span>
+                <span class="badge bg-light text-success">@Model.CompletedCount</span>
+            </div>
+            <div class="kanban-body">
+                @if (!Model.CompletedKanban.Any())
+                {
+                    <div class="p-3 text-center text-muted small">
+                        <i class="bi bi-inbox" style="font-size: 1.8rem;"></i>
+                        <p class="mb-0 mt-1">Belum ada</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var t in Model.CompletedKanban)
+                    {
+                        <div class="kanban-card" style="border-left-color: #198754;">
+                            <div class="id-pm">@t.IdPm</div>
+                            <div class="asset-code">@t.AssetCode</div>
+                            <div class="sub-unit">@t.SubUnitName</div>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <small class="text-success">
+                                    <i class="bi bi-check2"></i>
+                                    @t.ActualDate?.ToString("dd/MM")
+                                </small>
+                                <a asp-controller="PmSchedule" asp-action="UpdateCell"
+                                   asp-route-id="@t.Id"
+                                   class="btn btn-sm btn-outline-secondary py-0 px-2">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    @if (Model.CompletedCount > 10)
+                    {
+                        <div class="text-center py-2">
+                            <small class="text-muted">+@(Model.CompletedCount - 10) lagi</small>
+                        </div>
+                    }
+                }
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small">Kategori Mesin</div>
-                <h4 class="mb-0">@ViewBag.TotalMcCategories</h4>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small">Fungsi Mesin</div>
-                <h4 class="mb-0">@ViewBag.TotalMachineFunctions</h4>
-            </div>
-        </div>
-    </div>
+
 </div>
 
-<!-- ============================================ -->
-<!-- MESIN TERBARU -->
-<!-- ============================================ -->
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-white">
-        <h6 class="mb-0"><i class="bi bi-clock-history"></i> Mesin Terbaru</h6>
+<!-- ============================================================ -->
+<!-- TAB AKTIF / SELESAI DENGAN PAGINATION                         -->
+<!-- ============================================================ -->
+<div class="card border-0 shadow-sm mb-3">
+
+    <!-- TAB HEADER -->
+    <div class="card-header bg-white p-0">
+        <ul class="nav nav-tabs border-0">
+            <li class="nav-item">
+                <a class="nav-link @(Model.ActiveTab == "active" ? "active" : "")"
+                   asp-action="Index"
+                   asp-route-year="@Model.SelectedYear"
+                   asp-route-month="@Model.SelectedMonth"
+                   asp-route-tab="active"
+                   asp-route-activePage="1"
+                   asp-route-donePage="@Model.DonePage">
+                    <i class="bi bi-list-task"></i>
+                    <strong>TASK AKTIF</strong>
+                    <span class="badge bg-primary tab-badge ms-1">@Model.ActiveTotalItems</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(Model.ActiveTab == "done" ? "active" : "")"
+                   asp-action="Index"
+                   asp-route-year="@Model.SelectedYear"
+                   asp-route-month="@Model.SelectedMonth"
+                   asp-route-tab="done"
+                   asp-route-activePage="@Model.ActivePage"
+                   asp-route-donePage="1">
+                    <i class="bi bi-check-circle"></i>
+                    <strong>TASK SELESAI</strong>
+                    <span class="badge bg-success tab-badge ms-1">@Model.DoneTotalItems</span>
+                </a>
+            </li>
+        </ul>
     </div>
+
+    <!-- TAB BODY -->
     <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>Kode</th>
-                    <th>Nama Mesin</th>
-                    <th>Line</th>
-                    <th>Area</th>
-                    <th>Brand</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr>
-                        <td><strong>@item.Code</strong></td>
-                        <td>@item.Name</td>
-                        <td>@item.Line?.Name</td>
-                        <td>@item.Area?.Name</td>
-                        <td>@item.Brand?.Name</td>
-                        <td>
-                            @if (item.IsActive)
+
+        @{
+            var isActive = Model.ActiveTab == "active";
+            var rows = isActive ? Model.ActiveTasks : Model.DoneTasks;
+            var currentPage = isActive ? Model.ActivePage : Model.DonePage;
+            var totalPages = isActive ? Model.ActiveTotalPages : Model.DoneTotalPages;
+            var totalItems = isActive ? Model.ActiveTotalItems : Model.DoneTotalItems;
+        }
+
+        @if (!rows.Any())
+        {
+            <div class="p-5 text-center text-muted">
+                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                <p class="mb-0 mt-2">
+                    @(isActive ? "Tidak ada task aktif bulan ini" : "Belum ada task selesai bulan ini")
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID-PM</th>
+                            <th>Mesin</th>
+                            <th>Sub Unit</th>
+                            <th>Metode</th>
+                            <th>Plan</th>
+                            <th>Actual</th>
+                            <th>PIC</th>
+                            <th>Status</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in rows)
+                        {
+                            var statusText = t.Status == "Overdue" ? "Delay" : t.Status;
+                            var badge = t.Status switch
                             {
-                                <span class="badge bg-success">Aktif</span>
-                            }
-                            else
+                                "Done" => "bg-success",
+                                "Overdue" => "bg-delay",
+                                "InProgress" => "bg-primary",
+                                "Cancelled" => "bg-secondary",
+                                _ => "bg-warning text-dark"
+                            };
+                            <tr>
+                                <td><strong>@t.IdPm</strong></td>
+                                <td>
+                                    @t.AssetCode
+                                    <br />
+                                    <small class="text-muted">@t.AssetName</small>
+                                </td>
+                                <td>@t.SubUnitName</td>
+                                <td><span class="badge bg-secondary">@t.MethodName</span></td>
+                                <td><small>@t.PlanDate?.ToString("dd/MM/yyyy")</small></td>
+                                <td>
+                                    <small>
+                                        @(t.ActualDate.HasValue
+                                            ? t.ActualDate.Value.ToString("dd/MM/yyyy")
+                                            : "-")
+                                    </small>
+                                </td>
+                                <td><small>@(t.PIC ?? "-")</small></td>
+                                <td><span class="badge @badge">@statusText</span></td>
+                                <td class="text-center">
+                                    <a asp-controller="PmSchedule" asp-action="UpdateCell"
+                                       asp-route-id="@t.Id"
+                                       class="btn btn-sm @(isActive ? "btn-warning" : "btn-outline-secondary") py-0 px-2"
+                                       title="@(isActive ? "Update" : "Lihat")">
+                                        <i class="bi @(isActive ? "bi-pencil" : "bi-eye")"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINATION -->
+            @if (totalPages > 1)
+            {
+                <div class="d-flex justify-content-between align-items-center p-2 border-top">
+                    <small class="text-muted">
+                        Menampilkan
+                        <strong>@(((currentPage - 1) * Model.PageSize) + 1)</strong> -
+                        <strong>@(Math.Min(currentPage * Model.PageSize, totalItems))</strong>
+                        dari <strong>@totalItems</strong> task
+                    </small>
+
+                    @{
+                        int startPage = Math.Max(1, currentPage - 2);
+                        int endPage = Math.Min(totalPages, startPage + 4);
+                        if (endPage - startPage < 4) startPage = Math.Max(1, endPage - 4);
+                    }
+
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-year="@Model.SelectedYear"
+                                   asp-route-month="@Model.SelectedMonth"
+                                   asp-route-tab="@Model.ActiveTab"
+                                   asp-route-activePage="@(isActive ? currentPage - 1 : Model.ActivePage)"
+                                   asp-route-donePage="@(isActive ? Model.DonePage : currentPage - 1)">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+
+                            @if (startPage > 1)
                             {
-                                <span class="badge bg-secondary">Nonaktif</span>
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       asp-action="Index"
+                                       asp-route-year="@Model.SelectedYear"
+                                       asp-route-month="@Model.SelectedMonth"
+                                       asp-route-tab="@Model.ActiveTab"
+                                       asp-route-activePage="@(isActive ? 1 : Model.ActivePage)"
+                                       asp-route-donePage="@(isActive ? Model.DonePage : 1)">1</a>
+                                </li>
+                                @if (startPage > 2)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                }
                             }
-                        </td>
-                    </tr>
-                }
-                @if (!Model.Any())
-                {
-                    <tr>
-                        <td colspan="6" class="text-center text-muted py-3">
-                            Belum ada mesin terdaftar
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+
+                            @for (int i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == currentPage ? "active" : "")">
+                                    <a class="page-link"
+                                       asp-action="Index"
+                                       asp-route-year="@Model.SelectedYear"
+                                       asp-route-month="@Model.SelectedMonth"
+                                       asp-route-tab="@Model.ActiveTab"
+                                       asp-route-activePage="@(isActive ? i : Model.ActivePage)"
+                                       asp-route-donePage="@(isActive ? Model.DonePage : i)">@i</a>
+                                </li>
+                            }
+
+                            @if (endPage < totalPages)
+                            {
+                                @if (endPage < totalPages - 1)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                }
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       asp-action="Index"
+                                       asp-route-year="@Model.SelectedYear"
+                                       asp-route-month="@Model.SelectedMonth"
+                                       asp-route-tab="@Model.ActiveTab"
+                                       asp-route-activePage="@(isActive ? totalPages : Model.ActivePage)"
+                                       asp-route-donePage="@(isActive ? Model.DonePage : totalPages)">@totalPages</a>
+                                </li>
+                            }
+
+                            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-year="@Model.SelectedYear"
+                                   asp-route-month="@Model.SelectedMonth"
+                                   asp-route-tab="@Model.ActiveTab"
+                                   asp-route-activePage="@(isActive ? currentPage + 1 : Model.ActivePage)"
+                                   asp-route-donePage="@(isActive ? Model.DonePage : currentPage + 1)">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
     </div>
 </div>
+
+<!-- ============================================================ -->
+<!-- TREND CHART 6 BULAN                                           -->
+<!-- ============================================================ -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white">
+        <strong><i class="bi bi-graph-up"></i> Trend PM 6 Bulan Terakhir</strong>
+    </div>
+    <div class="card-body" style="height: 300px;">
+        <canvas id="trendChart"></canvas>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        const trendData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Monthly));
+
+        new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: trendData.map(x => x.Month),
+                datasets: [
+                    {
+                        label: 'Dijadwalkan',
+                        data: trendData.map(x => x.Scheduled),
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        tension: 0.3, fill: true, borderWidth: 3,
+                        pointRadius: 5, pointBackgroundColor: '#fff',
+                        pointBorderColor: '#0d6efd', pointBorderWidth: 3
+                    },
+                    {
+                        label: 'Selesai',
+                        data: trendData.map(x => x.Done),
+                        borderColor: '#198754',
+                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                        tension: 0.3, fill: true, borderWidth: 3,
+                        pointRadius: 5, pointBackgroundColor: '#fff',
+                        pointBorderColor: '#198754', pointBorderWidth: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    </script>
+}
