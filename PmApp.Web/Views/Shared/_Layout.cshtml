@@ -222,10 +222,60 @@
                 color: #fd7e14 !important;
                 font-weight: 600;
             }
+
+        /* SIDEBAR COLLAPSE (desktop) */
+        .app-sidebar {
+            transition: width .25s ease;
+            overflow: hidden;
+        }
+        .app-wrapper.sidebar-collapsed .app-sidebar {
+            width: 0;
+        }
+        .sidebar-toggle {
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #334155;
+            width: 38px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: .5rem;
+            flex-shrink: 0;
+        }
+        .sidebar-toggle:hover { background: #f1f5f9; }
+        .sidebar-overlay { display: none; }
+
+        /* Mobile: sidebar menjadi panel di atas konten */
+        @@media (max-width: 767.98px) {
+            .app-sidebar {
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                z-index: 1051;
+                width: 250px !important;
+                transform: translateX(-100%);
+                transition: transform .25s ease;
+            }
+            .app-wrapper.mobile-sidebar-open .app-sidebar {
+                transform: translateX(0);
+            }
+            .app-wrapper.mobile-sidebar-open .sidebar-overlay {
+                display: block;
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, .5);
+                z-index: 1050;
+            }
+            .app-topbar { padding: .75rem; }
+            .app-content { padding: 1rem; }
+        }
     </style>
 </head>
 <body>
-    <div class="app-wrapper">
+    <div class="app-wrapper" id="appWrapper">
+        <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
 
         <!-- ================================================
              SIDEBAR
@@ -363,15 +413,34 @@
              ================================================ -->
         <main class="app-main">
             <header class="app-topbar">
-                <h6 class="mb-0 text-secondary">
-                    <i class="bi bi-folder2-open"></i>
-                    @ViewData["Title"]
-                </h6>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-light text-dark border">
-                        <i class="bi bi-person-circle"></i> system
-                    </span>
+                <div class="d-flex align-items-center gap-2 min-w-0">
+                    <button type="button" class="sidebar-toggle" id="sidebarToggle"
+                            aria-label="Buka atau tutup sidebar" aria-controls="sidebar"
+                            aria-expanded="true" title="Buka/tutup menu">
+                        <i class="bi bi-list fs-5"></i>
+                    </button>
+                    <h6 class="mb-0 text-secondary text-truncate">
+                        <i class="bi bi-folder2-open d-none d-sm-inline"></i>
+                        @ViewData["Title"]
+                    </h6>
                 </div>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-dark border text-truncate" style="max-width: 180px;">
+                            <i class="bi bi-person-circle"></i>
+                            @(User.FindFirst("FullName")?.Value ?? User.Identity.Name)
+                            <span class="d-none d-md-inline">(@(User.IsInRole("Admin") ? "Admin" : "Operator"))</span>
+                        </span>
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Keluar dari akun">
+                                <i class="bi bi-box-arrow-right"></i>
+                                <span class="d-none d-sm-inline">Logout</span>
+                            </button>
+                        </form>
+                    </div>
+                }
             </header>
 
             <div class="app-content">
@@ -379,6 +448,58 @@
             </div>
         </main>
     </div>
+
+    <script>
+        // Sidebar: desktop collapse tersimpan, mobile memakai overlay.
+        (function () {
+            const wrapper = document.getElementById('appWrapper');
+            const toggle = document.getElementById('sidebarToggle');
+            const overlay = document.getElementById('sidebarOverlay');
+            const mobile = window.matchMedia('(max-width: 767.98px)');
+
+            function syncSidebar() {
+                if (mobile.matches) {
+                    wrapper.classList.remove('sidebar-collapsed');
+                    toggle.setAttribute('aria-expanded',
+                        String(wrapper.classList.contains('mobile-sidebar-open')));
+                } else {
+                    wrapper.classList.remove('mobile-sidebar-open');
+                    const collapsed = localStorage.getItem('pm.sidebar.collapsed') === 'true';
+                    wrapper.classList.toggle('sidebar-collapsed', collapsed);
+                    toggle.setAttribute('aria-expanded', String(!collapsed));
+                }
+            }
+
+            function closeMobileSidebar() {
+                wrapper.classList.remove('mobile-sidebar-open');
+                toggle.setAttribute('aria-expanded', 'false');
+            }
+
+            toggle.addEventListener('click', function () {
+                if (mobile.matches) {
+                    const open = wrapper.classList.toggle('mobile-sidebar-open');
+                    toggle.setAttribute('aria-expanded', String(open));
+                } else {
+                    const collapsed = wrapper.classList.toggle('sidebar-collapsed');
+                    localStorage.setItem('pm.sidebar.collapsed', String(collapsed));
+                    toggle.setAttribute('aria-expanded', String(!collapsed));
+                }
+            });
+
+            overlay.addEventListener('click', closeMobileSidebar);
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeMobileSidebar();
+            });
+            document.querySelectorAll('.sidebar-nav a').forEach(function (a) {
+                a.addEventListener('click', function () {
+                    if (mobile.matches) closeMobileSidebar();
+                });
+            });
+            if (mobile.addEventListener) mobile.addEventListener('change', syncSidebar);
+            else mobile.addListener(syncSidebar);
+            syncSidebar();
+        })();
+    </script>
     <!-- CONFIRM MODAL + LOADING + TOAST -->
     <partial name="_ConfirmModal" />
     <!-- SCRIPTS -->
@@ -393,11 +514,11 @@
             document.addEventListener('DOMContentLoaded', function () {
                 @if (TempData["Success"] != null)
                 {
-                        <text>showToast('success', '@Html.Raw(TempData["Success"]?.ToString()?.Replace("'", "\\'"))');</text>
+                        <text>showToast('success', @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["Success"]?.ToString())));</text>
                 }
                 @if (TempData["Error"] != null)
                 {
-                        <text>showToast('danger', '@Html.Raw(TempData["Error"]?.ToString()?.Replace("'", "\\'"))');</text>
+                        <text>showToast('danger', @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["Error"]?.ToString())));</text>
                 }
             });
     </script>

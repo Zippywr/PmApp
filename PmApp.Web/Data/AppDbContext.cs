@@ -45,9 +45,46 @@ public class AppDbContext : DbContext
     public DbSet<PmTaskTemplate> PmTaskTemplates => Set<PmTaskTemplate>();
     public DbSet<PmSchedule> PmSchedules => Set<PmSchedule>();
     public DbSet<PmScheduleHistory> PmScheduleHistories => Set<PmScheduleHistory>();
+
+    // ============================================================
+    // DB SETS — User
+    // ============================================================
+    public DbSet<AppUser> AppUsers => Set<AppUser>();
+
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // ---------------------------------------------------------
+        // User
+        // ---------------------------------------------------------
+        modelBuilder.Entity<AppUser>(entity =>
+        {
+            entity.HasIndex(x => x.Username)
+                  .IsUnique();
+
+            entity.Property(x => x.Username)
+                  .HasMaxLength(50)
+                  .IsRequired();
+
+            entity.Property(x => x.FullName)
+                  .HasMaxLength(100)
+                  .IsRequired();
+
+            entity.Property(x => x.PasswordHash)
+                  .IsRequired();
+
+            entity.Property(x => x.Role)
+                  .HasMaxLength(20)
+                  .IsRequired();
+
+            entity.Property(x => x.SecurityStamp)
+                  .HasMaxLength(40)
+                  .IsRequired();
+
+            entity.HasIndex(x => x.IsActive);
+        });
 
         // ---------------------------------------------------------
         // PLANT
