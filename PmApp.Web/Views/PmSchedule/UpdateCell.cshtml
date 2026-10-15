@@ -1,85 +1,305 @@
-﻿@model PmApp.Web.Models.Entities.PmSchedule
+﻿@model PmApp.Web.Models.ViewModels.PmUpdateCellViewModel
 @{
     ViewData["Title"] = "Update Jadwal PM";
-    var taskIdPm = (string?)ViewBag.TaskIdPm;
-    var assetCode = (string?)ViewBag.AssetCode;
-    var month = (int)ViewBag.Month;
-    var year = (int)ViewBag.Year;
-    var monthsDelay = (int)(ViewBag.MonthsDelay ?? 0);
-    var monthNames = new[] { "", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember" };
 }
 
+<style>
+    .info-card {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: #fff;
+        border-radius: 0.75rem;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+        .info-card .id-pm {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .info-card .info-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem 1.5rem;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .info-card .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+            .info-card .info-item i {
+                opacity: 0.8;
+            }
+
+        .info-card .divider {
+            border-top: 1px solid rgba(255, 255, 255, 0.25);
+            margin: 0.75rem 0;
+        }
+
+    .form-section-title {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #6c757d;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.9rem;
+    }
+
+        .form-label i {
+            color: #0d6efd;
+            margin-right: 0.3rem;
+        }
+
+    .form-control, .form-select {
+        border-radius: 0.5rem;
+        padding: 0.6rem 0.9rem;
+        font-size: 0.95rem;
+        border-color: #dee2e6;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+        }
+
+    .help-text {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+        display: block;
+    }
+
+    .delay-badge {
+        background: #fd7e14;
+        color: #fff;
+        padding: 0.35rem 0.75rem;
+        border-radius: 2rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+</style>
+
+<!-- ============================================================ -->
+<!-- BREADCRUMB                                                    -->
+<!-- ============================================================ -->
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-action="Index" asp-route-year="@year">Jadwal PM @year</a></li>
+        <li class="breadcrumb-item">
+            <a asp-action="Index" asp-route-year="@Model.Year">
+                <i class="bi bi-calendar3"></i> Jadwal PM @Model.Year
+            </a>
+        </li>
         <li class="breadcrumb-item active">Update</li>
     </ol>
 </nav>
 
-@if (monthsDelay > 0)
-{
-    <div class="alert alert-warning">
-        <i class="bi bi-exclamation-triangle"></i>
-        <strong>Delay @monthsDelay bulan</strong> — jadwal ini sudah melewati batas waktu.
+<!-- ============================================================ -->
+<!-- INFO TASK CARD                                                -->
+<!-- ============================================================ -->
+<div class="info-card">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <div class="id-pm">@Model.IdPm</div>
+            <div class="mt-1">
+                <strong>@Model.AssetName</strong>
+                <span class="opacity-75">— @Model.AssetCode</span>
+            </div>
+        </div>
+        <div class="text-end">
+            @if (Model.IsDelay)
+            {
+                <span class="delay-badge">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Delay @Model.MonthsDelay bulan
+                </span>
+            }
+            <div class="mt-2 small opacity-75">
+                <i class="bi bi-calendar-event"></i> @Model.MonthName @Model.Year
+            </div>
+        </div>
     </div>
-}
 
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">
-            <i class="bi bi-pencil-square"></i>
-            Update: @taskIdPm — @assetCode — @monthNames[month] @year
-        </h5>
+    <div class="divider"></div>
+
+    <div class="info-row">
+        @if (!string.IsNullOrEmpty(Model.LineName))
+        {
+            <div class="info-item">
+                <i class="bi bi-diagram-2"></i>
+                <span>Line: <strong>@Model.LineName</strong></span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.AreaName))
+        {
+            <div class="info-item">
+                <i class="bi bi-geo-alt"></i>
+                <span>Area: <strong>@Model.AreaName</strong></span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.UnitName))
+        {
+            <div class="info-item">
+                <i class="bi bi-box-seam"></i>
+                <span>Unit: <strong>@Model.UnitName</strong></span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.SubUnitName))
+        {
+            <div class="info-item">
+                <i class="bi bi-nut"></i>
+                <span>Sub Unit: <strong>@Model.SubUnitName</strong></span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.MethodName))
+        {
+            <div class="info-item">
+                <i class="bi bi-gear"></i>
+                <span>Metode: <strong>@Model.MethodName</strong></span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.StandardName))
+        {
+            <div class="info-item">
+                <i class="bi bi-rulers"></i>
+                <span>Standar: <strong>@Model.StandardName</strong></span>
+            </div>
+        }
+        @if (Model.WorkHourMinutes > 0)
+        {
+            <div class="info-item">
+                <i class="bi bi-clock-history"></i>
+                <span>@Model.WorkHourMinutes menit</span>
+            </div>
+        }
+        @if (Model.ManPower > 0)
+        {
+            <div class="info-item">
+                <i class="bi bi-people"></i>
+                <span>@Model.ManPower orang</span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.MachineState))
+        {
+            <div class="info-item">
+                <i class="bi bi-power"></i>
+                <span>Mesin: <strong>@Model.MachineState</strong></span>
+            </div>
+        }
     </div>
-    <div class="card-body">
-        <form asp-action="UpdateCell" method="post">
+
+    @if (!string.IsNullOrEmpty(Model.Remark))
+    {
+        <div class="divider"></div>
+        <div class="small opacity-75">
+            <i class="bi bi-info-circle"></i> @Model.Remark
+        </div>
+    }
+</div>
+
+<!-- ============================================================ -->
+<!-- FORM UPDATE CARD                                              -->
+<!-- ============================================================ -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+
+        <form asp-action="UpdateCell" asp-route-id="@Model.ScheduleId" method="post">
             @Html.AntiForgeryToken()
-            <input type="hidden" name="id" value="@Model.Id" />
+
+            <!-- ============ SECTION 1: JADWAL ============ -->
+            <div class="form-section-title">
+                <i class="bi bi-calendar-check"></i> JADWAL
+            </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Rencana (Plan)</label>
+                    <label class="form-label">
+                        <i class="bi bi-calendar-event"></i> Rencana (Plan)
+                    </label>
                     <input type="date" name="planDate" class="form-control"
                            value="@(Model.PlanDate?.ToString("yyyy-MM-dd"))" />
-                    <small class="text-muted">Bisa diubah untuk atur tanggal spesifik.</small>
+                    <span class="help-text">Bisa diubah untuk atur tanggal spesifik</span>
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Tanggal Aktual</label>
+                    <label class="form-label">
+                        <i class="bi bi-check-circle"></i> Tanggal Aktual
+                    </label>
                     <input type="date" name="actualDate" class="form-control"
                            value="@(Model.ActualDate?.ToString("yyyy-MM-dd"))" />
+                    <span class="help-text">Isi saat PM benar-benar selesai</span>
                 </div>
+            </div>
 
+            <!-- ============ SECTION 2: PELAKSANAAN ============ -->
+            <div class="form-section-title mt-2">
+                <i class="bi bi-person-check"></i> PELAKSANAAN
+            </div>
+
+            <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">PIC / Penanggung Jawab</label>
+                    <label class="form-label">
+                        <i class="bi bi-person"></i> PIC / Penanggung Jawab
+                    </label>
                     <input type="text" name="pic" class="form-control"
-                           value="@Model.PIC" placeholder="Contoh: Budi Santoso" />
+                           value="@Model.PIC" placeholder="Contoh: Budi Santoso"
+                           list="picList" autocomplete="off" />
+                    <datalist id="picList">
+                        @foreach (var p in Model.PICs)
+                        {
+                            <option value="@p"></option>
+                        }
+                    </datalist>
+                    <span class="help-text">Nama teknisi yang mengerjakan</span>
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Status</label>
+                    <label class="form-label">
+                        <i class="bi bi-flag"></i> Status
+                    </label>
                     <select name="status" class="form-select">
-                        @foreach (var s in Enum.GetNames(typeof(PmApp.Web.Models.PmStatus)))
+                        @foreach (var s in Enum.GetValues<PmApp.Web.Models.PmStatus>())
                         {
-                            var label = s == "Overdue" ? "Delay" : s;
-                            if (Model.Status.ToString() == s)
+                            if (s == Model.Status)
                             {
-                                <option value="@s" selected>@label</option>
+                                <option value="@s" selected>@s</option>
                             }
                             else
                             {
-                                <option value="@s">@label</option>
+                                <option value="@s">@s</option>
                             }
                         }
                     </select>
+                    <span class="help-text">Scheduled · InProgress · Done · Overdue · Cancelled</span>
                 </div>
+            </div>
 
+            <!-- ============ SECTION 3: HASIL ============ -->
+            <div class="form-section-title mt-2">
+                <i class="bi bi-clipboard-check"></i> HASIL
+            </div>
+
+            <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Hasil Pengecekan</label>
+                    <label class="form-label">
+                        <i class="bi bi-search"></i> Hasil Pengecekan
+                    </label>
                     <select name="result" class="form-select">
-                        @foreach (var r in Enum.GetNames(typeof(PmApp.Web.Models.MachineCondition)))
+                        @foreach (var r in Enum.GetValues<PmApp.Web.Models.MachineCondition>())
                         {
-                            if (Model.Result.ToString() == r)
+                            if (r == Model.Result)
                             {
                                 <option value="@r" selected>@r</option>
                             }
@@ -89,25 +309,31 @@
                             }
                         }
                     </select>
-                    <small class="text-muted">
-                        <strong>Pending</strong> — belum dicek ·
-                        <strong>OK</strong> — baik ·
-                        <strong>Partial</strong> — sebagian ·
-                        <strong>NG</strong> — rusak
-                    </small>
+                    <span class="help-text">
+                        <strong>Pending</strong> · <strong>OK</strong> ·
+                        <strong>Partial</strong> · <strong>NG</strong>
+                    </span>
                 </div>
 
-                <div class="col-12 mb-3">
-                    <label class="form-label">Catatan</label>
-                    <textarea name="notes" class="form-control" rows="3">@Model.Notes</textarea>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        <i class="bi bi-journal-text"></i> Catatan
+                    </label>
+                    <textarea name="notes" class="form-control" rows="3"
+                              placeholder="Catatan tambahan (opsional)">@Model.Notes</textarea>
+                    <span class="help-text">Temuan, kondisi khusus, dll</span>
                 </div>
             </div>
 
-            <div class="mt-3">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-save"></i> Simpan
+            <!-- ============ TOMBOL ============ -->
+            <hr class="my-4" />
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-lg px-4">
+                    <i class="bi bi-save"></i> Simpan Perubahan
                 </button>
-                <a asp-action="Index" asp-route-year="@year" class="btn btn-secondary">
+                <a asp-action="Index" asp-route-year="@Model.Year"
+                   class="btn btn-secondary btn-lg px-4">
                     <i class="bi bi-arrow-left"></i> Batal
                 </a>
             </div>

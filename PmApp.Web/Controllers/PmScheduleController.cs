@@ -344,20 +344,60 @@ public class PmScheduleController : Controller
     public async Task<IActionResult> UpdateCell(int id)
     {
         var schedule = await _db.PmSchedules
-            .Include(s => s.TaskTemplate)
-            .Include(s => s.Asset)
+            .Include(s => s.TaskTemplate).ThenInclude(t => t!.Asset).ThenInclude(a => a!.Line)
+            .Include(s => s.TaskTemplate).ThenInclude(t => t!.Asset).ThenInclude(a => a!.Area)
+            .Include(s => s.TaskTemplate).ThenInclude(t => t!.Unit)
+            .Include(s => s.TaskTemplate).ThenInclude(t => t!.SubUnit)
+            .Include(s => s.TaskTemplate).ThenInclude(t => t!.Method)
+            .Include(s => s.TaskTemplate).ThenInclude(t => t!.Standard)
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (schedule == null) return NotFound();
 
-        ViewBag.ScheduleId = schedule.Id;
-        ViewBag.TaskIdPm = schedule.TaskTemplate?.IdPm;
-        ViewBag.AssetCode = schedule.Asset?.Code;
-        ViewBag.Month = schedule.Month;
-        ViewBag.Year = schedule.Year;
-        ViewBag.MonthsDelay = GetMonthsDelay(schedule.Year, schedule.Month);
+        var task = schedule.TaskTemplate;
 
-        return View(schedule);
+        var vm = new PmUpdateCellViewModel
+        {
+            ScheduleId = schedule.Id,
+            TaskTemplateId = schedule.TaskTemplateId,
+            AssetId = schedule.AssetId,
+
+            // Info task
+            IdPm = task?.IdPm ?? "",
+            AssetCode = task?.Asset?.Code ?? "",
+            AssetName = task?.Asset?.Name ?? "",
+            LineName = task?.Asset?.Line?.Name,
+            AreaName = task?.Asset?.Area?.Name,
+            UnitName = task?.Unit?.Name,
+            SubUnitName = task?.SubUnit?.Name,
+            MethodName = task?.Method?.Name,
+            StandardName = task?.Standard?.Name,
+            WorkHourMinutes = task?.WorkHourMinutes ?? 0,
+            ManPower = task?.ManPower ?? 0,
+            MachineState = task?.MachineState.ToString(),
+            Remark = task?.Remark,
+
+            // Periode
+            Year = schedule.Year,
+            Month = schedule.Month,
+            MonthName = MonthNames[schedule.Month],
+
+            // Data editable
+            PlanDate = schedule.PlanDate,
+            ActualDate = schedule.ActualDate,
+            PIC = schedule.PIC,
+            Status = schedule.Status,
+            Result = schedule.Result,
+            Notes = schedule.Notes,
+
+            // Delay info
+            MonthsDelay = GetMonthsDelay(schedule.Year, schedule.Month),
+
+            // Dropdown PIC
+            PICs = new List<string> { "Faqih", "Budi Santoso", "Andi Wijaya" }
+        };
+
+        return View(vm);
     }
 
     // ============================================================

@@ -25,11 +25,22 @@ public class HomeController : Controller
         return d.AddDays(-diff).Date;
     }
 
+    // ============================================================
+    // HELPER — Minggu ke berapa dalam bulan (1-5)
+    // ============================================================
+
+    private static int GetWeekOfMonth(DateTime d)
+    {
+        return Math.Min(((d.Day - 1) / 7) + 1, 4);
+    }
+
+
     public async Task<IActionResult> Index(
         int? year, int? month,
         string? tab = "active",
         int activePage = 1,
-        int donePage = 1)
+        int donePage = 1,
+        int delayWeek = 1)
     {
         var today = DateTime.Today;
         var thisMonday = GetMonday(today);
@@ -48,6 +59,7 @@ public class HomeController : Controller
             SelectedMonth = m,
             MonthName = new DateTime(y, m, 1).ToString("MMMM yyyy"),
             ActiveTab = tab ?? "active",
+            SelectedDelayWeek = delayWeek,
             PageSize = PAGE_SIZE,
             TotalAssets = await _db.Assets.CountAsync(),
             TotalParts = await _db.Parts.CountAsync()
@@ -78,7 +90,8 @@ public class HomeController : Controller
             ActualDate = s.ActualDate,
             Status = s.Status.ToString(),
             PIC = s.PIC,
-            DaysLeft = s.PlanDate.HasValue ? (s.PlanDate.Value.Date - today).Days : null
+            DaysLeft = s.PlanDate.HasValue ? (s.PlanDate.Value.Date - today).Days : null,
+            WeekNumber = s.PlanDate.HasValue ? GetWeekOfMonth(s.PlanDate.Value) : 0
         };
 
         // ============================================================
@@ -101,16 +114,42 @@ public class HomeController : Controller
         vm.Completion = totalMonth == 0 ? 0 : Math.Round((double)totalDone / totalMonth * 100, 1);
 
         // ============================================================
-        // KATEGORI KANBAN (4 KOLOM)
+        // DELAY — dengan breakdown per minggu
         // ============================================================
-
-        // 1. DELAY — PlanDate < hari ini, belum Done
-        var delayList = monthTasks
+        var delayAll = monthTasks
             .Where(s => s.Status != PmStatus.Done && s.PlanDate!.Value.Date < today)
             .OrderBy(s => s.PlanDate)
             .ToList();
 
-        // 2. MINGGU INI — today <= PlanDate < nextMonday, belum Done
+        vm.DelayCountTotal = delayAll.Count;
+
+
+        vm.DelayCountByWeek = delayAll
+            .GroupBy(s => GetWeekOfMonth(s.PlanDate!.Value))
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        // Pastikan semua minggu 1-4 tersedia
+        for (int w = 1; w <= 4; w++)
+        {
+            if (!vm.DelayCountByWeek.ContainsKey(w))
+                vm.DelayCountByWeek[w] = 0;
+        }
+
+        // Batasi pilihan minggu 1-4
+        vm.SelectedDelayWeek = Math.Clamp(delayWeek, 1, 4);
+
+        // Filter delay berdasarkan minggu terpilih
+        var delayFiltered = delayAll
+            .Where(s => GetWeekOfMonth(s.PlanDate!.Value)
+                == vm.SelectedDelayWeek)
+            .ToList();
+
+        vm.DelayTasks = delayFiltered.Take(10).Select(MapToRow).ToList();
+
+
+        // ============================================================
+        // MINGGU INI — today <= PlanDate < nextMonday
+        // ============================================================
         var thisWeekList = monthTasks
             .Where(s => s.Status != PmStatus.Done
                      && s.PlanDate!.Value.Date >= today
@@ -118,7 +157,12 @@ public class HomeController : Controller
             .OrderBy(s => s.PlanDate)
             .ToList();
 
-        // 3. MINGGU DEPAN — nextMonday <= PlanDate < nextNextMonday, belum Done
+        vm.ThisWeekCount = thisWeekList.Count;
+        vm.ThisWeekTasks = thisWeekList.Take(10).Select(MapToRow).ToList();
+
+        // ============================================================
+        // MINGGU DEPAN — nextMonday <= PlanDate < nextNextMonday
+        // ============================================================
         var nextWeekList = monthTasks
             .Where(s => s.Status != PmStatus.Done
                      && s.PlanDate!.Value.Date >= nextMonday
@@ -126,26 +170,22 @@ public class HomeController : Controller
             .OrderBy(s => s.PlanDate)
             .ToList();
 
-        // 4. SELESAI — Status Done
+        vm.NextWeekCount = nextWeekList.Count;
+        vm.NextWeekTasks = nextWeekList.Take(10).Select(MapToRow).ToList();
+
+        // ============================================================
+        // SELESAI
+        // ============================================================
         var completedList = monthTasks
             .Where(s => s.Status == PmStatus.Done)
             .OrderByDescending(s => s.ActualDate)
             .ToList();
 
-        // Counter
-        vm.DelayCount = delayList.Count;
-        vm.ThisWeekCount = thisWeekList.Count;
-        vm.NextWeekCount = nextWeekList.Count;
         vm.CompletedCount = completedList.Count;
-
-        // Preview max 10 untuk kanban
-        vm.DelayTasks = delayList.Take(10).Select(MapToRow).ToList();
-        vm.ThisWeekTasks = thisWeekList.Take(10).Select(MapToRow).ToList();
-        vm.NextWeekTasks = nextWeekList.Take(10).Select(MapToRow).ToList();
         vm.CompletedKanban = completedList.Take(10).Select(MapToRow).ToList();
 
         // ============================================================
-        // TAB AKTIF — semua task belum Done
+        // TAB AKTIF
         // ============================================================
         var activeList = monthTasks
             .Where(s => s.Status != PmStatus.Done)
@@ -163,7 +203,7 @@ public class HomeController : Controller
             .ToList();
 
         // ============================================================
-        // TAB SELESAI — semua task Done
+        // TAB SELESAI
         // ============================================================
         var doneList = monthTasks
             .Where(s => s.Status == PmStatus.Done)
@@ -181,24 +221,46 @@ public class HomeController : Controller
             .ToList();
 
         // ============================================================
-        // TREND 6 BULAN
+        // WEEKLY CHART — per minggu dalam bulan terpilih
         // ============================================================
-        for (int i = 5; i >= 0; i--)
+
+        int maxDay = DateTime.DaysInMonth(y, m);
+
+        for (int w = 1; w <= 4; w++)
         {
-            var mm = monthStart.AddMonths(-i);
-            var mmEnd = mm.AddMonths(1);
+            int startDay = (w - 1) * 7 + 1;
 
-            var list = await _db.PmSchedules
-                .Where(s => s.PlanDate >= mm && s.PlanDate < mmEnd)
-                .ToListAsync();
+            // Minggu ke-4 mencakup tanggal 22 sampai akhir bulan
+            int endDay = w == 4
+                ? maxDay
+                : Math.Min(startDay + 6, maxDay);
 
-            vm.Monthly.Add(new HomeMonthlyTrend
+            var weekStart = new DateTime(y, m, startDay);
+            var weekEnd = new DateTime(y, m, endDay);
+
+            var weekSchedules = monthTasks
+                .Where(s => s.PlanDate.HasValue
+                         && s.PlanDate.Value.Date >= weekStart
+                         && s.PlanDate.Value.Date <= weekEnd)
+                .ToList();
+
+            var delayCount = weekSchedules.Count(s =>
+                s.Status != PmStatus.Done &&
+                s.PlanDate.HasValue &&
+                s.PlanDate.Value.Date < today);
+
+            vm.Weekly.Add(new HomeWeeklyTrend
             {
-                Month = mm.ToString("MMM yyyy"),
-                Scheduled = list.Count,
-                Done = list.Count(s => s.Status == PmStatus.Done)
+                WeekNumber = w,
+                WeekLabel = $"Minggu {w}",
+                WeekStart = weekStart,
+                WeekEnd = weekEnd,
+                Scheduled = weekSchedules.Count,
+                Done = weekSchedules.Count(s => s.Status == PmStatus.Done),
+                Delay = delayCount
             });
         }
+
 
         return View(vm);
     }

@@ -49,6 +49,47 @@
         color: #6c757d;
     }
 
+    /* Week tabs di header kanban Delay */
+    .week-tabs {
+        display: flex;
+        gap: 2px;
+        margin-top: 6px;
+    }
+
+    .week-tabs a {
+        flex: 1;
+        text-align: center;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 2px 4px;
+        border-radius: 4px;
+        text-decoration: none;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.2);
+        transition: background 0.15s;
+        position: relative;
+    }
+
+    .week-tabs a:hover {
+        background: rgba(255, 255, 255, 0.35);
+        color: #fff;
+    }
+
+    .week-tabs a.active {
+        background: #fff;
+        color: #dc3545;
+    }
+
+    .week-tabs a .cnt {
+        font-size: 0.65rem;
+        opacity: 0.85;
+    }
+
+    .week-tabs a.active .cnt {
+        color: #dc3545;
+        opacity: 1;
+    }
+
     .tab-badge {
         font-size: 0.8rem;
         padding: 0.25rem 0.6rem;
@@ -67,6 +108,7 @@
     <div class="card-body">
         <form method="get" class="row g-2 align-items-end">
             <input type="hidden" name="tab" value="@Model.ActiveTab" />
+            <input type="hidden" name="delayWeek" value="@Model.SelectedDelayWeek" />
             <div class="col-md-3">
                 <label class="form-label">Bulan (KPI)</label>
                 <select name="month" class="form-select">
@@ -125,10 +167,14 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="small opacity-75">Total Part</div>
-                        <h3 class="mb-0">@Model.TotalParts</h3>
+                        <div class="small opacity-75">
+                            Total PM Bulan Ini — @Model.MonthName
+                        </div>
+                        <h3 class="mb-0">@Model.TotalScheduled</h3>
+                        <small class="opacity-75">Total task terjadwal</small>
                     </div>
-                    <i class="bi bi-box-seam" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                    <i class="bi bi-calendar-check"
+                       style="font-size: 2.5rem; opacity: 0.5;"></i>
                 </div>
             </div>
         </div>
@@ -166,22 +212,40 @@
 <!-- ============================================================ -->
 <div class="row g-2 mb-3">
 
-    <!-- ============== DELAY ============== -->
+    <!-- ============== DELAY (dengan tab minggu) ============== -->
     <div class="col-12 col-md-6 col-lg-3">
         <div class="card border-0 shadow-sm h-100 kanban-col">
-            <div class="card-header bg-delay text-white py-2 d-flex justify-content-between align-items-center">
-                <span class="small">
-                    <i class="bi bi-exclamation-triangle-fill"></i>
-                    <strong>DELAY</strong>
-                </span>
-                <span class="badge bg-light text-dark">@Model.DelayCount</span>
+            <div class="card-header bg-delay text-white py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="small">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <strong>DELAY</strong>
+                    </span>
+                    <span class="badge bg-light text-dark">@Model.DelayCountTotal</span>
+                </div>
+                <!-- TAB MINGGU -->
+                <div class="week-tabs">
+                    @for (int w = 1; w <= 4; w++)
+                    {
+                        var cnt = Model.DelayCountByWeek.ContainsKey(w) ? Model.DelayCountByWeek[w] : 0;
+                        var isWeekActive = Model.SelectedDelayWeek == w;
+                        <a asp-action="Index"
+                           asp-route-year="@Model.SelectedYear"
+                           asp-route-month="@Model.SelectedMonth"
+                           asp-route-tab="@Model.ActiveTab"
+                           asp-route-activePage="@Model.ActivePage"
+                           asp-route-donePage="@Model.DonePage"
+                           asp-route-delayWeek="@w"
+                           class="@(isWeekActive ? "active" : "")">W@(w) <span class="cnt">(@cnt)</span></a>
+                    }
+                </div>
             </div>
             <div class="kanban-body">
                 @if (!Model.DelayTasks.Any())
                 {
                     <div class="p-3 text-center text-muted small">
                         <i class="bi bi-check-circle" style="font-size: 1.8rem;"></i>
-                        <p class="mb-0 mt-1">Tidak ada</p>
+                        <p class="mb-0 mt-1">Tidak ada delay di Minggu @Model.SelectedDelayWeek</p>
                     </div>
                 }
                 else
@@ -204,10 +268,12 @@
                             </div>
                         </div>
                     }
-                    @if (Model.DelayCount > 10)
+                    @if (Model.DelayCountByWeek.GetValueOrDefault(Model.SelectedDelayWeek) > 10)
                     {
                         <div class="text-center py-2">
-                            <small class="text-muted">+@(Model.DelayCount - 10) lagi</small>
+                            <small class="text-muted">
+                                +@(Model.DelayCountByWeek[Model.SelectedDelayWeek] - 10) lagi
+                            </small>
                         </div>
                     }
                 }
@@ -366,7 +432,6 @@
 <!-- ============================================================ -->
 <div class="card border-0 shadow-sm mb-3">
 
-    <!-- TAB HEADER -->
     <div class="card-header bg-white p-0">
         <ul class="nav nav-tabs border-0">
             <li class="nav-item">
@@ -376,7 +441,8 @@
                    asp-route-month="@Model.SelectedMonth"
                    asp-route-tab="active"
                    asp-route-activePage="1"
-                   asp-route-donePage="@Model.DonePage">
+                   asp-route-donePage="@Model.DonePage"
+                   asp-route-delayWeek="@Model.SelectedDelayWeek">
                     <i class="bi bi-list-task"></i>
                     <strong>TASK AKTIF</strong>
                     <span class="badge bg-primary tab-badge ms-1">@Model.ActiveTotalItems</span>
@@ -389,7 +455,8 @@
                    asp-route-month="@Model.SelectedMonth"
                    asp-route-tab="done"
                    asp-route-activePage="@Model.ActivePage"
-                   asp-route-donePage="1">
+                   asp-route-donePage="1"
+                   asp-route-delayWeek="@Model.SelectedDelayWeek">
                     <i class="bi bi-check-circle"></i>
                     <strong>TASK SELESAI</strong>
                     <span class="badge bg-success tab-badge ms-1">@Model.DoneTotalItems</span>
@@ -398,7 +465,6 @@
         </ul>
     </div>
 
-    <!-- TAB BODY -->
     <div class="card-body p-0">
 
         @{
@@ -480,7 +546,6 @@
                 </table>
             </div>
 
-            <!-- PAGINATION -->
             @if (totalPages > 1)
             {
                 <div class="d-flex justify-content-between align-items-center p-2 border-top">
@@ -506,27 +571,11 @@
                                    asp-route-month="@Model.SelectedMonth"
                                    asp-route-tab="@Model.ActiveTab"
                                    asp-route-activePage="@(isActive ? currentPage - 1 : Model.ActivePage)"
-                                   asp-route-donePage="@(isActive ? Model.DonePage : currentPage - 1)">
+                                   asp-route-donePage="@(isActive ? Model.DonePage : currentPage - 1)"
+                                   asp-route-delayWeek="@Model.SelectedDelayWeek">
                                     <i class="bi bi-chevron-left"></i>
                                 </a>
                             </li>
-
-                            @if (startPage > 1)
-                            {
-                                <li class="page-item">
-                                    <a class="page-link"
-                                       asp-action="Index"
-                                       asp-route-year="@Model.SelectedYear"
-                                       asp-route-month="@Model.SelectedMonth"
-                                       asp-route-tab="@Model.ActiveTab"
-                                       asp-route-activePage="@(isActive ? 1 : Model.ActivePage)"
-                                       asp-route-donePage="@(isActive ? Model.DonePage : 1)">1</a>
-                                </li>
-                                @if (startPage > 2)
-                                {
-                                    <li class="page-item disabled"><span class="page-link">...</span></li>
-                                }
-                            }
 
                             @for (int i = startPage; i <= endPage; i++)
                             {
@@ -537,24 +586,8 @@
                                        asp-route-month="@Model.SelectedMonth"
                                        asp-route-tab="@Model.ActiveTab"
                                        asp-route-activePage="@(isActive ? i : Model.ActivePage)"
-                                       asp-route-donePage="@(isActive ? Model.DonePage : i)">@i</a>
-                                </li>
-                            }
-
-                            @if (endPage < totalPages)
-                            {
-                                @if (endPage < totalPages - 1)
-                                {
-                                    <li class="page-item disabled"><span class="page-link">...</span></li>
-                                }
-                                <li class="page-item">
-                                    <a class="page-link"
-                                       asp-action="Index"
-                                       asp-route-year="@Model.SelectedYear"
-                                       asp-route-month="@Model.SelectedMonth"
-                                       asp-route-tab="@Model.ActiveTab"
-                                       asp-route-activePage="@(isActive ? totalPages : Model.ActivePage)"
-                                       asp-route-donePage="@(isActive ? Model.DonePage : totalPages)">@totalPages</a>
+                                       asp-route-donePage="@(isActive ? Model.DonePage : i)"
+                                       asp-route-delayWeek="@Model.SelectedDelayWeek">@i</a>
                                 </li>
                             }
 
@@ -565,7 +598,8 @@
                                    asp-route-month="@Model.SelectedMonth"
                                    asp-route-tab="@Model.ActiveTab"
                                    asp-route-activePage="@(isActive ? currentPage + 1 : Model.ActivePage)"
-                                   asp-route-donePage="@(isActive ? Model.DonePage : currentPage + 1)">
+                                   asp-route-donePage="@(isActive ? Model.DonePage : currentPage + 1)"
+                                   asp-route-delayWeek="@Model.SelectedDelayWeek">
                                     <i class="bi bi-chevron-right"></i>
                                 </a>
                             </li>
@@ -578,52 +612,181 @@
 </div>
 
 <!-- ============================================================ -->
-<!-- TREND CHART 6 BULAN                                           -->
+<!-- WEEKLY CHART — Bar (Plan/Actual/Delay) + Line (Performance %) -->
 <!-- ============================================================ -->
 <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white">
-        <strong><i class="bi bi-graph-up"></i> Trend PM 6 Bulan Terakhir</strong>
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <strong>
+            <i class="bi bi-graph-up"></i>
+            Trend PM per Minggu — @Model.MonthName
+        </strong>
+        <small class="text-muted">
+            <i class="bi bi-info-circle"></i>
+            Ganti bulan di filter atas untuk melihat tren bulan lain
+        </small>
     </div>
-    <div class="card-body" style="height: 300px;">
-        <canvas id="trendChart"></canvas>
+    <div class="card-body" style="height: 360px;">
+        @if (Model.Weekly == null || !Model.Weekly.Any())
+        {
+            <div class="d-flex flex-column justify-content-center align-items-center h-100 text-muted">
+                <i class="bi bi-bar-chart" style="font-size: 2rem;"></i>
+                <p class="mb-0 mt-2">Belum ada data tren untuk periode ini</p>
+            </div>
+        }
+        else
+        {
+            <canvas id="weeklyChart"></canvas>
+        }
     </div>
 </div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        const trendData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Monthly));
+        const weeklyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            Model.Weekly,
+            new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            }));
 
-        new Chart(document.getElementById('trendChart'), {
-            type: 'line',
-            data: {
-                labels: trendData.map(x => x.Month),
-                datasets: [
-                    {
-                        label: 'Dijadwalkan',
-                        data: trendData.map(x => x.Scheduled),
-                        borderColor: '#0d6efd',
-                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                        tension: 0.3, fill: true, borderWidth: 3,
-                        pointRadius: 5, pointBackgroundColor: '#fff',
-                        pointBorderColor: '#0d6efd', pointBorderWidth: 3
+        const canvasEl = document.getElementById('weeklyChart');
+
+        if (canvasEl && weeklyData && weeklyData.length > 0) {
+
+            // ====== Plugin custom: tulis nilai % di atas titik line ======
+            const lineLabelPlugin = {
+                id: 'lineLabel',
+                afterDatasetsDraw(chart) {
+                    const { ctx } = chart;
+                    const meta = chart.getDatasetMeta(3); // dataset index 3 = Performance
+                    if (!meta || meta.hidden) return;
+                    ctx.save();
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.fillStyle = '#b8860b';
+                    ctx.textAlign = 'center';
+                    meta.data.forEach((pt, i) => {
+                        const v = weeklyData[i].performance;
+                        if (v > 0) ctx.fillText(`${v}%`, pt.x, pt.y - 10);
+                    });
+                    ctx.restore();
+                }
+            };
+
+            new Chart(canvasEl, {
+                type: 'bar',
+                data: {
+                    labels: weeklyData.map(x => x.weekLabel),
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Plan',
+                            data: weeklyData.map(x => x.scheduled),
+                            backgroundColor: '#0d6efd',
+                            borderRadius: 4,
+                            order: 3
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Actual',
+                            data: weeklyData.map(x => x.done),
+                            backgroundColor: '#198754',
+                            borderRadius: 4,
+                            order: 3
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Delay',
+                            data: weeklyData.map(x => x.delay),
+                            backgroundColor: '#fd7e14',
+                            borderRadius: 4,
+                            order: 3
+                        },
+                        {
+                            type: 'line',
+                            label: 'Performance %',
+                            data: weeklyData.map(x => x.performance),
+                            borderColor: '#ffc107',
+                            backgroundColor: 'rgba(255, 193, 7, 0.10)',
+                            borderWidth: 3,
+                            tension: 0.35,
+                            fill: true,
+                            pointRadius: 6,
+                            pointBackgroundColor: '#ffc107',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            yAxisID: 'y1',
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
                     },
-                    {
-                        label: 'Selesai',
-                        data: trendData.map(x => x.Done),
-                        borderColor: '#198754',
-                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                        tension: 0.3, fill: true, borderWidth: 3,
-                        pointRadius: 5, pointBackgroundColor: '#fff',
-                        pointBorderColor: '#198754', pointBorderWidth: 3
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 10,
+                                padding: 14
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(33, 37, 41, 0.95)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            padding: 10,
+                            callbacks: {
+                                label: function (ctx) {
+                                    const v = ctx.parsed.y ?? 0;
+                                    if (ctx.dataset.label === 'Performance %') {
+                                        return ` ${ctx.dataset.label}: ${v}%`;
+                                    }
+                                    return ` ${ctx.dataset.label}: ${v}`;
+                                },
+                                afterBody: function (items) {
+                                    const i = items[0].dataIndex;
+                                    const w = weeklyData[i];
+                                    if (!w || !w.weekStart || !w.weekEnd) return '';
+                                    const s = new Date(w.weekStart);
+                                    const e = new Date(w.weekEnd);
+                                    const fmt = d => String(d.getDate()).padStart(2, '0')
+                                        + '/' + String(d.getMonth() + 1).padStart(2, '0');
+                                    return `Periode: ${fmt(s)} - ${fmt(e)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            position: 'left',
+                            title: { display: true, text: 'Jumlah Task' },
+                            ticks: { stepSize: 1, precision: 0 }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            suggestedMax: 100,
+                            title: { display: true, text: 'Performance (%)' },
+                            grid: { drawOnChartArea: false },
+                            ticks: {
+                                callback: v => v + '%',
+                                stepSize: 25
+                            }
+                        }
                     }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } },
-                scales: { y: { beginAtZero: true } }
-            }
-        });
+                },
+                plugins: [lineLabelPlugin]
+            });
+        }
     </script>
 }
