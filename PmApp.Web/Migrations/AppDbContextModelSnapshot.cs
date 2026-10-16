@@ -145,7 +145,8 @@ namespace PmApp.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.HasIndex("LineId");
 
@@ -375,7 +376,8 @@ namespace PmApp.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Brands");
                 });
@@ -423,6 +425,9 @@ namespace PmApp.Web.Migrations
                     b.Property<int>("PlantId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("int");
+
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -433,9 +438,12 @@ namespace PmApp.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.HasIndex("PlantId");
+
+                    b.HasIndex("ProductId");
 
                     b.ToTable("Lines");
                 });
@@ -490,7 +498,8 @@ namespace PmApp.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("MachineFunctions");
                 });
@@ -545,7 +554,8 @@ namespace PmApp.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("McCategories");
                 });
@@ -607,7 +617,8 @@ namespace PmApp.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Metodes");
                 });
@@ -752,7 +763,8 @@ namespace PmApp.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Plants");
                 });
@@ -1083,6 +1095,9 @@ namespace PmApp.Web.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("PlantId")
+                        .HasColumnType("int");
+
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -1093,7 +1108,10 @@ namespace PmApp.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("PlantId");
 
                     b.ToTable("Products");
                 });
@@ -1200,7 +1218,8 @@ namespace PmApp.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.HasIndex("UnitId");
 
@@ -1257,7 +1276,8 @@ namespace PmApp.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Units");
                 });
@@ -1286,7 +1306,7 @@ namespace PmApp.Web.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("PmApp.Web.Models.Entities.Line", "Line")
-                        .WithMany()
+                        .WithMany("Assets")
                         .HasForeignKey("LineId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -1345,7 +1365,14 @@ namespace PmApp.Web.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("PmApp.Web.Models.Entities.Product", "Product")
+                        .WithMany("Lines")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Plant");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("PmApp.Web.Models.Entities.Part", b =>
@@ -1427,6 +1454,16 @@ namespace PmApp.Web.Migrations
                     b.Navigation("Unit");
                 });
 
+            modelBuilder.Entity("PmApp.Web.Models.Entities.Product", b =>
+                {
+                    b.HasOne("PmApp.Web.Models.Entities.Plant", "Plant")
+                        .WithMany("Products")
+                        .HasForeignKey("PlantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Plant");
+                });
+
             modelBuilder.Entity("PmApp.Web.Models.Entities.SubUnit", b =>
                 {
                     b.HasOne("PmApp.Web.Models.Entities.Unit", "Unit")
@@ -1446,6 +1483,8 @@ namespace PmApp.Web.Migrations
             modelBuilder.Entity("PmApp.Web.Models.Entities.Line", b =>
                 {
                     b.Navigation("Areas");
+
+                    b.Navigation("Assets");
                 });
 
             modelBuilder.Entity("PmApp.Web.Models.Entities.Part", b =>
@@ -1454,6 +1493,13 @@ namespace PmApp.Web.Migrations
                 });
 
             modelBuilder.Entity("PmApp.Web.Models.Entities.Plant", b =>
+                {
+                    b.Navigation("Lines");
+
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("PmApp.Web.Models.Entities.Product", b =>
                 {
                     b.Navigation("Lines");
                 });

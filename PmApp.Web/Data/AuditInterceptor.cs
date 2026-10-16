@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using PmApp.Web.Models.Entities;
 
@@ -6,9 +9,27 @@ namespace PmApp.Web.Data;
 
 public class AuditInterceptor : SaveChangesInterceptor
 {
-    // User yang sedang login — sementara hardcoded "system"
-    // Nanti setelah autentikasi diimplementasikan, ambil dari HttpContext.User.Identity.Name
-    private static string CurrentUser => "system";
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public AuditInterceptor(IHttpContextAccessor httpContextAccessor)
+    {
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    // Ambil username dari pengguna yang sedang login
+    private string GetCurrentUser()
+    {
+        var user = _httpContextAccessor.HttpContext?.User;
+
+        if (user?.Identity?.IsAuthenticated == true)
+        {
+            return user.FindFirstValue(ClaimTypes.Name)
+                   ?? "system";
+        }
+
+        // Untuk seed data atau proses tanpa sesi login
+        return "system";
+    }
 
     public override InterceptionResult<int> SavingChanges(
         DbContextEventData eventData,
@@ -24,49 +45,61 @@ public class AuditInterceptor : SaveChangesInterceptor
         CancellationToken cancellationToken = default)
     {
         ApplyAudit(eventData.Context);
-        return base.SavingChangesAsync(eventData, result, cancellationToken);
+
+        return base.SavingChangesAsync(
+            eventData,
+            result,
+            cancellationToken);
     }
 
-    private static void ApplyAudit(DbContext? context)
+    private void ApplyAudit(DbContext? context)
     {
-        if (context is null) return;
+        if (context == null)
+            return;
 
-        var now = DateTime.Now;
+        var currentUser = GetCurrentUser();
+        var now = DateTime.UtcNow;
 
-        foreach (var entry in context.ChangeTracker.Entries<BaseEntity>())
+        foreach (var entry in context.ChangeTracker
+                     .Entries<BaseEntity>())
         {
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.CreatedBy = CurrentUser;
+                    entry.Entity.CreatedBy = currentUser;
                     entry.Entity.CreatedDate = now;
                     entry.Entity.IsDeleted = false;
                     break;
 
                 case EntityState.Modified:
-                    // Jangan timpa CreatedBy / CreatedDate
+                    // Data pembuat asli tidak boleh berubah
                     entry.Property(x => x.CreatedBy).IsModified = false;
                     entry.Property(x => x.CreatedDate).IsModified = false;
 
-                    entry.Entity.UpdatedBy = CurrentUser;
+                    entry.Entity.UpdatedBy = currentUser;
                     entry.Entity.UpdatedDate = now;
 
-                    // Soft delete otomatis
                     if (entry.Entity.IsDeleted &&
-                        entry.Property(x => x.IsDeleted).IsModified &&
-                        entry.Property(x => x.DeletedBy).CurrentValue is null)
+                        entry.Property(x => x.IsDeleted).IsModified)
                     {
-                        entry.Entity.DeletedBy = CurrentUser;
+                        entry.Entity.DeletedBy = currentUser;
                         entry.Entity.DeletedDate = now;
                     }
+
                     break;
 
                 case EntityState.Deleted:
-                    // Cegah hard delete — ubah jadi soft delete
+                    // Hard delete diubah menjadi soft delete
                     entry.State = EntityState.Modified;
+
+                    entry.Property(x => x.CreatedBy).IsModified = false;
+                    entry.Property(x => x.CreatedDate).IsModified = false;
+
                     entry.Entity.IsDeleted = true;
-                    entry.Entity.DeletedBy = CurrentUser;
+                    entry.Entity.DeletedBy = currentUser;
                     entry.Entity.DeletedDate = now;
+                    entry.Entity.UpdatedBy = currentUser;
+                    entry.Entity.UpdatedDate = now;
                     break;
             }
         }

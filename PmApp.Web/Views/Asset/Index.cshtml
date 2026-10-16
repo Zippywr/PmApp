@@ -1,96 +1,140 @@
 ﻿@model IEnumerable<PmApp.Web.Models.Entities.Asset>
-@{
-    ViewData["Title"] = "Daftar Mesin";
-}
 
-@if (TempData["Success"] != null)
-{
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            showNotify('success', '@Html.Raw(TempData["Success"]?.ToString()?.Replace("'", "\\'"))');
-        });
-    </script>
-}
-@if (TempData["Error"] != null)
-{
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            showNotify('danger', '@Html.Raw(TempData["Error"]?.ToString()?.Replace("'", "\\'"))');
-        });
-    </script>
+@{
+    ViewData["Title"] = "Daftar Machine";
+    bool isAdmin = User.HasClaim("role", "Admin")
+        || User.IsInRole("Admin");
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0"><i class="bi bi-gear"></i> Daftar Mesin</h4>
-    <div class="d-flex gap-2">
-        <a asp-controller="Import" asp-action="Asset" class="btn btn-outline-success">
-            <i class="bi bi-file-earmark-excel"></i> Import Excel
+    <h4 class="mb-0">
+        <i class="bi bi-gear-wide-connected me-2"></i>
+        Daftar Machine
+    </h4>
+
+    @if (isAdmin)
+    {
+        <a asp-action="Create"
+           class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>
+            Tambah Machine
         </a>
-        <a asp-action="Create" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Tambah Mesin
-        </a>
-    </div>
+    }
 </div>
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <table class="table table-hover mb-0 datatable">
-            <thead class="table-light">
-                <tr>
-                    <th>Kode</th>
-                    <th>Nama Mesin</th>
-                    <th>Line</th>
-                    <th>Kategori</th>
-                    <th>Brand</th>
-                    <th>Model</th>
-                    <th>Status</th>
-                    <th width="180">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr>
-                        <td><strong>@item.Code</strong></td>
-                        <td>@item.Name</td>
-                        <td>@item.Line?.Name</td>
-                        <td>@item.McCategory?.Name</td>
-                        <td>@item.Brand?.Name</td>
-                        <td>@item.Model</td>
-                        <td>
-                            @if (item.IsActive)
-                            {
-                                <span class="badge bg-success">Aktif</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">Nonaktif</span>
-                            }
-                        </td>
-                        <td>
-                            <a asp-action="Details" asp-route-id="@item.Id"
-                               class="btn btn-sm btn-info text-white" title="Detail">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <a asp-action="Edit" asp-route-id="@item.Id"
-                               class="btn btn-sm btn-warning" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
+        <div class="table-responsive">
 
-                            <form asp-action="Delete" asp-route-id="@item.Id"
-                                  method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="button"
-                                        class="btn btn-sm btn-danger btn-delete"
-                                        data-name="Mesin '@item.Name'"
-                                        data-detail="Kode: @item.Code">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                        </td>
+            <table class="table table-hover align-middle mb-0 datatable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Code Mesin</th>
+                        <th>OP No</th>
+                        <th>Plant</th>
+                        <th>Line</th>
+                        <th>Product</th>
+                        <th>MC Category</th>
+                        <th style="width: 150px;">Aksi</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        var line = item.Line;
+
+                        // Hierarki baru:
+                        // Machine -> Line -> Product -> Plant
+                        var product = line?.Product ?? item.Product;
+                        var plant = line?.Product?.Plant;
+
+                        <tr>
+                            <td>
+                                <a asp-action="Details"
+                                   asp-route-id="@item.Id"
+                                   class="fw-semibold text-decoration-none">
+                                    @item.Code
+                                </a>
+                            </td>
+
+                            <td>
+                                @(string.IsNullOrWhiteSpace(item.OpNo)
+                                    ? "-"
+                                    : item.OpNo)
+                            </td>
+
+                            <td>
+                                @if (plant != null)
+                                {
+                                    @plant.Name
+                                }
+                                else if (line?.Plant != null)
+                                {
+                                    @line.Plant.Name
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        Belum ditentukan
+                                    </span>
+                                }
+                            </td>
+
+                            <td>
+                                @(line?.Name ?? "Belum ditentukan")
+                            </td>
+
+                            <td>
+                                @(product?.Name ?? "Belum ditentukan")
+                            </td>
+
+                            <td>
+                                @(item.McCategory?.Name ?? "-")
+                            </td>
+
+                            <td>
+                                <div class="d-flex gap-1">
+
+                                    <a asp-action="Details"
+                                       asp-route-id="@item.Id"
+                                       class="btn btn-sm btn-outline-info"
+                                       title="Detail Machine">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+
+                                    @if (isAdmin)
+                                    {
+                                        <a asp-action="Edit"
+                                           asp-route-id="@item.Id"
+                                           class="btn btn-sm btn-warning"
+                                           title="Edit Machine">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+
+                                        <form asp-action="Delete"
+                                              asp-route-id="@item.Id"
+                                              method="post"
+                                              class="d-inline">
+
+                                            @Html.AntiForgeryToken()
+
+                                            <button type="button"
+                                                    class="btn btn-sm btn-danger btn-delete"
+                                                    data-name="@item.Code"
+                                                    data-detail="Hapus data Machine ini?"
+                                                    title="Hapus Machine">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+        </div>
     </div>
 </div>

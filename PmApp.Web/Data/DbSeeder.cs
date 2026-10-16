@@ -8,7 +8,12 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext db)
     {
-        if (await db.Assets.AnyAsync()) return;
+        // Jangan membuat data contoh jika database pernah memiliki mesin,
+        // termasuk mesin yang sudah soft delete.
+        if (await db.Assets.IgnoreQueryFilters().AnyAsync())
+        {
+            return;
+        }
 
         // ============================================================
         // 1. PLANTS

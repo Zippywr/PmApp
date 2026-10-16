@@ -91,7 +91,9 @@ public class AppDbContext : DbContext
         // ---------------------------------------------------------
         modelBuilder.Entity<Plant>(e =>
         {
-            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Code)
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0"); 
         });
 
         // ---------------------------------------------------------
@@ -99,11 +101,20 @@ public class AppDbContext : DbContext
         // ---------------------------------------------------------
         modelBuilder.Entity<Line>(e =>
         {
-            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Code)
+             .IsUnique()
+             .HasFilter("[IsDeleted] = 0");
 
+            // Relasi lama: dipertahankan sementara
             e.HasOne(x => x.Plant)
              .WithMany(p => p.Lines)
              .HasForeignKey(x => x.PlantId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            // Relasi baru: Product → Line
+            e.HasOne(x => x.Product)
+             .WithMany(p => p.Lines)
+             .HasForeignKey(x => x.ProductId)
              .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -112,7 +123,9 @@ public class AppDbContext : DbContext
         // ---------------------------------------------------------
         modelBuilder.Entity<Area>(e =>
         {
-            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Code)
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
 
             e.HasOne(x => x.Line)
              .WithMany(l => l.Areas)
@@ -125,7 +138,15 @@ public class AppDbContext : DbContext
         // ---------------------------------------------------------
         modelBuilder.Entity<Product>(e =>
         {
-            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Code)
+             .IsUnique()
+             .HasFilter("[IsDeleted] = 0");
+
+            // Relasi baru: Plant → Product
+            e.HasOne(x => x.Plant)
+             .WithMany(p => p.Products)
+             .HasForeignKey(x => x.PlantId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
 
         // ---------------------------------------------------------
@@ -133,15 +154,18 @@ public class AppDbContext : DbContext
         // ---------------------------------------------------------
         modelBuilder.Entity<Brand>(e =>
         {
-            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Code)
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
         });
-
-        // ---------------------------------------------------------
-        // MC CATEGORY
-        // ---------------------------------------------------------
+            // ---------------------------------------------------------
+            // MC CATEGORY
+            // ---------------------------------------------------------
         modelBuilder.Entity<McCategory>(e =>
         {
-            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Code)
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
         });
 
         // ---------------------------------------------------------
@@ -149,7 +173,9 @@ public class AppDbContext : DbContext
         // ---------------------------------------------------------
         modelBuilder.Entity<MachineFunction>(e =>
         {
-            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Code)
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
         });
 
         // ---------------------------------------------------------
@@ -157,7 +183,9 @@ public class AppDbContext : DbContext
         // ---------------------------------------------------------
         modelBuilder.Entity<Unit>(e =>
         {
-            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Code)
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
         });
 
         // ---------------------------------------------------------
@@ -165,7 +193,9 @@ public class AppDbContext : DbContext
         // ---------------------------------------------------------
         modelBuilder.Entity<SubUnit>(e =>
         {
-            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Code)
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
 
             e.HasOne(x => x.Unit)
              .WithMany(u => u.SubUnits)
@@ -178,7 +208,9 @@ public class AppDbContext : DbContext
         // ---------------------------------------------------------
         modelBuilder.Entity<Metode>(e =>
         {
-            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Code)
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
         });
 
         // ---------------------------------------------------------
@@ -197,7 +229,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.Code).IsUnique();
 
             e.HasOne(x => x.Line)
-             .WithMany()
+             .WithMany(l => l.Assets)
              .HasForeignKey(x => x.LineId)
              .OnDelete(DeleteBehavior.Restrict);
 

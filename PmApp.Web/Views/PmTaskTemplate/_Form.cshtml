@@ -10,19 +10,41 @@
     </div>
 }
 
-<h6 class="text-primary border-bottom pb-2 mb-3">Mesin</h6>
+@* Dropdown Machine di Create sudah ditampilkan
+   bersama filter Plant -> Product -> Line.
+   Dropdown lama tetap tersedia pada halaman Edit. *@
 
-<div class="row">
-    <div class="col-md-6 mb-3">
-        <label asp-for="AssetId" class="form-label"></label>
-        <select asp-for="AssetId" asp-items="Model.AssetList" class="form-select">
-            <option value="">-- Pilih Mesin --</option>
+@if (Model.Id != 0)
+{
+    <div class="mb-4">
+        <h6 class="text-primary border-bottom pb-2 mb-3">
+            Informasi Mesin
+        </h6>
+
+        <label class="form-label fw-semibold">
+            Machine
+        </label>
+
+        <select asp-for="AssetId"
+                asp-items="Model.AssetList"
+                class="form-select bg-light"
+                disabled>
         </select>
-        <span asp-validation-for="AssetId" class="text-danger small"></span>
-    </div>
-</div>
 
-<h6 class="text-primary border-bottom pb-2 mb-3 mt-3">Detail Task</h6>
+        <div class="form-text">
+            <i class="bi bi-lock-fill me-1"></i>
+            Mesin tidak dapat diubah setelah Task PM dibuat,
+            karena ID-PM sudah terikat pada mesin tersebut.
+        </div>
+    </div>
+}
+
+@if (Model.Id != 0)
+{
+    <h6 class="text-primary border-bottom pb-2 mb-3 mt-3">
+        Detail Task
+    </h6>
+}
 
 <div class="row">
     <div class="col-md-4 mb-3">
@@ -100,6 +122,7 @@
     <div class="col-md-4 mb-3">
         <label asp-for="Week" class="form-label"></label>
         <select asp-for="Week" class="form-select">
+            <option value="0">Otomatis (Rotasi Minggu 1–4)</option>
             <option value="1">Minggu 1 (tgl 1-7)</option>
             <option value="2">Minggu 2 (tgl 8-14)</option>
             <option value="3">Minggu 3 (tgl 15-21)</option>
@@ -127,28 +150,3 @@
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        $(document).ready(function () {
-            $('.select2-tags').select2({
-                theme: 'bootstrap-5',
-                tags: true,
-                placeholder: '-- Pilih atau ketik --',
-                allowClear: true,
-                createTag: function (params) {
-                    var term = $.trim(params.term);
-                    if (term === '') return null;
-                    return {
-                        id: term,
-                        text: term,
-                        newTag: true
-                    };
-                },
-                language: {
-                    noResults: function () { return "Tidak ada hasil. Ketik untuk tambah baru."; },
-                    searching: function () { return "Mencari..."; }
-                }
-            });
-        });
-    </script>
-}

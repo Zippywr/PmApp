@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace PmApp.Web.Models.ViewModels;
@@ -19,12 +20,19 @@ public class LineFormViewModel
 
     [Required(ErrorMessage = "Plant wajib dipilih")]
     [Display(Name = "Plant")]
-    public int PlantId { get; set; }
+    public int? PlantId { get; set; }
+
+    [Required(ErrorMessage = "Product wajib dipilih")]
+    [Display(Name = "Product")]
+    public int? ProductId { get; set; }
 
     [MaxLength(500)]
     [Display(Name = "Deskripsi")]
     public string? Description { get; set; }
 
-    // Untuk dropdown
+    // Dropdown Plant
     public List<SelectListItem> PlantList { get; set; } = new();
+
+    // Dropdown Product berdasarkan Plant
+    public List<SelectListItem> ProductList { get; set; } = new();
 }

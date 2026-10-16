@@ -1,4 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Collections.Generic;
 
 namespace PmApp.Web.Models.ViewModels;
 
@@ -19,4 +21,10 @@ public class ProductFormViewModel
     [MaxLength(500)]
     [Display(Name = "Deskripsi")]
     public string? Description { get; set; }
+
+    [Required(ErrorMessage = "Plant wajib dipilih")]
+    [Display(Name = "Plant")]
+    public int? PlantId { get; set; }
+
+    public List<SelectListItem> PlantOptions { get; set; } = new();
 }

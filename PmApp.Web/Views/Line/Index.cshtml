@@ -1,82 +1,149 @@
 ﻿@model IEnumerable<PmApp.Web.Models.Entities.Line>
+
 @{
     ViewData["Title"] = "Daftar Line";
 }
 
-@if (TempData["Success"] != null)
-{
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            showNotify('success', '@Html.Raw(TempData["Success"]?.ToString()?.Replace("'", "\\'"))');
-        });
-    </script>
-}
-@if (TempData["Error"] != null)
-{
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            showNotify('danger', '@Html.Raw(TempData["Error"]?.ToString()?.Replace("'", "\\'"))');
-        });
-    </script>
-}
-
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0"><i class="bi bi-diagram-2"></i> Daftar Line</h4>
+    <h4 class="mb-0">
+        <i class="bi bi-diagram-2"></i> Daftar Line
+    </h4>
+
     <div class="d-flex gap-2">
-        <a asp-controller="Import" asp-action="Line" class="btn btn-outline-success">
-            <i class="bi bi-file-earmark-excel"></i> Import Excel
+        <a asp-controller="Import"
+           asp-action="Line"
+           class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-excel"></i>
+            Import Excel
         </a>
-        <a asp-action="Create" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Tambah Line
+
+        <a asp-action="Create"
+           class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Tambah Line
         </a>
     </div>
 </div>
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <table class="table table-hover mb-0 datatable">
-            <thead class="table-light">
-                <tr>
-                    <th>Kode</th>
-                    <th>Nama Line</th>
-                    <th>Plant</th>
-                    <th>Deskripsi</th>
-                    <th>Jumlah Area</th>
-                    <th width="180">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr>
-                        <td><strong>@item.Code</strong></td>
-                        <td>@item.Name</td>
-                        <td>
-                            <span class="badge bg-info">@item.Plant?.Code</span>
-                            @item.Plant?.Name
-                        </td>
-                        <td>@item.Description</td>
-                        <td><span class="badge bg-secondary">@item.Areas.Count area</span></td>
-                        <td>
-                            <a asp-action="Edit" asp-route-id="@item.Id"
-                               class="btn btn-sm btn-warning" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
 
-                            <form asp-action="Delete" asp-route-id="@item.Id"
-                                  method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="button"
-                                        class="btn btn-sm btn-danger btn-delete"
-                                        data-name="Line '@item.Name'"
-                                        data-detail="Kode: @item.Code">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                        </td>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 datatable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Kode</th>
+                        <th>Nama Line</th>
+                        <th>Plant</th>
+                        <th>Product</th>
+                        <th>Deskripsi</th>
+                        <th>Dibuat Oleh</th>
+                        <th>Terakhir Update</th>
+                        <th width="180">Aksi</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@item.Code</strong>
+                            </td>
+
+                            <td>@item.Name</td>
+
+                            <td>
+                                @if (item.Plant != null)
+                                {
+                                    <span class="badge bg-info">
+                                        @item.Plant.Code
+                                    </span>
+                                    @item.Plant.Name
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        Belum ditentukan
+                                    </span>
+                                }
+                            </td>
+
+                            <td>
+                                @if (item.Product != null)
+                                {
+                                    <span class="badge bg-secondary">
+                                        @item.Product.Code
+                                    </span>
+                                    @item.Product.Name
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        Belum ditentukan
+                                    </span>
+                                }
+                            </td>
+
+                            <td>
+                                @(item.Description ?? "-")
+                            </td>
+
+                            <td>
+                                @item.CreatedBy
+                                <div class="small text-muted">
+                                    @item.CreatedDate.ToString("dd/MM/yyyy HH:mm")
+                                </div>
+                            </td>
+
+                            <td>
+                                @if (item.UpdatedDate.HasValue)
+                                {
+                                    @item.UpdatedBy
+
+                                    <div class="small text-muted">
+                                        @item.UpdatedDate.Value.ToString("dd/MM/yyyy HH:mm")
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        Belum diubah
+                                    </span>
+                                }
+                            </td>
+
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a asp-action="Edit"
+                                       asp-route-id="@item.Id"
+                                       class="btn btn-sm btn-warning"
+                                       title="Edit Line">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+
+                                    <form asp-action="Delete"
+                                          asp-route-id="@item.Id"
+                                          method="post"
+                                          class="d-inline">
+
+                                        @Html.AntiForgeryToken()
+
+                                        <button type="button"
+                                                class="btn btn-sm btn-danger btn-delete"
+                                                data-name="Line '@item.Name'"
+                                                data-detail="Kode: @item.Code"
+                                                title="Hapus Line">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
     </div>
 </div>

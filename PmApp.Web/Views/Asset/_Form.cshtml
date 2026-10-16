@@ -1,120 +1,290 @@
 ﻿@model PmApp.Web.Models.ViewModels.AssetFormViewModel
 
-<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<div asp-validation-summary="ModelOnly"
+     class="text-danger mb-3"></div>
 
-<!-- ============================================================ -->
-<!-- IDENTITAS -->
-<!-- ============================================================ -->
-<h6 class="text-primary border-bottom pb-2 mb-3">Identitas Mesin</h6>
-
-<div class="row">
-    <div class="col-md-4 mb-3">
-        <label asp-for="Code" class="form-label"></label>
-        <input asp-for="Code" class="form-control" placeholder="Contoh: 1-MC-01" />
-        <span asp-validation-for="Code" class="text-danger small"></span>
-    </div>
-    <div class="col-md-5 mb-3">
-        <label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" placeholder="Contoh: CNC Milling 01" />
-        <span asp-validation-for="Name" class="text-danger small"></span>
-    </div>
-    <div class="col-md-3 mb-3">
-        <label asp-for="OpNo" class="form-label"></label>
-        <input asp-for="OpNo" class="form-control" placeholder="Contoh: OP-120" />
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- RELASI MASTER -->
-<!-- ============================================================ -->
-<h6 class="text-primary border-bottom pb-2 mb-3 mt-3">Lokasi & Kategori</h6>
-
-<div class="row">
-    <div class="col-md-6 mb-3">
-        <label asp-for="LineId" class="form-label"></label>
-        <select asp-for="LineId" asp-items="Model.LineList" class="form-select">
-            <option value="">-- Pilih Line --</option>
-        </select>
+<!-- =========================================
+     INFORMASI UTAMA
+========================================= -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white py-3">
+        <h6 class="mb-0">
+            <i class="bi bi-hdd-rack me-2"></i>
+            Informasi Utama Machine
+        </h6>
     </div>
 
-    <div class="col-md-6 mb-3">
-        <label asp-for="AreaId" class="form-label"></label>
-        <select asp-for="AreaId" asp-items="Model.AreaList" class="form-select">
-            <option value="">-- Pilih Area --</option>
-        </select>
-    </div>
+    <div class="card-body">
+        <div class="row g-3">
 
-    <div class="col-md-6 mb-3">
-        <label asp-for="McCategoryId" class="form-label"></label>
-        <select asp-for="McCategoryId" asp-items="Model.McCategoryList" class="form-select">
-            <option value="">-- Pilih Kategori --</option>
-        </select>
-    </div>
+            <!-- CODE MESIN -->
+            <div class="col-md-6">
+                <label asp-for="Code"
+                       class="form-label"></label>
 
-    <div class="col-md-6 mb-3">
-        <label asp-for="MachineFunctionId" class="form-label"></label>
-        <select asp-for="MachineFunctionId" asp-items="Model.MachineFunctionList" class="form-select">
-            <option value="">-- Pilih Fungsi --</option>
-        </select>
-    </div>
+                <input asp-for="Code"
+                       class="form-control"
+                       placeholder="Contoh: 1-MC-01" />
 
-    <div class="col-md-6 mb-3">
-        <label asp-for="BrandId" class="form-label"></label>
-        <select asp-for="BrandId" asp-items="Model.BrandList" class="form-select">
-            <option value="">-- Pilih Brand --</option>
-        </select>
-    </div>
+                <span asp-validation-for="Code"
+                      class="text-danger small"></span>
+            </div>
 
-    <div class="col-md-6 mb-3">
-        <label asp-for="ProductId" class="form-label"></label>
-        <select asp-for="ProductId" asp-items="Model.ProductList" class="form-select">
-            <option value="">-- Pilih Product --</option>
-        </select>
-    </div>
-</div>
+            <!-- OP NO -->
+            <div class="col-md-6">
+                <label asp-for="OpNo"
+                       class="form-label"></label>
 
-<!-- ============================================================ -->
-<!-- DETAIL TEKNIS -->
-<!-- ============================================================ -->
-<h6 class="text-primary border-bottom pb-2 mb-3 mt-3">Detail Teknis</h6>
+                <input asp-for="OpNo"
+                       class="form-control"
+                       placeholder="Contoh: OP-120" />
 
-<div class="row">
-    <div class="col-md-3 mb-3">
-        <label asp-for="Model" class="form-label"></label>
-        <input asp-for="Model" class="form-control" placeholder="Contoh: F25M" />
-    </div>
-    <div class="col-md-3 mb-3">
-        <label asp-for="SerialNumber" class="form-label"></label>
-        <input asp-for="SerialNumber" class="form-control" placeholder="Contoh: M3975" />
-    </div>
-    <div class="col-md-2 mb-3">
-        <label asp-for="YearMade" class="form-label"></label>
-        <input asp-for="YearMade" type="number" class="form-control" placeholder="2012" />
-    </div>
-    <div class="col-md-2 mb-3">
-        <label asp-for="Capacity" class="form-label"></label>
-        <input asp-for="Capacity" class="form-control" placeholder="500x400 mm" />
-    </div>
-    <div class="col-md-2 mb-3">
-        <label asp-for="InstallDate" class="form-label"></label>
-        <input asp-for="InstallDate" type="date" class="form-control" />
-    </div>
+                <span asp-validation-for="OpNo"
+                      class="text-danger small"></span>
+            </div>
 
-    <div class="col-md-4 mb-3">
-        <label asp-for="Criticality" class="form-label"></label>
-        <select asp-for="Criticality" class="form-select"
-                asp-items="Html.GetEnumSelectList<PmApp.Web.Models.Criticality>()"></select>
-    </div>
 
-    <div class="col-md-4 mb-3 d-flex align-items-center">
-        <div class="form-check mt-4">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label"></label>
+            <!-- PLANT -->
+            <div class="col-md-4">
+                <label asp-for="PlantId"
+                       class="form-label"></label>
+
+                <select asp-for="PlantId"
+                        asp-items="Model.PlantList"
+                        class="form-select"
+                        data-products-url="@Url.Action("GetProducts", "Asset")">
+                    <option value="">-- Pilih Plant --</option>
+                </select>
+
+                <span asp-validation-for="PlantId"
+                      class="text-danger small"></span>
+            </div>
+
+            <!-- PRODUCT -->
+            <div class="col-md-4">
+                <label asp-for="ProductId"
+                       class="form-label"></label>
+
+                <select asp-for="ProductId"
+                        asp-items="Model.ProductList"
+                        class="form-select"
+                        data-lines-url="@Url.Action("GetLines", "Asset")">
+                    <option value="">-- Pilih Product --</option>
+                </select>
+
+                <span asp-validation-for="ProductId"
+                      class="text-danger small"></span>
+            </div>
+
+            <!-- LINE -->
+            <div class="col-md-4">
+                <label asp-for="LineId"
+                       class="form-label"></label>
+
+                <select asp-for="LineId"
+                        asp-items="Model.LineList"
+                        class="form-select">
+                    <option value="">-- Pilih Line --</option>
+                </select>
+
+                <span asp-validation-for="LineId"
+                      class="text-danger small"></span>
+            </div>
+
+            <!-- MC CATEGORY -->
+            <div class="col-md-6">
+                <label asp-for="McCategoryId"
+                       class="form-label"></label>
+
+                <select asp-for="McCategoryId"
+                        asp-items="Model.McCategoryList"
+                        class="form-select">
+                    <option value="">-- Pilih Kategori Mesin --</option>
+                </select>
+
+                <span asp-validation-for="McCategoryId"
+                      class="text-danger small"></span>
+            </div>
+
         </div>
     </div>
+</div>
 
-    <div class="col-12 mb-3">
-        <label asp-for="Description" class="form-label"></label>
-        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+<!-- =========================================
+     INFORMASI TAMBAHAN
+========================================= -->
+<div class="card border-0 shadow-sm mb-3">
+
+    <div class="card-header bg-white p-0">
+        <button class="btn btn-link text-decoration-none
+            text-dark w-100 text-start p-3"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#machineAdditional"
+                aria-expanded="false"
+                aria-controls="machineAdditional">
+
+            <i class="bi bi-chevron-down me-2"></i>
+            <strong>Informasi Tambahan Machine</strong>
+            <span class="text-muted small">
+                (Opsional)
+            </span>
+        </button>
+    </div>
+
+    <div id="machineAdditional"
+         class="collapse @(ViewData.ModelState.IsValid ? "" : "show")">
+
+        <div class="card-body">
+            <div class="row g-3">
+
+                <!-- FUNGSI MESIN -->
+                <div class="col-md-6">
+                    <label asp-for="MachineFunctionId"
+                           class="form-label"></label>
+
+                    <select asp-for="MachineFunctionId"
+                            asp-items="Model.MachineFunctionList"
+                            class="form-select">
+                        <option value="">
+                            -- Pilih Fungsi Mesin --
+                        </option>
+                    </select>
+
+                    <span asp-validation-for="MachineFunctionId"
+                          class="text-danger small"></span>
+                </div>
+
+                <!-- BRAND -->
+                <div class="col-md-6">
+                    <label asp-for="BrandId"
+                           class="form-label"></label>
+
+                    <select asp-for="BrandId"
+                            asp-items="Model.BrandList"
+                            class="form-select">
+                        <option value="">
+                            -- Pilih Brand --
+                        </option>
+                    </select>
+
+                    <span asp-validation-for="BrandId"
+                          class="text-danger small"></span>
+                </div>
+
+                <!-- MODEL -->
+                <div class="col-md-6">
+                    <label asp-for="Model"
+                           class="form-label"></label>
+
+                    <input asp-for="Model"
+                           class="form-control"
+                           placeholder="Contoh: F25M" />
+
+                    <span asp-validation-for="Model"
+                          class="text-danger small"></span>
+                </div>
+
+                <!-- SERIAL NUMBER -->
+                <div class="col-md-6">
+                    <label asp-for="SerialNumber"
+                           class="form-label"></label>
+
+                    <input asp-for="SerialNumber"
+                           class="form-control"
+                           placeholder="Contoh: M3975" />
+
+                    <span asp-validation-for="SerialNumber"
+                          class="text-danger small"></span>
+                </div>
+
+                <!-- TAHUN -->
+                <div class="col-md-4">
+                    <label asp-for="YearMade"
+                           class="form-label"></label>
+
+                    <input asp-for="YearMade"
+                           type="number"
+                           class="form-control"
+                           placeholder="Contoh: 2012" />
+
+                    <span asp-validation-for="YearMade"
+                          class="text-danger small"></span>
+                </div>
+
+                <!-- KAPASITAS -->
+                <div class="col-md-4">
+                    <label asp-for="Capacity"
+                           class="form-label"></label>
+
+                    <input asp-for="Capacity"
+                           class="form-control"
+                           placeholder="Contoh: 500x400 mm" />
+
+                    <span asp-validation-for="Capacity"
+                          class="text-danger small"></span>
+                </div>
+
+                <!-- TANGGAL INSTALASI -->
+                <div class="col-md-4">
+                    <label asp-for="InstallDate"
+                           class="form-label"></label>
+
+                    <input asp-for="InstallDate"
+                           type="date"
+                           class="form-control" />
+
+                    <span asp-validation-for="InstallDate"
+                          class="text-danger small"></span>
+                </div>
+
+                <!-- KRITIKALITAS -->
+                <div class="col-md-6">
+                    <label asp-for="Criticality"
+                           class="form-label"></label>
+
+                    <select asp-for="Criticality"
+                            asp-items="Html.GetEnumSelectList<PmApp.Web.Models.Criticality>()"
+                            class="form-select">
+                    </select>
+
+                    <span asp-validation-for="Criticality"
+                          class="text-danger small"></span>
+                </div>
+
+                <!-- STATUS AKTIF -->
+                <div class="col-md-6">
+                    <label class="form-label">
+                        Status Mesin
+                    </label>
+
+                    <div class="form-check form-switch mt-2">
+                        <input asp-for="IsActive"
+                               class="form-check-input"
+                               type="checkbox" />
+
+                        <label asp-for="IsActive"
+                               class="form-check-label">
+                            Mesin Aktif
+                        </label>
+                    </div>
+                </div>
+
+                <!-- DESKRIPSI -->
+                <div class="col-12">
+                    <label asp-for="Description"
+                           class="form-label"></label>
+
+                    <textarea asp-for="Description"
+                              class="form-control"
+                              rows="3"
+                              placeholder="Catatan tambahan mesin"></textarea>
+
+                    <span asp-validation-for="Description"
+                          class="text-danger small"></span>
+                </div>
+
+            </div>
+        </div>
     </div>
 </div>

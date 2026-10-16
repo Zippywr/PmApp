@@ -10,6 +10,7 @@ public class PmTaskTemplateFormViewModel
     public string? IdPm { get; set; }
 
     [Required(ErrorMessage = "Mesin wajib dipilih")]
+    [Range(1, int.MaxValue, ErrorMessage = "Pilih mesin yang valid")]
     [Display(Name = "Mesin")]
     public int AssetId { get; set; }
 
@@ -49,8 +50,8 @@ public class PmTaskTemplateFormViewModel
     public int StartMonth { get; set; } = 1;
 
     [Display(Name = "Minggu")]
-    [Range(1, 4, ErrorMessage = "Minggu harus antara 1-4")]
-    public int Week { get; set; } = 1;   // ← TAMBAH INI
+    [Range(0, 4, ErrorMessage = "Minggu harus antara 0–4")]
+    public int Week { get; set; } = 0;
 
     [MaxLength(500)]
     [Display(Name = "Remark")]
@@ -58,6 +59,23 @@ public class PmTaskTemplateFormViewModel
 
     [Display(Name = "Aktif")]
     public bool IsActive { get; set; } = true;
+
+    [Range(1, 99, ErrorMessage = "Task Sequence harus 01 sampai 99")]
+    [Display(Name = "Task Sequence (Opsional)")]
+    public int? TaskSequence { get; set; }
+
+    [Display(Name = "Plant")]
+    public int? PlantId { get; set; }
+
+    [Display(Name = "Product")]
+    public int? ProductId { get; set; }
+
+    [Display(Name = "Line")]
+    public int? LineId { get; set; }
+
+    public List<SelectListItem> PlantList { get; set; } = new();
+    public List<SelectListItem> ProductList { get; set; } = new();
+    public List<SelectListItem> LineList { get; set; } = new();
 
     // Dropdown lists
     public List<SelectListItem> AssetList { get; set; } = new();
@@ -67,4 +85,5 @@ public class PmTaskTemplateFormViewModel
     // Datalist suggestions
     public List<string> MethodSuggestion { get; set; } = new();
     public List<string> StandardSuggestion { get; set; } = new();
+
 }

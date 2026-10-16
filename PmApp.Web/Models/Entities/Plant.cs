@@ -24,4 +24,8 @@ public class Plant : BaseEntity
 
     // Navigation
     public ICollection<Line> Lines { get; set; } = new List<Line>();
+
+    // Relasi baru: Satu Plant memiliki banyak Product
+    public ICollection<Product> Products { get; set; }
+        = new List<Product>();
 }

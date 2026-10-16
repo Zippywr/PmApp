@@ -21,4 +21,14 @@ public class Product : BaseEntity
     [MaxLength(500)]
     [Display(Name = "Deskripsi")]
     public string? Description { get; set; }
+
+    // Relasi baru: Product berada di satu Plant
+    [Display(Name = "Plant")]
+    public int? PlantId { get; set; }
+
+    public Plant? Plant { get; set; }
+
+    // Satu Product mempunyai banyak Line
+    public ICollection<Line> Lines { get; set; }
+        = new List<Line>();
 }

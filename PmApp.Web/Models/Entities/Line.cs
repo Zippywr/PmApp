@@ -22,6 +22,16 @@ public class Line : BaseEntity
     public int PlantId { get; set; }
     public Plant? Plant { get; set; }
 
+    // Relasi baru: Line berada di bawah Product
+    [Display(Name = "Product")]
+    public int? ProductId { get; set; }
+
+    public Product? Product { get; set; }
+
+    // Relasi baru: Satu Line memiliki banyak Mesin
+    public ICollection<Asset> Assets { get; set; }
+        = new List<Asset>();
+
     [MaxLength(500)]
     [Display(Name = "Deskripsi")]
     public string? Description { get; set; }

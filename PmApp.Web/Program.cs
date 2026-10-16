@@ -117,7 +117,8 @@ builder.Services.AddAuthorization(options =>
 // ============================================================
 // AUDIT
 // ============================================================
-builder.Services.AddSingleton<AuditInterceptor>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditInterceptor>();
 
 // ============================================================
 // SERVICES
@@ -136,6 +137,8 @@ builder.Services.AddScoped<
 
 builder.Services.AddScoped<
     PmApp.Web.Services.PmOverdueService>();
+
+builder.Services.AddScoped<PmIdGeneratorService>();
 
 // ============================================================
 // DATABASE — EF CORE + SQL SERVER
@@ -161,7 +164,12 @@ using (var scope = app.Services.CreateScope())
         .GetRequiredService<AppDbContext>();
 
     // Seed data PM yang sudah ada
-    await DbSeeder.SeedAsync(db);
+    // Data contoh hanya dibuat jika diaktifkan secara khusus.
+    // Default: tidak menjalankan seeder.
+    if (builder.Configuration.GetValue<bool>("SeedDemoData"))
+    {
+        await DbSeeder.SeedAsync(db);
+    }
 
 }
 

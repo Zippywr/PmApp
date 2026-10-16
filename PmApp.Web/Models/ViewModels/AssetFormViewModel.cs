@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using PmApp.Web.Models;
 
@@ -9,7 +10,7 @@ public class AssetFormViewModel
     public int Id { get; set; }
 
     // ============================================================
-    // IDENTITAS
+    // IDENTITAS MESIN
     // ============================================================
 
     [Required(ErrorMessage = "Kode mesin wajib diisi")]
@@ -17,25 +18,33 @@ public class AssetFormViewModel
     [Display(Name = "Kode Mesin (HMMI/No Mesin)")]
     public string Code { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Nama mesin wajib diisi")]
-    [MaxLength(200)]
-    [Display(Name = "Nama Mesin")]
-    public string Name { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "OP No wajib diisi")]
     [MaxLength(50)]
     [Display(Name = "OP No")]
     public string? OpNo { get; set; }
 
     // ============================================================
-    // RELASI KE MASTER
+    // HIERARKI PLANT -> PRODUCT -> LINE
     // ============================================================
 
+    [Required(ErrorMessage = "Plant wajib dipilih")]
+    [Display(Name = "Plant")]
+    public int? PlantId { get; set; }
+
+    [Required(ErrorMessage = "Product wajib dipilih")]
+    [Display(Name = "Product")]
+    public int? ProductId { get; set; }
+
+    [Required(ErrorMessage = "Line wajib dipilih")]
     [Display(Name = "Line")]
     public int? LineId { get; set; }
 
-    [Display(Name = "Area")]
-    public int? AreaId { get; set; }
+    // ============================================================
+    // KLASIFIKASI MESIN
+    // ============================================================
 
+    [Required(ErrorMessage = "Kategori mesin wajib dipilih")]
     [Display(Name = "Kategori Mesin")]
     public int? McCategoryId { get; set; }
 
@@ -45,11 +54,13 @@ public class AssetFormViewModel
     [Display(Name = "Brand / Maker")]
     public int? BrandId { get; set; }
 
-    [Display(Name = "Product")]
-    public int? ProductId { get; set; }
+    // Relasi lama tetap disimpan sementara.
+    // Tidak ditampilkan pada form baru.
+    [Display(Name = "Area")]
+    public int? AreaId { get; set; }
 
     // ============================================================
-    // DETAIL
+    // INFORMASI TAMBAHAN (OPSIONAL)
     // ============================================================
 
     [MaxLength(100)]
@@ -60,6 +71,7 @@ public class AssetFormViewModel
     [Display(Name = "Serial Number")]
     public string? SerialNumber { get; set; }
 
+    [Range(1900, 2100, ErrorMessage = "Tahun pembuatan tidak valid")]
     [Display(Name = "Tahun Pembuatan")]
     public int? YearMade { get; set; }
 
@@ -76,7 +88,8 @@ public class AssetFormViewModel
     public string? Description { get; set; }
 
     [Display(Name = "Kritikalitas")]
-    public Criticality Criticality { get; set; } = Criticality.Normal;
+    public Criticality Criticality { get; set; }
+        = Criticality.Normal;
 
     [Display(Name = "Aktif")]
     public bool IsActive { get; set; } = true;
@@ -84,10 +97,19 @@ public class AssetFormViewModel
     // ============================================================
     // DROPDOWN LISTS
     // ============================================================
-    public List<SelectListItem> LineList { get; set; } = new();
-    public List<SelectListItem> AreaList { get; set; } = new();
-    public List<SelectListItem> McCategoryList { get; set; } = new();
-    public List<SelectListItem> MachineFunctionList { get; set; } = new();
-    public List<SelectListItem> BrandList { get; set; } = new();
+
+    public List<SelectListItem> PlantList { get; set; } = new();
+
     public List<SelectListItem> ProductList { get; set; } = new();
+
+    public List<SelectListItem> LineList { get; set; } = new();
+
+    public List<SelectListItem> McCategoryList { get; set; } = new();
+
+    public List<SelectListItem> MachineFunctionList { get; set; } = new();
+
+    public List<SelectListItem> BrandList { get; set; } = new();
+
+    // Dipertahankan untuk kompatibilitas kode lama.
+    public List<SelectListItem> AreaList { get; set; } = new();
 }

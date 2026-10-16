@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PmApp.Web.Data;
@@ -13,11 +15,16 @@ public class PmTaskTemplateController : Controller
 {
     private readonly AppDbContext _db;
     private readonly PmScheduleGeneratorService _generator;
+    private readonly PmIdGeneratorService _pmIdGenerator;
 
-    public PmTaskTemplateController(AppDbContext db, PmScheduleGeneratorService generator)
+    public PmTaskTemplateController(
+        AppDbContext db,
+        PmScheduleGeneratorService generator,
+        PmIdGeneratorService pmIdGenerator)
     {
         _db = db;
         _generator = generator;
+        _pmIdGenerator = pmIdGenerator;
     }
 
     // ============================================================
@@ -102,44 +109,68 @@ public class PmTaskTemplateController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(PmTaskTemplateFormViewModel vm)
     {
+        await ValidateMachineHierarchyAsync(vm);
+
         if (!ModelState.IsValid)
         {
             await PopulateDropdownsAsync(vm);
             return View(vm);
         }
 
-        // Generate ID-PM dengan safety check (termasuk soft-deleted)
-        var idPm = await GenerateUniqueIdPmAsync(vm.AssetId);
+        // Gunakan transaksi supaya pembangkitan ID dan penyimpanan
+        // berada dalam satu unit kerja. Unique index IdPm tetap wajib.
+        await using var transaction = await _db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable);
 
-        var methodId = await GetOrCreateMetodeAsync(vm.MethodName);
-        var standardId = await GetOrCreateStandarAsync(vm.StandardName);
-
-        // Auto-assign Week
-        var week = await GetWeekNumberAsync(vm.AssetId, vm.Week);
-
-        var task = new PmTaskTemplate
+        try
         {
-            IdPm = idPm,
-            AssetId = vm.AssetId,
-            UnitId = vm.UnitId,
-            SubUnitId = vm.SubUnitId,
-            MethodId = methodId,
-            StandardId = standardId,
-            WorkHourMinutes = vm.WorkHourMinutes,
-            ManPower = vm.ManPower,
-            MachineState = vm.MachineState,
-            PeriodeMonth = vm.PeriodeMonth,
-            StartMonth = vm.StartMonth,
-            Week = week,
-            Remark = vm.Remark,
-            IsActive = vm.IsActive
-        };
+            var idPm = await _pmIdGenerator.GenerateAsync(
+                vm.AssetId, vm.TaskSequence);
 
-        _db.PmTaskTemplates.Add(task);
-        await _db.SaveChangesAsync();
+            var methodId = await GetOrCreateMetodeAsync(vm.MethodName);
+            var standardId = await GetOrCreateStandarAsync(vm.StandardName);
+            var week = await GetWeekNumberAsync(vm.AssetId, vm.Week);
 
-        TempData["Success"] = "Task PM " + idPm + " berhasil ditambahkan.";
-        return RedirectToAction(nameof(Index));
+            var task = new PmTaskTemplate
+            {
+                IdPm = idPm,
+                AssetId = vm.AssetId,
+                UnitId = vm.UnitId,
+                SubUnitId = vm.SubUnitId,
+                MethodId = methodId,
+                StandardId = standardId,
+                WorkHourMinutes = vm.WorkHourMinutes,
+                ManPower = vm.ManPower,
+                MachineState = vm.MachineState,
+                PeriodeMonth = vm.PeriodeMonth,
+                StartMonth = vm.StartMonth,
+                Week = week,
+                Remark = vm.Remark,
+                IsActive = vm.IsActive
+            };
+
+            _db.PmTaskTemplates.Add(task);
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            TempData["Success"] = "Task PM " + idPm + " berhasil ditambahkan.";
+            return RedirectToAction(nameof(Index));
+        }
+        catch (InvalidOperationException ex)
+        {
+            await transaction.RollbackAsync();
+            ModelState.AddModelError(nameof(vm.TaskSequence), ex.Message);
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync();
+            ModelState.AddModelError(string.Empty,
+                "Gagal menyimpan Task PM. ID-PM mungkin sudah digunakan atau terjadi perubahan data bersamaan. Coba lagi.");
+        }
+
+        _db.ChangeTracker.Clear();
+        await PopulateDropdownsAsync(vm);
+        return View(vm);
     }
 
     // ============================================================
@@ -180,24 +211,46 @@ public class PmTaskTemplateController : Controller
     // ============================================================
     // EDIT — POST
     // ============================================================
+
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, PmTaskTemplateFormViewModel vm)
+    public async Task<IActionResult> Edit(
+        int id,
+        PmTaskTemplateFormViewModel vm)
     {
-        if (id != vm.Id) return BadRequest();
-        if (!ModelState.IsValid)
+        if (id != vm.Id)
+            return BadRequest();
+
+        // Ambil Task asli dari database.
+        var task = await _db.PmTaskTemplates
+            .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (task == null)
+            return NotFound();
+
+        // Mesin dan ID-PM selalu berasal dari database.
+        // Jangan percaya nilai AssetId / IdPm dari form.
+        vm.AssetId = task.AssetId;
+        vm.IdPm = task.IdPm;
+
+        // Hapus nilai AssetId yang mungkin dikirim pengguna.
+        // Mesin asal tetap ditentukan oleh data database.
+        ModelState.Remove(nameof(vm.AssetId));
+
+        // Validasi lagi setelah memakai mesin asli.
+        if (!TryValidateModel(vm))
         {
             await PopulateDropdownsAsync(vm);
             return View(vm);
         }
 
-        var task = await _db.PmTaskTemplates.FirstOrDefaultAsync(t => t.Id == id);
-        if (task == null) return NotFound();
-
         var methodId = await GetOrCreateMetodeAsync(vm.MethodName);
         var standardId = await GetOrCreateStandarAsync(vm.StandardName);
 
-        task.AssetId = vm.AssetId;
+        // TIDAK ADA:
+        // task.AssetId = vm.AssetId;
+        // task.IdPm = vm.IdPm;
+
         task.UnitId = vm.UnitId;
         task.SubUnitId = vm.SubUnitId;
         task.MethodId = methodId;
@@ -213,9 +266,12 @@ public class PmTaskTemplateController : Controller
 
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = "Task PM berhasil diperbarui.";
+        TempData["Success"] =
+            $"Task PM {task.IdPm} berhasil diperbarui.";
+
         return RedirectToAction(nameof(Index));
     }
+
 
     // ============================================================
     // DELETE — POST
@@ -245,41 +301,6 @@ public class PmTaskTemplateController : Controller
 
         TempData["Success"] = "Task PM berhasil dihapus.";
         return RedirectToAction(nameof(Index));
-    }
-
-    // ============================================================
-    // HELPER — Generate IdPm unik (termasuk soft-deleted)
-    // ============================================================
-    private async Task<string> GenerateUniqueIdPmAsync(int assetId)
-    {
-        // Generate dari service
-        var idPm = await _generator.GenerateIdPmAsync(assetId);
-
-        int safety = 0;
-
-        // Cek semua data — termasuk yang sudah soft-deleted
-        while (await _db.PmTaskTemplates
-            .IgnoreQueryFilters()
-            .AnyAsync(t => t.IdPm == idPm))
-        {
-            if (idPm.Length != 6) break;
-
-            var prefix = idPm.Substring(0, 4);
-            var taskSeqStr = idPm.Substring(4, 2);
-
-            if (!int.TryParse(taskSeqStr, out var taskSeq))
-                break;
-
-            taskSeq++;
-            if (taskSeq > 99) taskSeq = 0;
-
-            idPm = prefix + taskSeq.ToString("D2");
-
-            safety++;
-            if (safety > 200) break;
-        }
-
-        return idPm;
     }
 
     // ============================================================
@@ -350,6 +371,52 @@ public class PmTaskTemplateController : Controller
         return newMetode.Id;
     }
 
+    private async Task ValidateMachineHierarchyAsync(
+    PmTaskTemplateFormViewModel vm)
+    {
+        if (!vm.PlantId.HasValue)
+            ModelState.AddModelError(
+                nameof(vm.PlantId), "Plant wajib dipilih.");
+
+        if (!vm.ProductId.HasValue)
+            ModelState.AddModelError(
+                nameof(vm.ProductId), "Product wajib dipilih.");
+
+        if (!vm.LineId.HasValue)
+            ModelState.AddModelError(
+                nameof(vm.LineId), "Line wajib dipilih.");
+
+        if (vm.AssetId <= 0)
+            ModelState.AddModelError(
+                nameof(vm.AssetId), "Mesin wajib dipilih.");
+
+        if (!vm.PlantId.HasValue ||
+            !vm.ProductId.HasValue ||
+            !vm.LineId.HasValue ||
+            vm.AssetId <= 0)
+            return;
+
+        bool valid = await _db.Assets
+            .AsNoTracking()
+            .AnyAsync(a =>
+                a.Id == vm.AssetId &&
+                a.IsActive &&
+                a.LineId == vm.LineId &&
+                a.ProductId == vm.ProductId &&
+                a.Line != null &&
+                a.Line.ProductId == vm.ProductId &&
+                a.Line.PlantId == vm.PlantId &&
+                a.Line.Product != null &&
+                a.Line.Product.PlantId == vm.PlantId);
+
+        if (!valid)
+        {
+            ModelState.AddModelError(
+                nameof(vm.AssetId),
+                "Mesin tidak sesuai dengan Plant, Product, dan Line.");
+        }
+    }
+
     // ============================================================
     // HELPER — Get or Create Standar
     // ============================================================
@@ -376,34 +443,260 @@ public class PmTaskTemplateController : Controller
         return newStandar.Id;
     }
 
+    // ==========================================
+    // DROPDOWN PRODUCT BERDASARKAN PLANT
+    // ==========================================
+    [HttpGet]
+    public async Task<IActionResult> GetProducts(int plantId)
+    {
+        var products = await _db.Products
+            .AsNoTracking()
+            .Where(p => p.PlantId == plantId)
+            .OrderBy(p => p.Code)
+            .Select(p => new
+            {
+                id = p.Id,
+                text = p.Code + " - " + p.Name
+            })
+            .ToListAsync();
+
+        return Json(products);
+    }
+
+    // ==========================================
+    // DROPDOWN LINE BERDASARKAN PRODUCT
+    // ==========================================
+    [HttpGet]
+    public async Task<IActionResult> GetLines(int productId)
+    {
+        var lines = await _db.Lines
+            .AsNoTracking()
+            .Where(l => l.ProductId == productId)
+            .OrderBy(l => l.Code)
+            .Select(l => new
+            {
+                id = l.Id,
+                text = l.Code + " - " + l.Name
+            })
+            .ToListAsync();
+
+        return Json(lines);
+    }
+
+    // ==========================================
+    // DROPDOWN MACHINE BERDASARKAN LINE
+    // ==========================================
+    [HttpGet]
+    public async Task<IActionResult> GetMachines(int lineId)
+    {
+        var machines = await _db.Assets
+            .AsNoTracking()
+            .Where(a => a.LineId == lineId && a.IsActive)
+            .OrderBy(a => a.Code)
+            .Select(a => new
+            {
+                id = a.Id,
+                text = a.Code
+            })
+            .ToListAsync();
+
+        return Json(machines);
+    }
+
+
+    [HttpGet]
+    public async Task<IActionResult> PreviewIdPm(
+        int assetId,
+        int? taskSequence)
+    {
+        if (assetId <= 0)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = "Pilih mesin terlebih dahulu."
+            });
+        }
+
+        try
+        {
+            string idPm = await _pmIdGenerator.GenerateAsync(
+                assetId,
+                taskSequence
+            );
+
+            return Json(new
+            {
+                success = true,
+                idPm,
+                mode = taskSequence.HasValue
+                    ? "Manual"
+                    : "Otomatis"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = ex.Message
+            });
+        }
+    }
+
+
     // ============================================================
     // HELPER — Populate Dropdowns
+    // Create: Filter Plant -> Product -> Line -> Machine
+    // Edit  : Machine terkunci pada mesin asal
     // ============================================================
-    private async Task PopulateDropdownsAsync(PmTaskTemplateFormViewModel vm)
+    private async Task PopulateDropdownsAsync(
+        PmTaskTemplateFormViewModel vm)
     {
-        vm.AssetList = await _db.Assets
+        // ========================================================
+        // 1. PLANT
+        // ========================================================
+        vm.PlantList = await _db.Plants
+            .AsNoTracking()
+            .OrderBy(p => p.Code)
+            .Select(p => new SelectListItem
+            {
+                Value = p.Id.ToString(),
+                Text = p.Code + " - " + p.Name
+            })
+            .ToListAsync();
+
+        // ========================================================
+        // 2. PRODUCT — Berdasarkan Plant
+        // ========================================================
+        vm.ProductList = new List<SelectListItem>();
+
+        if (vm.PlantId.HasValue)
+        {
+            vm.ProductList = await _db.Products
+                .AsNoTracking()
+                .Where(p => p.PlantId == vm.PlantId.Value)
+                .OrderBy(p => p.Code)
+                .Select(p => new SelectListItem
+                {
+                    Value = p.Id.ToString(),
+                    Text = p.Code + " - " + p.Name
+                })
+                .ToListAsync();
+        }
+
+        // ========================================================
+        // 3. LINE — Berdasarkan Plant dan Product
+        // ========================================================
+        vm.LineList = new List<SelectListItem>();
+
+        if (vm.PlantId.HasValue && vm.ProductId.HasValue)
+        {
+            vm.LineList = await _db.Lines
+                .AsNoTracking()
+                .Where(l =>
+                    l.PlantId == vm.PlantId.Value &&
+                    l.ProductId == vm.ProductId.Value)
+                .OrderBy(l => l.Code)
+                .Select(l => new SelectListItem
+                {
+                    Value = l.Id.ToString(),
+                    Text = l.Code + " - " + l.Name
+                })
+                .ToListAsync();
+        }
+
+        // ========================================================
+        // 4. MACHINE
+        // ========================================================
+        var assetsQuery = _db.Assets
+            .AsNoTracking();
+
+        if (vm.Id == 0)
+        {
+            // CREATE:
+            // Hanya mesin aktif yang sesuai Line dan Product.
+            if (vm.PlantId.HasValue &&
+                vm.ProductId.HasValue &&
+                vm.LineId.HasValue)
+            {
+                assetsQuery = assetsQuery.Where(a =>
+                    a.IsActive &&
+                    a.LineId == vm.LineId.Value &&
+                    a.ProductId == vm.ProductId.Value &&
+                    a.Line != null &&
+                    a.Line.PlantId == vm.PlantId.Value &&
+                    a.Line.ProductId == vm.ProductId.Value);
+            }
+            else
+            {
+                // Belum memilih hierarki lengkap.
+                assetsQuery = assetsQuery.Where(a => false);
+            }
+        }
+        else
+        {
+            // EDIT:
+            // Tampilkan hanya mesin yang sudah digunakan Task.
+            // Tidak dibatasi IsActive agar mesin nonaktif
+            // tetap bisa dilihat.
+            assetsQuery = assetsQuery.Where(a =>
+                a.Id == vm.AssetId);
+        }
+
+        vm.AssetList = await assetsQuery
             .OrderBy(a => a.Code)
-            .Select(a => new SelectListItem { Value = a.Id.ToString(), Text = a.Code + " - " + a.Name })
+            .Select(a => new SelectListItem
+            {
+                Value = a.Id.ToString(),
+                Text = a.Code
+            })
             .ToListAsync();
 
+        // ========================================================
+        // 5. UNIT
+        // ========================================================
         vm.UnitList = await _db.Units
+            .AsNoTracking()
             .OrderBy(u => u.Code)
-            .Select(u => new SelectListItem { Value = u.Id.ToString(), Text = u.Code + " - " + u.Name })
+            .Select(u => new SelectListItem
+            {
+                Value = u.Id.ToString(),
+                Text = u.Code + " - " + u.Name
+            })
             .ToListAsync();
 
+        // ========================================================
+        // 6. SUB UNIT
+        // ========================================================
         vm.SubUnitList = await _db.SubUnits
+            .AsNoTracking()
             .OrderBy(s => s.Code)
-            .Select(s => new SelectListItem { Value = s.Id.ToString(), Text = s.Code + " - " + s.Name })
+            .Select(s => new SelectListItem
+            {
+                Value = s.Id.ToString(),
+                Text = s.Code + " - " + s.Name
+            })
             .ToListAsync();
 
+        // ========================================================
+        // 7. METODE — Select2 (Pilih atau ketik baru)
+        // ========================================================
         vm.MethodSuggestion = await _db.Metodes
+            .AsNoTracking()
             .OrderBy(m => m.Name)
             .Select(m => m.Name)
             .ToListAsync();
 
+        // ========================================================
+        // 8. STANDAR — Select2 (Pilih atau ketik baru)
+        // ========================================================
         vm.StandardSuggestion = await _db.Standars
+            .AsNoTracking()
             .OrderBy(s => s.Name)
             .Select(s => s.Name)
             .ToListAsync();
     }
+
+
 }

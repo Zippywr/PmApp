@@ -1,75 +1,123 @@
 ﻿@model IEnumerable<PmApp.Web.Models.Entities.Product>
+
 @{
     ViewData["Title"] = "Daftar Produk";
 }
 
-@if (TempData["Success"] != null)
-{
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            showNotify('success', '@Html.Raw(TempData["Success"]?.ToString()?.Replace("'", "\\'"))');
-        });
-    </script>
-}
-@if (TempData["Error"] != null)
-{
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            showNotify('danger', '@Html.Raw(TempData["Error"]?.ToString()?.Replace("'", "\\'"))');
-        });
-    </script>
-}
-
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0"><i class="bi bi-box"></i> Daftar Produk</h4>
+    <h4 class="mb-0">
+        <i class="bi bi-box"></i> Daftar Produk
+    </h4>
+
     <div class="d-flex gap-2">
-        <a asp-controller="Import" asp-action="Product" class="btn btn-outline-success">
-            <i class="bi bi-file-earmark-excel"></i> Import Excel
+        <a asp-controller="Import"
+           asp-action="Product"
+           class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-excel"></i>
+            Import Excel
         </a>
-        <a asp-action="Create" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Tambah Produk
+
+        <a asp-action="Create"
+           class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Tambah Produk
         </a>
     </div>
 </div>
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <table class="table table-hover mb-0 datatable">
-            <thead class="table-light">
-                <tr>
-                    <th>Kode</th>
-                    <th>Nama Produk</th>
-                    <th>Deskripsi</th>
-                    <th width="180">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr>
-                        <td><strong>@item.Code</strong></td>
-                        <td>@item.Name</td>
-                        <td>@item.Description</td>
-                        <td>
-                            <a asp-action="Edit" asp-route-id="@item.Id"
-                               class="btn btn-sm btn-warning" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
 
-                            <form asp-action="Delete" asp-route-id="@item.Id"
-                                  method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="button"
-                                        class="btn btn-sm btn-danger btn-delete"
-                                        data-name="Produk '@item.Name'"
-                                        data-detail="Kode: @item.Code">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                        </td>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 datatable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Kode</th>
+                        <th>Nama Produk</th>
+                        <th>Plant</th>
+                        <th>Deskripsi</th>
+                        <th>Dibuat Oleh</th>
+                        <th>Terakhir Update</th>
+                        <th width="180">Aksi</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@item.Code</strong>
+                            </td>
+
+                            <td>@item.Name</td>
+
+                            <td>
+                                @(item.Plant?.Name ?? "Belum ditentukan")
+                            </td>
+
+                            <td>
+                                @(item.Description ?? "-")
+                            </td>
+
+                            <td>
+                                @item.CreatedBy
+                                <div class="small text-muted">
+                                    @item.CreatedDate.ToString("dd/MM/yyyy HH:mm")
+                                </div>
+                            </td>
+
+                            <td>
+                                @if (item.UpdatedDate.HasValue)
+                                {
+                                    @item.UpdatedBy
+
+                                    <div class="small text-muted">
+                                        @item.UpdatedDate.Value.ToString("dd/MM/yyyy HH:mm")
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        Belum diubah
+                                    </span>
+                                }
+                            </td>
+
+                            <!-- KOLOM AKSI -->
+                            <td>
+                                <div class="d-flex gap-1">
+
+                                    <a asp-action="Edit"
+                                       asp-route-id="@item.Id"
+                                       class="btn btn-warning btn-sm"
+                                       title="Edit Produk">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+
+                                    <form asp-action="Delete"
+                                          asp-route-id="@item.Id"
+                                          method="post"
+                                          class="d-inline">
+
+                                        @Html.AntiForgeryToken()
+
+                                        <button type="submit"
+                                                class="btn btn-danger btn-sm btn-delete"
+                                                data-name="@item.Name"
+                                                title="Hapus Produk">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+
+                                    </form>
+
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
     </div>
 </div>

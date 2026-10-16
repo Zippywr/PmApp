@@ -1,11 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using PmApp.Web.Data;
 using PmApp.Web.Models.Entities;
 using PmApp.Web.Models.ViewModels;
 
 namespace PmApp.Web.Controllers;
 
+[Authorize(Policy = "AdminOnly")]
 public class ProductController : Controller
 {
     private readonly AppDbContext _db;
@@ -15,76 +20,186 @@ public class ProductController : Controller
         _db = db;
     }
 
+    private async Task LoadPlants(ProductFormViewModel vm)
+    {
+        vm.PlantOptions = await _db.Plants
+            .AsNoTracking()
+            .OrderBy(x => x.Code)
+            .Select(x => new SelectListItem
+            {
+                Value = x.Id.ToString(),
+                Text = x.Code + " - " + x.Name
+            })
+            .ToListAsync();
+    }
+
+    private async Task<bool> ValidPlant(int? plantId)
+    {
+        return plantId.HasValue &&
+            await _db.Plants.AnyAsync(x => x.Id == plantId.Value);
+    }
+
+    private static bool IsDuplicate(DbUpdateException ex)
+    {
+        return ex.InnerException is SqlException sql &&
+            (sql.Number == 2601 || sql.Number == 2627);
+    }
+
     public async Task<IActionResult> Index()
     {
-        var list = await _db.Products.OrderBy(p => p.Code).ToListAsync();
+        var list = await _db.Products
+            .AsNoTracking()
+            .Include(x => x.Plant)
+            .OrderBy(x => x.Code)
+            .ToListAsync();
+
         return View(list);
     }
 
     [HttpGet]
-    public IActionResult Create() => View(new ProductFormViewModel());
+    public async Task<IActionResult> Create()
+    {
+        var vm = new ProductFormViewModel();
+        await LoadPlants(vm);
+        return View(vm);
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ProductFormViewModel vm)
     {
-        if (!ModelState.IsValid) return View(vm);
+        vm.Code = vm.Code?.Trim() ?? "";
+        vm.Name = vm.Name?.Trim() ?? "";
 
-        if (await _db.Products.AnyAsync(p => p.Code == vm.Code))
+        if (!await ValidPlant(vm.PlantId))
+            ModelState.AddModelError(nameof(vm.PlantId),
+                "Pilih Plant yang valid.");
+
+        if (await _db.Products.AnyAsync(x => x.Code == vm.Code))
+            ModelState.AddModelError(nameof(vm.Code),
+                "Kode produk sudah digunakan.");
+
+        if (!ModelState.IsValid)
         {
-            ModelState.AddModelError(nameof(vm.Code), "Kode produk sudah digunakan");
+            await LoadPlants(vm);
             return View(vm);
         }
 
-        _db.Products.Add(new Product
+        var product = new Product
         {
             Code = vm.Code,
             Name = vm.Name,
-            Description = vm.Description
-        });
+            Description = vm.Description,
+            PlantId = vm.PlantId
+        };
 
-        await _db.SaveChangesAsync();
-        TempData["Success"] = $"Produk '{vm.Name}' berhasil ditambahkan.";
+        _db.Products.Add(product);
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (IsDuplicate(ex))
+        {
+            ModelState.AddModelError(nameof(vm.Code),
+                "Kode produk sudah digunakan.");
+
+            await LoadPlants(vm);
+            return View(vm);
+        }
+
+        TempData["Success"] =
+            $"Produk '{product.Name}' berhasil ditambahkan.";
+
         return RedirectToAction(nameof(Index));
     }
 
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id);
+        var product = await _db.Products
+            .FirstOrDefaultAsync(x => x.Id == id);
+
         if (product == null) return NotFound();
 
-        return View(new ProductFormViewModel
+        var vm = new ProductFormViewModel
         {
             Id = product.Id,
             Code = product.Code,
             Name = product.Name,
-            Description = product.Description
-        });
+            Description = product.Description,
+            PlantId = product.PlantId
+        };
+
+        await LoadPlants(vm);
+        return View(vm);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, ProductFormViewModel vm)
+    public async Task<IActionResult> Edit(
+        int id, ProductFormViewModel vm)
     {
         if (id != vm.Id) return BadRequest();
-        if (!ModelState.IsValid) return View(vm);
 
-        var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id);
+        vm.Code = vm.Code?.Trim() ?? "";
+        vm.Name = vm.Name?.Trim() ?? "";
+
+        var product = await _db.Products
+            .FirstOrDefaultAsync(x => x.Id == id);
+
         if (product == null) return NotFound();
 
-        if (await _db.Products.AnyAsync(p => p.Code == vm.Code && p.Id != id))
+        if (!await ValidPlant(vm.PlantId))
+            ModelState.AddModelError(nameof(vm.PlantId),
+                "Pilih Plant yang valid.");
+
+        if (await _db.Products.AnyAsync(x =>
+            x.Code == vm.Code && x.Id != id))
         {
-            ModelState.AddModelError(nameof(vm.Code), "Kode produk sudah digunakan");
+            ModelState.AddModelError(nameof(vm.Code),
+                "Kode produk sudah digunakan.");
+        }
+
+        // Jangan pindahkan Product ke Plant lain
+        // jika Line aktifnya masih berada di Plant lama.
+        bool conflictingLine = await _db.Lines.AnyAsync(x =>
+            x.ProductId == id &&
+            x.PlantId != vm.PlantId);
+
+        if (conflictingLine)
+        {
+            ModelState.AddModelError(nameof(vm.PlantId),
+                "Product masih digunakan Line pada Plant lain.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await LoadPlants(vm);
             return View(vm);
         }
 
         product.Code = vm.Code;
         product.Name = vm.Name;
         product.Description = vm.Description;
+        product.PlantId = vm.PlantId;
 
-        await _db.SaveChangesAsync();
-        TempData["Success"] = $"Produk '{product.Name}' berhasil diperbarui.";
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (IsDuplicate(ex))
+        {
+            ModelState.AddModelError(nameof(vm.Code),
+                "Kode produk sudah digunakan.");
+
+            await LoadPlants(vm);
+            return View(vm);
+        }
+
+        TempData["Success"] =
+            $"Produk '{product.Name}' berhasil diperbarui.";
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -92,17 +207,37 @@ public class ProductController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
-        var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id);
+        var product = await _db.Products
+            .FirstOrDefaultAsync(x => x.Id == id);
+
         if (product == null)
         {
             TempData["Error"] = "Produk tidak ditemukan.";
             return RedirectToAction(nameof(Index));
         }
 
+        // Jangan hapus Product yang masih digunakan.
+        bool usedByLine = await _db.Lines
+            .AnyAsync(x => x.ProductId == id);
+
+        bool usedByMachine = await _db.Assets
+            .AnyAsync(x => x.ProductId == id);
+
+        if (usedByLine || usedByMachine)
+        {
+            TempData["Error"] =
+                "Produk masih digunakan Line atau Mesin aktif. " +
+                "Produk tidak dapat dihapus.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
         product.IsDeleted = true;
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"Produk '{product.Name}' berhasil dihapus.";
+        TempData["Success"] =
+            $"Produk '{product.Name}' berhasil dihapus.";
+
         return RedirectToAction(nameof(Index));
     }
 }

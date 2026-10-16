@@ -1,38 +1,402 @@
-﻿@model PmApp.Web.Models.ViewModels.PmTaskTemplateFormViewModel
+﻿
+@model PmApp.Web.Models.ViewModels.PmTaskTemplateFormViewModel
+
 @{
     ViewData["Title"] = "Tambah Task PM";
 }
 
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-action="ListPm">Task PM</a></li>
-        <li class="breadcrumb-item active">Tambah</li>
-    </ol>
-</nav>
+<style>
+    /* Khusus halaman Create Task PM */
+    .pm-create-page {
+        max-width: 900px;
+        margin: 0 auto;
+        color: #212529;
+    }
 
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Tambah Task PM</h5>
-    </div>
-    <div class="card-body">
-        <form asp-action="Create" method="post" class="form-confirm"
-              data-confirm-title="Konfirmasi Simpan"
-              data-confirm-message="Yakin simpan task PM baru ini?"
-              data-confirm-button="Ya, Simpan">
-            @Html.AntiForgeryToken()
-            <partial name="_Form" model="Model" />
-            <div class="mt-3">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-save"></i> Simpan
-                </button>
-                <a asp-action="ListPm" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Batal
-                </a>
-            </div>
-        </form>
+    .pm-create-page .pm-main-card {
+        border: 1px solid #dee2e6;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .pm-create-page .pm-page-header {
+        background: #ffffff;
+        padding: 24px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .pm-create-page .pm-section {
+        padding: 24px 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .pm-create-page .pm-section:last-of-type {
+        border-bottom: 0;
+    }
+
+    .pm-create-page .pm-section-title {
+        color: #1d4ed8;
+        font-weight: 700;
+        font-size: 1rem;
+        margin-bottom: 6px;
+    }
+
+    .pm-create-page .pm-section-description {
+        color: #555f6d;
+        font-size: .875rem;
+        margin-bottom: 22px;
+    }
+
+    .pm-create-page .form-label {
+        color: #212529;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .pm-create-page .form-control,
+    .pm-create-page .form-select {
+        min-height: 44px;
+        border-color: #ced4da;
+        color: #212529;
+        background-color: #fff;
+        border-radius: 7px;
+    }
+
+    .pm-create-page .form-control:focus,
+    .pm-create-page .form-select:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 .2rem rgba(37, 99, 235, .12);
+    }
+
+    .pm-create-page .form-text,
+    .pm-create-page small.text-muted {
+        color: #596579 !important;
+        font-size: .825rem;
+    }
+
+    .pm-create-page .pm-field {
+        margin-bottom: 20px;
+    }
+
+    .pm-create-page .pm-id-preview {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 9px;
+        padding: 20px;
+    }
+
+    .pm-create-page .pm-id-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #1d4ed8;
+    }
+
+    /* Semua grid dari partial _Form dibuat satu kolom
+       Hanya berlaku pada halaman Create */
+    .pm-create-page .pm-detail-fields .row {
+        display: block;
+    }
+
+    .pm-create-page .pm-detail-fields .row > [class*="col-"] {
+        width: 100%;
+        max-width: 100%;
+        flex: 0 0 100%;
+        margin-bottom: 20px !important;
+    }
+
+    .pm-create-page .pm-detail-fields .row > [class*="col-"].d-flex {
+        display: block !important;
+    }
+
+    .pm-create-page .pm-detail-fields .form-check {
+        margin-top: 0 !important;
+    }
+
+    /* Select2 konsisten dengan Bootstrap */
+    .pm-create-page .select2-container {
+        width: 100% !important;
+    }
+
+    .pm-create-page .select2-container--default
+    .select2-selection--single {
+        min-height: 44px;
+        border: 1px solid #ced4da;
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+    }
+
+    .pm-create-page .select2-container--default
+    .select2-selection--single
+    .select2-selection__rendered {
+        color: #212529;
+        line-height: normal;
+        padding-left: 12px;
+    }
+
+    .pm-create-page .select2-container--default
+    .select2-selection--single
+    .select2-selection__arrow {
+        height: 42px;
+    }
+
+    .pm-create-page .pm-actions {
+        padding-top: 24px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    @@media (max-width: 576px) {
+        .pm-create-page .pm-page-header {
+            padding: 18px;
+        }
+
+        .pm-create-page .pm-content {
+            padding: 0 18px 20px !important;
+        }
+
+        .pm-create-page .pm-actions .btn {
+            flex: 1;
+        }
+    }
+</style>
+
+<div class="pm-create-page">
+
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="ListPm">Task PM</a>
+            </li>
+            <li class="breadcrumb-item active">
+                Tambah
+            </li>
+        </ol>
+    </nav>
+
+    <div class="card pm-main-card shadow-sm">
+
+        <!-- HEADER -->
+        <div class="pm-page-header">
+            <h4 class="fw-bold mb-2">
+                <i class="bi bi-clipboard-plus text-primary me-2"></i>
+                Tambah Task PM
+            </h4>
+
+            <p class="text-secondary mb-0">
+                Lengkapi informasi mesin dan detail pekerjaan
+                preventive maintenance.
+            </p>
+        </div>
+
+        <div class="card-body pm-content px-4 pb-4 pt-0">
+
+            <form asp-action="Create"
+                  method="post"
+                  class="form-confirm"
+                  data-confirm-title="Konfirmasi Simpan"
+                  data-confirm-message="Yakin simpan Task PM baru ini?"
+                  data-confirm-button="Ya, Simpan">
+
+                @Html.AntiForgeryToken()
+
+                <!-- ============================== -->
+                <!-- 1. LOKASI DAN MESIN -->
+                <!-- ============================== -->
+                <section class="pm-section">
+
+                    <h6 class="pm-section-title">
+                        <i class="bi bi-diagram-3 me-2"></i>
+                        1. Lokasi dan Mesin
+                    </h6>
+
+                    <p class="pm-section-description">
+                        Pilih lokasi secara berurutan untuk
+                        menemukan mesin yang sesuai.
+                    </p>
+
+                    <div class="pm-field">
+                        <label asp-for="PlantId"
+                               class="form-label"></label>
+
+                        <select asp-for="PlantId"
+                                asp-items="Model.PlantList"
+                                class="form-select"
+                                data-products-url="@Url.Action("GetProducts", "PmTaskTemplate")">
+                            <option value="">-- Pilih Plant --</option>
+                        </select>
+
+                        <span asp-validation-for="PlantId"
+                              class="text-danger small"></span>
+                    </div>
+
+                    <div class="pm-field">
+                        <label asp-for="ProductId"
+                               class="form-label"></label>
+
+                        <select asp-for="ProductId"
+                                asp-items="Model.ProductList"
+                                class="form-select"
+                                data-lines-url="@Url.Action("GetLines", "PmTaskTemplate")"
+                                disabled="@(Model.PlantId == null)">
+                            <option value="">-- Pilih Product --</option>
+                        </select>
+
+                        <span asp-validation-for="ProductId"
+                              class="text-danger small"></span>
+                    </div>
+
+                    <div class="pm-field">
+                        <label asp-for="LineId"
+                               class="form-label"></label>
+
+                        <select asp-for="LineId"
+                                asp-items="Model.LineList"
+                                class="form-select"
+                                data-machines-url="@Url.Action("GetMachines", "PmTaskTemplate")"
+                                disabled="@(Model.ProductId == null)">
+                            <option value="">-- Pilih Line --</option>
+                        </select>
+
+                        <span asp-validation-for="LineId"
+                              class="text-danger small"></span>
+                    </div>
+
+                    <div class="pm-field mb-0">
+                        <label asp-for="AssetId"
+                               class="form-label">
+                            Machine
+                        </label>
+
+                        <select asp-for="AssetId"
+                                asp-items="Model.AssetList"
+                                class="form-select"
+                                disabled="@(Model.LineId == null)">
+                            <option value="">-- Pilih Machine --</option>
+                        </select>
+
+                        <span asp-validation-for="AssetId"
+                              class="text-danger small"></span>
+                    </div>
+                </section>
+
+                <!-- ============================== -->
+                <!-- 2. PENGATURAN ID-PM -->
+                <!-- ============================== -->
+                <section class="pm-section">
+
+                    <h6 class="pm-section-title">
+                        <i class="bi bi-upc-scan me-2"></i>
+                        2. Pengaturan ID-PM
+                    </h6>
+
+                    <p class="pm-section-description">
+                        Sistem membuat ID-PM berdasarkan Line,
+                        Mesin, dan nomor urut Task.
+                    </p>
+
+                    <div class="pm-field">
+                        <label asp-for="TaskSequence"
+                               class="form-label"></label>
+
+                        <input asp-for="TaskSequence"
+                               type="number"
+                               min="1"
+                               max="99"
+                               step="1"
+                               class="form-control"
+                               placeholder="Kosong = Otomatis" />
+
+                        <div class="form-text">
+                            Kosongkan agar sistem menentukan nomor
+                            secara otomatis, atau isi 1–99 untuk manual.
+                        </div>
+
+                        <span asp-validation-for="TaskSequence"
+                              class="text-danger small"></span>
+                    </div>
+
+                    <label class="form-label">
+                        Preview ID-PM
+                    </label>
+
+                    <div class="pm-id-preview" aria-live="polite">
+                        <div id="idPmPreview"
+                             class="pm-id-number font-monospace">
+                            ------
+                        </div>
+
+                        <div id="idPmPreviewStatus"
+                             class="form-text mt-1">
+                            Pilih mesin terlebih dahulu.
+                        </div>
+                    </div>
+
+                    <p class="form-text mt-2 mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Nomor ini adalah preview. ID-PM final
+                        ditentukan ketika Task disimpan.
+                    </p>
+                </section>
+
+                <!-- ============================== -->
+                <!-- 3. DETAIL PEKERJAAN -->
+                <!-- ============================== -->
+                <section class="pm-section">
+
+                    <h6 class="pm-section-title">
+                        <i class="bi bi-tools me-2"></i>
+                        3. Detail Pekerjaan
+                    </h6>
+
+                    <p class="pm-section-description">
+                        Isi Unit, Sub Unit, Metode, Standar,
+                        waktu, dan jadwal pelaksanaan PM.
+                    </p>
+
+                    <div class="pm-detail-fields">
+                        <partial name="_Form" model="Model" />
+                    </div>
+                </section>
+
+                <!-- URL PREVIEW -->
+                <input type="hidden"
+                       id="pmIdPreviewUrl"
+                       value="@Url.Action("PreviewIdPm", "PmTaskTemplate")" />
+
+                <!-- ACTIONS -->
+                <div class="pm-actions">
+                    <a asp-action="ListPm"
+                       class="btn btn-outline-secondary px-4">
+                        <i class="bi bi-arrow-left me-1"></i>
+                        Batal
+                    </a>
+
+                    <button type="submit"
+                            class="btn btn-primary px-4">
+                        <i class="bi bi-save me-1"></i>
+                        Simpan Task PM
+                    </button>
+                </div>
+
+            </form>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/pm-task-select2.js"
+            asp-append-version="true"></script>
+
+    <script src="~/js/pm-task-machine-filter.js"
+            asp-append-version="true"></script>
+
+    <script src="~/js/pm-task-id-preview.js"
+            asp-append-version="true"></script>
 }

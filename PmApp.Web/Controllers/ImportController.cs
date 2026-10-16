@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using PmApp.Web.Data;
 using PmApp.Web.Models;
 using PmApp.Web.Models.Entities;
@@ -7,15 +9,18 @@ using PmApp.Web.Services;
 
 namespace PmApp.Web.Controllers;
 
+[Authorize(Policy = "AdminOnly")]
 public class ImportController : Controller
 {
     private readonly AppDbContext _db;
     private readonly ExcelImportService _excel;
+    private readonly PmIdGeneratorService _pmIdGenerator;
 
-    public ImportController(AppDbContext db, ExcelImportService excel)
+    public ImportController(AppDbContext db, ExcelImportService excel, PmIdGeneratorService pmIdGenerator)
     {
         _db = db;
         _excel = excel;
+        _pmIdGenerator = pmIdGenerator;
     }
 
     public IActionResult Index() => View();
@@ -73,15 +78,21 @@ public class ImportController : Controller
     // ============================================================
     // ======================== LINE ==============================
     // ============================================================
+    [HttpGet]
     public IActionResult Line()
     {
-        SetConfig("Line", "bi-diagram-2", "Line",
-            new[] { "Kode", "Nama Line", "Kode Plant", "Deskripsi" }, "Template_Line.xlsx");
+        ConfigureLine();
         return View("Master");
     }
+
+    private void ConfigureLine() => SetConfig("Line", "bi-diagram-2", "Line",
+        new[] { "Kode", "Nama Line", "Kode Plant", "Kode Product", "Deskripsi" }, "Template_Line.xlsx");
+
+    [HttpGet]
     public IActionResult TemplateLine()
     {
-        var bytes = _excel.GenerateTemplate(new[] { "Kode", "Nama Line", "Kode Plant", "Deskripsi" }, "Line");
+        var bytes = _excel.GenerateTemplate(
+            new[] { "Kode", "Nama Line", "Kode Plant", "Kode Product", "Deskripsi" }, "Line");
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template_Line.xlsx");
     }
 
@@ -89,38 +100,44 @@ public class ImportController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Line(IFormFile file)
     {
-        SetConfig("Line", "bi-diagram-2", "Line",
-            new[] { "Kode", "Nama Line", "Kode Plant", "Deskripsi" }, "Template_Line.xlsx");
-
+        ConfigureLine();
         var rows = ReadOrError(file, out var err);
         if (rows == null) { ViewBag.Error = err; return View("Master"); }
 
-        var plants = await _db.Plants.ToListAsync();
+        var plants = await _db.Plants.AsNoTracking().ToListAsync();
+        var products = await _db.Products.AsNoTracking().ToListAsync();
+        var codes = new HashSet<string>(await _db.Lines.IgnoreQueryFilters()
+            .Select(x => x.Code).ToListAsync(), StringComparer.OrdinalIgnoreCase);
+        var pending = new List<Line>();
+        var errors = new List<string>();
+        int rowNum = 1;
 
-        int success = 0; var errors = new List<string>(); int rowNum = 1;
         foreach (var row in rows)
         {
             rowNum++;
             var code = row.GetValueOrDefault("Kode", "").Trim();
             var name = row.GetValueOrDefault("Nama Line", "").Trim();
             var plantCode = row.GetValueOrDefault("Kode Plant", "").Trim();
+            var productCode = row.GetValueOrDefault("Kode Product", "").Trim();
             var desc = row.GetValueOrDefault("Deskripsi", "").Trim();
-
-            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(name))
-            { errors.Add($"Baris {rowNum}: Kode atau Nama Line kosong"); continue; }
-
-            var plant = plants.FirstOrDefault(p => p.Code == plantCode);
+            if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name) ||
+                string.IsNullOrWhiteSpace(plantCode) || string.IsNullOrWhiteSpace(productCode))
+            { errors.Add($"Baris {rowNum}: Kode, Nama Line, Kode Plant, dan Kode Product wajib diisi."); continue; }
+            if (code.Length > 50 || name.Length > 200 || desc.Length > 500)
+            { errors.Add($"Baris {rowNum}: Panjang kolom melebihi batas."); continue; }
+            var plant = plants.FirstOrDefault(p => p.Code.Equals(plantCode, StringComparison.OrdinalIgnoreCase));
             if (plant == null)
-            { errors.Add($"Baris {rowNum}: Kode Plant '{plantCode}' tidak ditemukan"); continue; }
-
-            if (await _db.Lines.AnyAsync(l => l.Code == code))
-            { errors.Add($"Baris {rowNum}: Kode '{code}' sudah ada"); continue; }
-
-            _db.Lines.Add(new Line { Code = code, Name = name, PlantId = plant.Id, Description = desc.NullIfEmpty(), CreatedBy = "system", CreatedDate = DateTime.Now });
-            success++;
+            { errors.Add($"Baris {rowNum}: Kode Plant '{plantCode}' tidak ditemukan."); continue; }
+            var product = products.FirstOrDefault(p => p.PlantId == plant.Id && p.Code.Equals(productCode, StringComparison.OrdinalIgnoreCase));
+            if (product == null)
+            { errors.Add($"Baris {rowNum}: Kode Product '{productCode}' tidak terdaftar pada Plant '{plantCode}'."); continue; }
+            if (!codes.Add(code))
+            { errors.Add($"Baris {rowNum}: Kode Line '{code}' duplikat atau pernah digunakan."); continue; }
+            pending.Add(new Line { Code = code, Name = name, PlantId = plant.Id, ProductId = product.Id, Description = desc.NullIfEmpty() });
         }
-        if (success > 0) await _db.SaveChangesAsync();
-        ViewBag.Uploaded = true; ViewBag.SuccessCount = success; ViewBag.TotalRows = rows.Count; ViewBag.Errors = errors;
+
+        int success = await SaveBatchAsync(pending, errors);
+        ReportImport(rows.Count, success, errors);
         return View("Master");
     }
 
@@ -181,15 +198,21 @@ public class ImportController : Controller
     // ============================================================
     // ===================== PRODUCT ==============================
     // ============================================================
+    [HttpGet]
     public IActionResult Product()
     {
-        SetConfig("Product", "bi-box", "Product",
-            new[] { "Kode", "Nama Produk", "Deskripsi" }, "Template_Product.xlsx");
+        ConfigureProduct();
         return View("Master");
     }
+
+    private void ConfigureProduct() => SetConfig("Product", "bi-box", "Product",
+        new[] { "Kode", "Nama Produk", "Kode Plant", "Deskripsi" }, "Template_Product.xlsx");
+
+    [HttpGet]
     public IActionResult TemplateProduct()
     {
-        var bytes = _excel.GenerateTemplate(new[] { "Kode", "Nama Produk", "Deskripsi" }, "Product");
+        var bytes = _excel.GenerateTemplate(
+            new[] { "Kode", "Nama Produk", "Kode Plant", "Deskripsi" }, "Product");
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template_Product.xlsx");
     }
 
@@ -197,31 +220,38 @@ public class ImportController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Product(IFormFile file)
     {
-        SetConfig("Product", "bi-box", "Product",
-            new[] { "Kode", "Nama Produk", "Deskripsi" }, "Template_Product.xlsx");
-
+        ConfigureProduct();
         var rows = ReadOrError(file, out var err);
         if (rows == null) { ViewBag.Error = err; return View("Master"); }
 
-        int success = 0; var errors = new List<string>(); int rowNum = 1;
+        var plants = await _db.Plants.AsNoTracking().ToListAsync();
+        var codes = new HashSet<string>(await _db.Products.IgnoreQueryFilters()
+            .Select(x => x.Code).ToListAsync(), StringComparer.OrdinalIgnoreCase);
+        var pending = new List<Product>();
+        var errors = new List<string>();
+        int rowNum = 1;
+
         foreach (var row in rows)
         {
             rowNum++;
             var code = row.GetValueOrDefault("Kode", "").Trim();
             var name = row.GetValueOrDefault("Nama Produk", "").Trim();
+            var plantCode = row.GetValueOrDefault("Kode Plant", "").Trim();
             var desc = row.GetValueOrDefault("Deskripsi", "").Trim();
-
-            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(name))
-            { errors.Add($"Baris {rowNum}: Kode atau Nama Produk kosong"); continue; }
-
-            if (await _db.Products.AnyAsync(p => p.Code == code))
-            { errors.Add($"Baris {rowNum}: Kode '{code}' sudah ada"); continue; }
-
-            _db.Products.Add(new Product { Code = code, Name = name, Description = desc.NullIfEmpty(), CreatedBy = "system", CreatedDate = DateTime.Now });
-            success++;
+            if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(plantCode))
+            { errors.Add($"Baris {rowNum}: Kode, Nama Produk, dan Kode Plant wajib diisi."); continue; }
+            if (code.Length > 50 || name.Length > 200 || desc.Length > 500)
+            { errors.Add($"Baris {rowNum}: Panjang kolom melebihi batas."); continue; }
+            var plant = plants.FirstOrDefault(p => p.Code.Equals(plantCode, StringComparison.OrdinalIgnoreCase));
+            if (plant == null)
+            { errors.Add($"Baris {rowNum}: Kode Plant '{plantCode}' tidak ditemukan."); continue; }
+            if (!codes.Add(code))
+            { errors.Add($"Baris {rowNum}: Kode Product '{code}' duplikat atau pernah digunakan."); continue; }
+            pending.Add(new Product { Code = code, Name = name, PlantId = plant.Id, Description = desc.NullIfEmpty() });
         }
-        if (success > 0) await _db.SaveChangesAsync();
-        ViewBag.Uploaded = true; ViewBag.SuccessCount = success; ViewBag.TotalRows = rows.Count; ViewBag.Errors = errors;
+
+        int success = await SaveBatchAsync(pending, errors);
+        ReportImport(rows.Count, success, errors);
         return View("Master");
     }
 
@@ -588,31 +618,24 @@ public class ImportController : Controller
     // ============================================================
     // ================ ASSET (MESIN) =============================
     // ============================================================
+    private static readonly string[] AssetHeaders =
+    {
+        "Kode", "OP No", "Kode Plant", "Kode Product", "Kode Line", "Kode Kategori",
+        "Kode Fungsi", "Kode Brand", "Model", "Serial Number", "Tahun",
+        "Kapasitas", "Kritikalitas", "Deskripsi"
+    };
+
+    [HttpGet]
     public IActionResult Asset()
     {
-        SetConfig("Mesin", "bi-gear", "Asset",
-            new[]
-            {
-                "Kode", "Nama Mesin", "OP No",
-                "Kode Line", "Kode Area", "Kode Kategori", "Kode Fungsi",
-                "Kode Brand", "Kode Product",
-                "Model", "Serial Number", "Tahun", "Kapasitas",
-                "Kritikalitas", "Deskripsi"
-            }, "Template_Asset.xlsx");
+        SetConfig("Mesin", "bi-gear", "Asset", AssetHeaders, "Template_Asset.xlsx");
         return View("Master");
     }
 
+    [HttpGet]
     public IActionResult TemplateAsset()
     {
-        var headers = new[]
-        {
-            "Kode", "Nama Mesin", "OP No",
-            "Kode Line", "Kode Area", "Kode Kategori", "Kode Fungsi",
-            "Kode Brand", "Kode Product",
-            "Model", "Serial Number", "Tahun", "Kapasitas",
-            "Kritikalitas", "Deskripsi"
-        };
-        var bytes = _excel.GenerateTemplate(headers, "Asset");
+        var bytes = _excel.GenerateTemplate(AssetHeaders, "Asset");
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template_Asset.xlsx");
     }
 
@@ -620,108 +643,98 @@ public class ImportController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Asset(IFormFile file)
     {
-        SetConfig("Mesin", "bi-gear", "Asset",
-            new[]
-            {
-                "Kode", "Nama Mesin", "OP No",
-                "Kode Line", "Kode Area", "Kode Kategori", "Kode Fungsi",
-                "Kode Brand", "Kode Product",
-                "Model", "Serial Number", "Tahun", "Kapasitas",
-                "Kritikalitas", "Deskripsi"
-            }, "Template_Asset.xlsx");
-
+        SetConfig("Mesin", "bi-gear", "Asset", AssetHeaders, "Template_Asset.xlsx");
         var rows = ReadOrError(file, out var err);
         if (rows == null) { ViewBag.Error = err; return View("Master"); }
 
-        // Load master untuk validasi FK
-        var lines = await _db.Lines.ToListAsync();
-        var areas = await _db.Areas.ToListAsync();
-        var mcCats = await _db.McCategories.ToListAsync();
-        var functions = await _db.MachineFunctions.ToListAsync();
-        var brands = await _db.Brands.ToListAsync();
-        var products = await _db.Products.ToListAsync();
-
-        int success = 0; var errors = new List<string>(); int rowNum = 1;
+        var plants = await _db.Plants.AsNoTracking().ToListAsync();
+        var products = await _db.Products.AsNoTracking().ToListAsync();
+        var lines = await _db.Lines.AsNoTracking().ToListAsync();
+        var categories = await _db.McCategories.AsNoTracking().ToListAsync();
+        var functions = await _db.MachineFunctions.AsNoTracking().ToListAsync();
+        var brands = await _db.Brands.AsNoTracking().ToListAsync();
+        var codes = new HashSet<string>(await _db.Assets.IgnoreQueryFilters()
+            .Select(a => a.Code).ToListAsync(), StringComparer.OrdinalIgnoreCase);
+        var pending = new List<Asset>();
+        var errors = new List<string>();
+        int rowNum = 1;
 
         foreach (var row in rows)
         {
             rowNum++;
-
             var code = row.GetValueOrDefault("Kode", "").Trim();
-            var name = row.GetValueOrDefault("Nama Mesin", "").Trim();
-
-            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(name))
-            { errors.Add($"Baris {rowNum}: Kode atau Nama Mesin kosong"); continue; }
-
-            if (await _db.Assets.AnyAsync(a => a.Code == code))
-            { errors.Add($"Baris {rowNum}: Kode '{code}' sudah ada"); continue; }
-
-            // Cek FK
+            var opNo = row.GetValueOrDefault("OP No", "").Trim();
+            var plantCode = row.GetValueOrDefault("Kode Plant", "").Trim();
+            var productCode = row.GetValueOrDefault("Kode Product", "").Trim();
             var lineCode = row.GetValueOrDefault("Kode Line", "").Trim();
-            var areaCode = row.GetValueOrDefault("Kode Area", "").Trim();
-            var mcCatCode = row.GetValueOrDefault("Kode Kategori", "").Trim();
+            var catCode = row.GetValueOrDefault("Kode Kategori", "").Trim();
             var funcCode = row.GetValueOrDefault("Kode Fungsi", "").Trim();
             var brandCode = row.GetValueOrDefault("Kode Brand", "").Trim();
-            var productCode = row.GetValueOrDefault("Kode Product", "").Trim();
+            var model = row.GetValueOrDefault("Model", "").Trim();
+            var serial = row.GetValueOrDefault("Serial Number", "").Trim();
+            var yearString = row.GetValueOrDefault("Tahun", "").Trim();
+            var capacity = row.GetValueOrDefault("Kapasitas", "").Trim();
+            var criticalityString = row.GetValueOrDefault("Kritikalitas", "Normal").Trim();
+            var desc = row.GetValueOrDefault("Deskripsi", "").Trim();
 
-            var line = string.IsNullOrEmpty(lineCode) ? null : lines.FirstOrDefault(x => x.Code == lineCode);
-            var area = string.IsNullOrEmpty(areaCode) ? null : areas.FirstOrDefault(x => x.Code == areaCode);
-            var mcCat = string.IsNullOrEmpty(mcCatCode) ? null : mcCats.FirstOrDefault(x => x.Code == mcCatCode);
-            var func = string.IsNullOrEmpty(funcCode) ? null : functions.FirstOrDefault(x => x.Code == funcCode);
-            var brand = string.IsNullOrEmpty(brandCode) ? null : brands.FirstOrDefault(x => x.Code == brandCode);
-            var product = string.IsNullOrEmpty(productCode) ? null : products.FirstOrDefault(x => x.Code == productCode);
+            if (new[] { code, opNo, plantCode, productCode, lineCode, catCode }.Any(string.IsNullOrWhiteSpace))
+            { errors.Add($"Baris {rowNum}: Kode, OP No, Plant, Product, Line, dan Kategori wajib diisi."); continue; }
+            if (code.Length > 50 || opNo.Length > 50 || model.Length > 100 || serial.Length > 100 || capacity.Length > 100 || desc.Length > 500)
+            { errors.Add($"Baris {rowNum}: Panjang kolom melebihi batas."); continue; }
+            var plant = plants.FirstOrDefault(p => p.Code.Equals(plantCode, StringComparison.OrdinalIgnoreCase));
+            if (plant == null)
+            { errors.Add($"Baris {rowNum}: Plant '{plantCode}' tidak ditemukan."); continue; }
+            var product = products.FirstOrDefault(p => p.PlantId == plant.Id && p.Code.Equals(productCode, StringComparison.OrdinalIgnoreCase));
+            if (product == null)
+            { errors.Add($"Baris {rowNum}: Product '{productCode}' tidak ditemukan pada Plant '{plantCode}'."); continue; }
+            var line = lines.FirstOrDefault(l => l.ProductId == product.Id && l.PlantId == plant.Id && l.Code.Equals(lineCode, StringComparison.OrdinalIgnoreCase));
+            if (line == null)
+            { errors.Add($"Baris {rowNum}: Line '{lineCode}' tidak ditemukan pada Product '{productCode}'."); continue; }
+            var category = categories.FirstOrDefault(c => c.Code.Equals(catCode, StringComparison.OrdinalIgnoreCase));
+            if (category == null)
+            { errors.Add($"Baris {rowNum}: Kategori mesin '{catCode}' tidak ditemukan."); continue; }
+            var function = string.IsNullOrWhiteSpace(funcCode) ? null : functions.FirstOrDefault(f => f.Code.Equals(funcCode, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(funcCode) && function == null)
+            { errors.Add($"Baris {rowNum}: Fungsi mesin '{funcCode}' tidak ditemukan."); continue; }
+            var brand = string.IsNullOrWhiteSpace(brandCode) ? null : brands.FirstOrDefault(b => b.Code.Equals(brandCode, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(brandCode) && brand == null)
+            { errors.Add($"Baris {rowNum}: Brand '{brandCode}' tidak ditemukan."); continue; }
+            int? year = null;
+            if (!string.IsNullOrWhiteSpace(yearString))
+            {
+                if (!int.TryParse(yearString, out var y) || y < 1900 || y > 2100)
+                { errors.Add($"Baris {rowNum}: Tahun pembuatan tidak valid."); continue; }
+                year = y;
+            }
+            var criticality = Criticality.Normal;
+            if (!string.IsNullOrWhiteSpace(criticalityString) && !Enum.TryParse<Criticality>(criticalityString, true, out criticality))
+            { errors.Add($"Baris {rowNum}: Kritikalitas '{criticalityString}' tidak valid."); continue; }
+            if (!codes.Add(code))
+            { errors.Add($"Baris {rowNum}: Kode Mesin '{code}' duplikat atau pernah digunakan."); continue; }
 
-            if (!string.IsNullOrEmpty(lineCode) && line == null)
-            { errors.Add($"Baris {rowNum}: Kode Line '{lineCode}' tidak ditemukan"); continue; }
-            if (!string.IsNullOrEmpty(areaCode) && area == null)
-            { errors.Add($"Baris {rowNum}: Kode Area '{areaCode}' tidak ditemukan"); continue; }
-            if (!string.IsNullOrEmpty(mcCatCode) && mcCat == null)
-            { errors.Add($"Baris {rowNum}: Kode Kategori '{mcCatCode}' tidak ditemukan"); continue; }
-            if (!string.IsNullOrEmpty(funcCode) && func == null)
-            { errors.Add($"Baris {rowNum}: Kode Fungsi '{funcCode}' tidak ditemukan"); continue; }
-            if (!string.IsNullOrEmpty(brandCode) && brand == null)
-            { errors.Add($"Baris {rowNum}: Kode Brand '{brandCode}' tidak ditemukan"); continue; }
-            if (!string.IsNullOrEmpty(productCode) && product == null)
-            { errors.Add($"Baris {rowNum}: Kode Product '{productCode}' tidak ditemukan"); continue; }
-
-            // Parse Criticality
-            var critStr = row.GetValueOrDefault("Kritikalitas", "Normal").Trim();
-            var crit = Criticality.Normal;
-            if (critStr.Equals("Critical", StringComparison.OrdinalIgnoreCase)) crit = Criticality.Critical;
-            else if (critStr.Equals("High", StringComparison.OrdinalIgnoreCase)) crit = Criticality.High;
-            else if (critStr.Equals("Low", StringComparison.OrdinalIgnoreCase)) crit = Criticality.Low;
-
-            // Parse Tahun
-            var yearStr = row.GetValueOrDefault("Tahun", "").Trim();
-            int? yearMade = null;
-            if (int.TryParse(yearStr, out var y)) yearMade = y;
-
-            _db.Assets.Add(new Asset
+            pending.Add(new Asset
             {
                 Code = code,
-                Name = name,
-                OpNo = row.GetValueOrDefault("OP No", "").Trim().NullIfEmpty(),
-                LineId = line?.Id,
-                AreaId = area?.Id,
-                McCategoryId = mcCat?.Id,
-                MachineFunctionId = func?.Id,
+                Name = code,
+                OpNo = opNo,
+                LineId = line.Id,
+                ProductId = product.Id,
+                AreaId = null,
+                McCategoryId = category.Id,
+                MachineFunctionId = function?.Id,
                 BrandId = brand?.Id,
-                ProductId = product?.Id,
-                Model = row.GetValueOrDefault("Model", "").Trim().NullIfEmpty(),
-                SerialNumber = row.GetValueOrDefault("Serial Number", "").Trim().NullIfEmpty(),
-                YearMade = yearMade,
-                Capacity = row.GetValueOrDefault("Kapasitas", "").Trim().NullIfEmpty(),
-                Criticality = crit,
-                Description = row.GetValueOrDefault("Deskripsi", "").Trim().NullIfEmpty(),
-                IsActive = true,
-                CreatedBy = "system",
-                CreatedDate = DateTime.Now
+                Model = model.NullIfEmpty(),
+                SerialNumber = serial.NullIfEmpty(),
+                YearMade = year,
+                Capacity = capacity.NullIfEmpty(),
+                Criticality = criticality,
+                Description = desc.NullIfEmpty(),
+                IsActive = true
             });
-            success++;
         }
 
-        if (success > 0) await _db.SaveChangesAsync();
-        ViewBag.Uploaded = true; ViewBag.SuccessCount = success; ViewBag.TotalRows = rows.Count; ViewBag.Errors = errors;
+        int success = await SaveBatchAsync(pending, errors);
+        ReportImport(rows.Count, success, errors);
         return View("Master");
     }
 
@@ -822,176 +835,357 @@ public class ImportController : Controller
     }
 
     // ============================================================
-    // ================ TASK PM ===================================
+    // ================ TASK PM — HYBRID ID-PM =====================
     // ============================================================
+    private static readonly string[] PmTaskHeaders =
+    {
+        "Kode Mesin", "Task Sequence", "Unit", "Sub Unit", "Metode", "Standar",
+        "Waktu (menit)", "Man Power", "Kondisi Mesin",
+        "Periode (bulan)", "Mulai Bulan", "Week", "Remark"
+    };
+
+    [HttpGet]
     public IActionResult PmTask()
     {
-        SetConfig("Task PM", "bi-list-ul", "PmTask",
-            new[]
-            {
-                "Kode Mesin", "Unit", "Sub Unit", "Metode", "Standar",
-                "Waktu (menit)", "Man Power", "Kondisi Mesin",
-                "Periode (bulan)", "Mulai Bulan", "Week", "Remark"
-            }, "Template_PmTask.xlsx");
+        ConfigurePmTask();
         return View("Master");
     }
 
+    private void ConfigurePmTask() => SetConfig(
+        "Task PM", "bi-list-ul", "PmTask", PmTaskHeaders, "Template_PmTask.xlsx");
+
+    [HttpGet]
     public IActionResult TemplatePmTask()
     {
-        var headers = new[]
-        {
-            "Kode Mesin", "Unit", "Sub Unit", "Metode", "Standar",
-            "Waktu (menit)", "Man Power", "Kondisi Mesin",
-            "Periode (bulan)", "Mulai Bulan", "Week", "Remark"
-        };
-        var bytes = _excel.GenerateTemplate(headers, "TaskPM");
-        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template_PmTask.xlsx");
+        var bytes = _excel.GenerateTemplate(PmTaskHeaders, "TaskPM");
+        return File(bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Template_PmTask.xlsx");
+    }
+
+    private sealed class PmTaskImportRow
+    {
+        public int RowNumber { get; init; }
+        public int AssetId { get; init; }
+        public int UnitId { get; init; }
+        public int SubUnitId { get; init; }
+        public string MethodName { get; init; } = "";
+        public string StandardName { get; init; } = "";
+        public int WorkHourMinutes { get; init; }
+        public int ManPower { get; init; }
+        public int PeriodeMonth { get; init; }
+        public int StartMonth { get; init; }
+        public int Week { get; init; }
+        public MachineRunningState MachineState { get; init; }
+        public string? Remark { get; init; }
+        public int? ManualSequence { get; init; }
+        public string IdPm { get; set; } = "";
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> PmTask(IFormFile file)
     {
-        SetConfig("Task PM", "bi-list-ul", "PmTask",
-            new[]
-            {
-                "Kode Mesin", "Unit", "Sub Unit", "Metode", "Standar",
-                "Waktu (menit)", "Man Power", "Kondisi Mesin",
-                "Periode (bulan)", "Mulai Bulan", "Week", "Remark"
-            }, "Template_PmTask.xlsx");
-
-        var rows = ReadOrError(file, out var err);
-        if (rows == null) { ViewBag.Error = err; return View("Master"); }
-
-        var assets = await _db.Assets.ToListAsync();
-        var units = await _db.Units.ToListAsync();
-        var subUnits = await _db.SubUnits.ToListAsync();
-        var metodes = await _db.Metodes.ToListAsync();
-        var standars = await _db.Standars.ToListAsync();
-
-        int success = 0; var errors = new List<string>(); int rowNum = 1;
-
-        foreach (var row in rows)
+        ConfigurePmTask();
+        var rows = ReadOrError(file, out var readError);
+        if (rows == null)
         {
-            rowNum++;
+            ViewBag.Error = readError;
+            return View("Master");
+        }
 
-            var assetCode = row.GetValueOrDefault("Kode Mesin", "").Trim();
+        var errors = new List<string>();
+        var drafts = new List<PmTaskImportRow>();
 
-            if (string.IsNullOrEmpty(assetCode))
-            { errors.Add($"Baris {rowNum}: Kode Mesin kosong"); continue; }
+        var assets = await _db.Assets.AsNoTracking().ToListAsync();
+        var units = await _db.Units.AsNoTracking().ToListAsync();
+        var subUnits = await _db.SubUnits.AsNoTracking().ToListAsync();
 
-            var asset = assets.FirstOrDefault(a => a.Code == assetCode);
-            if (asset == null)
-            { errors.Add($"Baris {rowNum}: Kode Mesin '{assetCode}' tidak ditemukan"); continue; }
+        // TAHAP 1: Validasi seluruh isi Excel sebelum menyimpan apa pun.
+        for (int index = 0; index < rows.Count; index++)
+        {
+            var row = rows[index];
+            int rowNumber = index + 2; // Baris 1 = header
+            string Get(string key, string fallback = "") =>
+                row.GetValueOrDefault(key, fallback).Trim();
 
-            // Cek FK (opsional)
-            var unitName = row.GetValueOrDefault("Unit", "").Trim();
-            var subUnitName = row.GetValueOrDefault("Sub Unit", "").Trim();
-            var metodeName = row.GetValueOrDefault("Metode", "").Trim();
-            var standarName = row.GetValueOrDefault("Standar", "").Trim();
-
-            var unit = string.IsNullOrEmpty(unitName) ? null : units.FirstOrDefault(u => u.Name.ToLower() == unitName.ToLower());
-            var subUnit = string.IsNullOrEmpty(subUnitName) ? null : subUnits.FirstOrDefault(s => s.Name.ToLower() == subUnitName.ToLower());
-            var metode = string.IsNullOrEmpty(metodeName) ? null : metodes.FirstOrDefault(m => m.Name.ToLower() == metodeName.ToLower());
-            var standar = string.IsNullOrEmpty(standarName) ? null : standars.FirstOrDefault(s => s.Name.ToLower() == standarName.ToLower());
-
-            if (!string.IsNullOrEmpty(unitName) && unit == null)
-            { errors.Add($"Baris {rowNum}: Unit '{unitName}' tidak ditemukan"); continue; }
-            if (!string.IsNullOrEmpty(subUnitName) && subUnit == null)
-            { errors.Add($"Baris {rowNum}: Sub Unit '{subUnitName}' tidak ditemukan"); continue; }
-            if (!string.IsNullOrEmpty(metodeName) && metode == null)
-            { errors.Add($"Baris {rowNum}: Metode '{metodeName}' tidak ditemukan"); continue; }
-            if (!string.IsNullOrEmpty(standarName) && standar == null)
-            { errors.Add($"Baris {rowNum}: Standar '{standarName}' tidak ditemukan"); continue; }
-
-            // Parse angka
-            int.TryParse(row.GetValueOrDefault("Waktu (menit)", "0"), out var wh);
-            int.TryParse(row.GetValueOrDefault("Man Power", "1"), out var mp);
-            if (mp < 1) mp = 1;
-            int.TryParse(row.GetValueOrDefault("Periode (bulan)", "1"), out var periode);
-            if (periode < 1) periode = 1;
-            int.TryParse(row.GetValueOrDefault("Mulai Bulan", "1"), out var startMonth);
-            if (startMonth < 1 || startMonth > 12) startMonth = 1;
-            int.TryParse(row.GetValueOrDefault("Week", "0"), out var week);
-            if (week < 0 || week > 4) week = 0;
-
-            // Parse Machine State
-            var stateStr = row.GetValueOrDefault("Kondisi Mesin", "OFF").Trim();
-            var machineState = MachineRunningState.OFF;
-            if (stateStr.Equals("ON", StringComparison.OrdinalIgnoreCase))
-                machineState = MachineRunningState.ON;
-            else if (stateStr.Equals("Either", StringComparison.OrdinalIgnoreCase))
-                machineState = MachineRunningState.Either;
-
-            // Auto-generate ID-PM
-            var idPm = await GenerateUniqueIdPmAsync(asset.Id);
-
-            // Auto-assign Week kalau 0
-            if (week == 0)
+            var assetCode = Get("Kode Mesin");
+            var asset = assets.FirstOrDefault(a =>
+                a.Code.Equals(assetCode, StringComparison.OrdinalIgnoreCase));
+            if (asset == null || !asset.IsActive)
             {
-                var existingCount = await _db.PmTaskTemplates
-                    .Where(t => t.AssetId == asset.Id && !t.IsDeleted)
-                    .CountAsync();
-                week = (existingCount % 4) + 1;
+                errors.Add($"Baris {rowNumber}: Mesin '{assetCode}' tidak ditemukan atau nonaktif.");
+                continue;
             }
 
-            _db.PmTaskTemplates.Add(new PmTaskTemplate
+            var unitName = Get("Unit");
+            var subUnitName = Get("Sub Unit");
+            var methodName = Get("Metode");
+            var standardName = Get("Standar");
+            var unit = units.FirstOrDefault(u =>
+                u.Name.Equals(unitName, StringComparison.OrdinalIgnoreCase));
+            var subUnit = subUnits.FirstOrDefault(u =>
+                u.Name.Equals(subUnitName, StringComparison.OrdinalIgnoreCase));
+
+            if (unit == null || subUnit == null || subUnit.UnitId != unit.Id)
             {
-                IdPm = idPm,
+                errors.Add($"Baris {rowNumber}: Unit/Sub Unit tidak ditemukan atau tidak cocok.");
+                continue;
+            }
+            if (string.IsNullOrWhiteSpace(methodName) ||
+                string.IsNullOrWhiteSpace(standardName) ||
+                methodName.Length > 200 || standardName.Length > 500)
+            {
+                errors.Add($"Baris {rowNumber}: Metode/Standar wajib diisi dan panjangnya harus sesuai batas.");
+                continue;
+            }
+
+            string sequenceText = Get("Task Sequence");
+            int? manualSequence = null;
+            if (!string.IsNullOrEmpty(sequenceText))
+            {
+                if (!int.TryParse(sequenceText, out int seq) || seq < 1 || seq > 99)
+                {
+                    errors.Add($"Baris {rowNumber}: Task Sequence harus 01–99 atau kosong.");
+                    continue;
+                }
+                manualSequence = seq;
+            }
+
+            if (!int.TryParse(Get("Waktu (menit)"), out int minutes) || minutes < 1 || minutes > 10000 ||
+                !int.TryParse(Get("Man Power", "1"), out int manpower) || manpower < 1 || manpower > 100 ||
+                !int.TryParse(Get("Periode (bulan)", "1"), out int periode) || periode < 1 || periode > 120 ||
+                !int.TryParse(Get("Mulai Bulan", "1"), out int startMonth) || startMonth < 1 || startMonth > 12 ||
+                !int.TryParse(Get("Week", "0"), out int week) || week < 0 || week > 4)
+            {
+                errors.Add($"Baris {rowNumber}: Waktu, Man Power, Periode, Mulai Bulan, atau Week tidak valid.");
+                continue;
+            }
+
+            string stateText = Get("Kondisi Mesin", "OFF");
+            if (!Enum.TryParse<MachineRunningState>(stateText, true, out var state) ||
+                !Enum.IsDefined(typeof(MachineRunningState), state))
+            {
+                errors.Add($"Baris {rowNumber}: Kondisi Mesin '{stateText}' tidak valid.");
+                continue;
+            }
+
+            var remark = Get("Remark");
+            if (remark.Length > 500)
+            {
+                errors.Add($"Baris {rowNumber}: Remark maksimal 500 karakter.");
+                continue;
+            }
+
+            drafts.Add(new PmTaskImportRow
+            {
+                RowNumber = rowNumber,
                 AssetId = asset.Id,
-                UnitId = unit?.Id,
-                SubUnitId = subUnit?.Id,
-                MethodId = metode?.Id,
-                StandardId = standar?.Id,
-                WorkHourMinutes = wh,
-                ManPower = mp,
-                MachineState = machineState,
+                UnitId = unit.Id,
+                SubUnitId = subUnit.Id,
+                MethodName = methodName,
+                StandardName = standardName,
+                WorkHourMinutes = minutes,
+                ManPower = manpower,
                 PeriodeMonth = periode,
                 StartMonth = startMonth,
                 Week = week,
-                Remark = row.GetValueOrDefault("Remark", "").Trim().NullIfEmpty(),
-                IsActive = true,
-                CreatedBy = "system",
-                CreatedDate = DateTime.Now
+                MachineState = state,
+                Remark = remark.NullIfEmpty(),
+                ManualSequence = manualSequence
             });
-            success++;
         }
 
-        if (success > 0) await _db.SaveChangesAsync();
-        ViewBag.Uploaded = true; ViewBag.SuccessCount = success; ViewBag.TotalRows = rows.Count; ViewBag.Errors = errors;
+        if (errors.Count > 0)
+        {
+            errors.Insert(0, "Import dibatalkan: perbaiki seluruh baris yang bermasalah, lalu upload ulang.");
+            ReportImport(rows.Count, 0, errors);
+            return View("Master");
+        }
+
+        // Semua ID dialokasikan dan semua record disimpan dalam satu transaksi.
+        // Serializable mengurangi risiko alokasi bersamaan; unique index IdPm
+        // pada database tetap wajib dipertahankan.
+        await using var transaction = await _db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable);
+        try
+        {
+            var reservedIds = new HashSet<string>(StringComparer.Ordinal);
+
+            // TAHAP 2: Cadangkan semua nomor manual lebih dulu.
+            foreach (var draft in drafts.Where(d => d.ManualSequence.HasValue))
+            {
+                try
+                {
+                    draft.IdPm = await _pmIdGenerator.GenerateAsync(
+                        draft.AssetId, draft.ManualSequence, reservedIds);
+                    reservedIds.Add(draft.IdPm);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    errors.Add($"Baris {draft.RowNumber}: {ex.Message}");
+                }
+            }
+            if (errors.Count > 0)
+            {
+                await transaction.RollbackAsync();
+                ReportImport(rows.Count, 0, errors);
+                return View("Master");
+            }
+
+            // TAHAP 3: Otomatis melanjutkan MAX historis + 1.
+            // Nomor manual di file yang sama sudah dicadangkan.
+            foreach (var draft in drafts.Where(d => !d.ManualSequence.HasValue))
+            {
+                try
+                {
+                    draft.IdPm = await _pmIdGenerator.GenerateAsync(
+                        draft.AssetId, null, reservedIds);
+                    reservedIds.Add(draft.IdPm);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    errors.Add($"Baris {draft.RowNumber}: {ex.Message}");
+                }
+            }
+            if (errors.Count > 0)
+            {
+                await transaction.RollbackAsync();
+                ReportImport(rows.Count, 0, errors);
+                return View("Master");
+            }
+
+            // TAHAP 4: Pilih/buat Metode dan Standar dalam transaksi.
+            var methods = await _db.Metodes.ToListAsync();
+            var standards = await _db.Standars.ToListAsync();
+            var methodNames = drafts.Select(d => d.MethodName)
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var standardNames = drafts.Select(d => d.StandardName)
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+            var codes = await _db.Metodes.IgnoreQueryFilters()
+                .Select(m => m.Code).ToListAsync();
+            int nextMethodNumber = 1;
+            foreach (var code in codes)
+            {
+                if (code.StartsWith("M", StringComparison.OrdinalIgnoreCase) &&
+                    int.TryParse(code.Substring(1), out int n) && n >= nextMethodNumber)
+                    nextMethodNumber = n + 1;
+            }
+
+            foreach (var name in methodNames)
+            {
+                if (methods.Any(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                var letters = new string(name.Where(char.IsLetter).ToArray());
+                var initial = letters.Length > 3
+                    ? letters.Substring(0, 3).ToUpperInvariant()
+                    : letters.ToUpperInvariant();
+                var method = new Metode
+                {
+                    Code = "M" + (nextMethodNumber++).ToString("D2"),
+                    Name = name,
+                    Initial = initial,
+                    MachineState = MachineRunningState.OFF,
+                    Description = "Auto-created dari Import Task PM"
+                };
+                _db.Metodes.Add(method);
+                methods.Add(method);
+            }
+            foreach (var name in standardNames)
+            {
+                if (standards.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                var standard = new Standar
+                {
+                    Name = name,
+                    Description = "Auto-created dari Import Task PM"
+                };
+                _db.Standars.Add(standard);
+                standards.Add(standard);
+            }
+            await _db.SaveChangesAsync();
+
+            // TAHAP 5: Simpan Task PM dan rotasi Week per mesin.
+            var assetIds = drafts.Select(d => d.AssetId).Distinct().ToList();
+            var counts = await _db.PmTaskTemplates
+                .Where(t => assetIds.Contains(t.AssetId))
+                .GroupBy(t => t.AssetId)
+                .Select(g => new { AssetId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.AssetId, x => x.Count);
+
+            foreach (var draft in drafts)
+            {
+                counts.TryGetValue(draft.AssetId, out int existingCount);
+                int week = draft.Week == 0
+                    ? (existingCount % 4) + 1
+                    : draft.Week;
+                counts[draft.AssetId] = existingCount + 1;
+
+                var method = methods.First(m =>
+                    m.Name.Equals(draft.MethodName, StringComparison.OrdinalIgnoreCase));
+                var standard = standards.First(s =>
+                    s.Name.Equals(draft.StandardName, StringComparison.OrdinalIgnoreCase));
+
+                _db.PmTaskTemplates.Add(new PmTaskTemplate
+                {
+                    IdPm = draft.IdPm,
+                    AssetId = draft.AssetId,
+                    UnitId = draft.UnitId,
+                    SubUnitId = draft.SubUnitId,
+                    MethodId = method.Id,
+                    StandardId = standard.Id,
+                    WorkHourMinutes = draft.WorkHourMinutes,
+                    ManPower = draft.ManPower,
+                    MachineState = draft.MachineState,
+                    PeriodeMonth = draft.PeriodeMonth,
+                    StartMonth = draft.StartMonth,
+                    Week = week,
+                    Remark = draft.Remark,
+                    IsActive = true
+                });
+            }
+
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            ReportImport(rows.Count, drafts.Count, errors);
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            _db.ChangeTracker.Clear();
+            errors.Add("Import dibatalkan. Terjadi konflik database/ID-PM atau data tidak valid. " + ex.GetBaseException().Message);
+            ReportImport(rows.Count, 0, errors);
+        }
         return View("Master");
     }
 
-    // ============================================================
-    // HELPER — Generate ID-PM unik untuk import
-    // ============================================================
-    private async Task<string> GenerateUniqueIdPmAsync(int assetId)
+    // Simpan satu batch; bila terjadi kegagalan SQL, jangan laporkan baris sukses.
+    private async Task<int> SaveBatchAsync<T>(List<T> entities, List<string> errors) where T : BaseEntity
     {
-        // Format: {LineSeq:D2}{MachineSeq:D2}{TaskSeq:D2}
-        // Ambil semua task di asset ini
-        var existing = await _db.PmTaskTemplates
-            .IgnoreQueryFilters()
-            .Where(t => t.AssetId == assetId)
-            .Select(t => t.IdPm)
-            .ToListAsync();
-
-        // Prefix berdasarkan assetId (contoh: 01, 02, dst)
-        // Kita pakai 2 digit line + 2 digit machine = dari asset.Code atau urutan
-        // Simplifikasi: pakai urutan global saja
-        var allTasks = await _db.PmTaskTemplates
-            .IgnoreQueryFilters()
-            .Select(t => t.IdPm)
-            .ToListAsync();
-
-        // Cari nomor urut yang belum dipakai
-        for (int i = 1; i <= 9999; i++)
+        if (entities.Count == 0) return 0;
+        _db.Set<T>().AddRange(entities);
+        try
         {
-            var candidate = i.ToString("D6");
-            if (!allTasks.Contains(candidate))
-                return candidate;
+            await _db.SaveChangesAsync();
+            return entities.Count;
         }
+        catch (DbUpdateException)
+        {
+            _db.ChangeTracker.Clear();
+            errors.Add("Penyimpanan batch gagal. Periksa index unik dan relasi data; tidak ada baris dari batch ini yang berhasil disimpan.");
+            return 0;
+        }
+    }
 
-        return DateTime.Now.Ticks.ToString().Substring(10);
+    private void ReportImport(int total, int success, List<string> errors)
+    {
+        ViewBag.Uploaded = true;
+        ViewBag.SuccessCount = success;
+        ViewBag.TotalRows = total;
+        ViewBag.Errors = errors;
     }
 
     // ============================================================
