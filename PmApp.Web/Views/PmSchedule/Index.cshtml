@@ -36,16 +36,23 @@
         <form asp-action="Regenerate" method="post" class="d-inline">
             @Html.AntiForgeryToken()
             <input type="hidden" name="year" value="@year" />
-            <button type="submit" class="btn btn-success"
-                    onclick="return confirm('Regenerate jadwal untuk tahun @year? Jadwal yang sudah ada tidak akan terganti.');">
+            <button type="submit" class="btn btn-success btn-post"
+                    data-confirm-title="Konfirmasi Regenerate"
+                    data-confirm-message="Regenerate jadwal untuk tahun @year? Jadwal yang sudah ada tidak akan terganti."
+                    data-confirm-button="Ya, Regenerate"
+                    data-loading-text="Membuat jadwal PM...">
                 <i class="bi bi-arrow-repeat"></i> Regenerate
             </button>
         </form>
         <form asp-action="ResetRegenerate" method="post" class="d-inline">
             @Html.AntiForgeryToken()
             <input type="hidden" name="year" value="@year" />
-            <button type="submit" class="btn btn-danger"
-                    onclick="return confirm('⚠️ RESET & REGENERATE\n\nSemua jadwal yang BELUM Done akan DIHAPUS dan di-generate ulang.\nJadwal yang sudah Done akan tetap tersimpan.\n\nLanjutkan?');">
+            <button type="submit" class="btn btn-danger btn-post"
+                    data-confirm-title="Konfirmasi Reset Jadwal"
+                    data-confirm-message="Semua jadwal yang BELUM Done akan dihapus dan dibuat ulang. Jadwal Done tetap tersimpan. Lanjutkan?"
+                    data-confirm-type="danger"
+                    data-confirm-button="Ya, Reset & Regenerate"
+                    data-loading-text="Reset dan membuat ulang jadwal...">
                 <i class="bi bi-arrow-counterclockwise"></i> Reset & Regenerate
             </button>
         </form>

@@ -1,27 +1,33 @@
 ﻿@model PmApp.Web.Models.ViewModels.SubUnitFormViewModel
 
-<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-<div class="row">
-    <div class="col-md-4 mb-3">
-        <label asp-for="Code" class="form-label"></label>
-        <input asp-for="Code" class="form-control" placeholder="Contoh: SU-01" />
-        <span asp-validation-for="Code" class="text-danger small"></span>
-    </div>
-    <div class="col-md-8 mb-3">
-        <label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" placeholder="Contoh: Tanki Hidrolik 1" />
-        <span asp-validation-for="Name" class="text-danger small"></span>
-    </div>
-    <div class="col-md-6 mb-3">
-        <label asp-for="UnitId" class="form-label"></label>
-        <select asp-for="UnitId" asp-items="Model.UnitList" class="form-select">
-            <option value="">-- Pilih Unit --</option>
-        </select>
-        <span asp-validation-for="UnitId" class="text-danger small"></span>
-    </div>
-    <div class="col-12 mb-3">
-        <label asp-for="Description" class="form-label"></label>
-        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
-    </div>
+<div class="mb-3">
+    <label asp-for="UnitId" class="form-label fw-semibold">
+        Unit Induk
+    </label>
+
+    <select asp-for="UnitId"
+            asp-items="Model.UnitList"
+            class="form-select searchable-select"
+            data-placeholder="-- Cari atau Pilih Unit --">
+        <option value="">-- Pilih Unit --</option>
+    </select>
+
+    <span asp-validation-for="UnitId"
+          class="text-danger small"></span>
+</div>
+<div class="mb-3">
+    <label asp-for="Name" class="form-label fw-semibold"></label>
+    <input asp-for="Name" class="form-control" maxlength="200"
+           placeholder="Contoh: Bearing Spindle" />
+    <span asp-validation-for="Name" class="text-danger small"></span>
+    <div class="form-text">Nama yang sama boleh digunakan di Unit lain, tetapi tidak boleh duplikat pada Unit yang sama.</div>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Description" class="form-label"></label>
+    <textarea asp-for="Description" class="form-control" maxlength="500" rows="2"
+              placeholder="Deskripsi Sub Unit (opsional)"></textarea>
+    <span asp-validation-for="Description" class="text-danger small"></span>
 </div>

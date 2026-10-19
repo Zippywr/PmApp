@@ -3,14 +3,9 @@
 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
 <div class="row">
-    <div class="col-md-4 mb-3">
-        <label asp-for="Code" class="form-label"></label>
-        <input asp-for="Code" class="form-control" placeholder="Contoh: U-01" />
-        <span asp-validation-for="Code" class="text-danger small"></span>
-    </div>
-    <div class="col-md-8 mb-3">
-        <label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" placeholder="Contoh: Hydraulic Equipment" />
+    <div class="col-12 mb-3">
+        <label asp-for="Name" class="form-label fw-semibold"></label>
+        <input asp-for="Name" class="form-control" placeholder="Contoh: Spindle" maxlength="200" />
         <span asp-validation-for="Name" class="text-danger small"></span>
     </div>
     <div class="col-12 mb-3">

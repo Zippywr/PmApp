@@ -1,188 +1,223 @@
 ﻿
-document.addEventListener("DOMContentLoaded", () => {
-    const plant = document.getElementById("PlantId");
-    const product = document.getElementById("ProductId");
-    const line = document.getElementById("LineId");
+$(function () {
+    // ================================================
+    // MACHINE FORM
+    // Plant -> Product -> Line
+    // Mendukung Select2 dan dropdown biasa
+    // ================================================
 
-    if (!plant || !product || !line) return;
+    const $plant = $("#PlantId");
+    const $product = $("#ProductId");
+    const $line = $("#LineId");
 
-    const productsUrl = plant.dataset.productsUrl;
-    const linesUrl = product.dataset.linesUrl;
+    if (!$plant.length || !$product.length || !$line.length) {
+        return;
+    }
 
     let productRequest = null;
     let lineRequest = null;
 
-    function resetSelect(select, placeholder) {
-        select.replaceChildren(new Option(placeholder, ""));
-        select.value = "";
+    // --------------------------------
+    // Refresh tampilan Select2
+    // --------------------------------
+    function refresh($select) {
+        $select.trigger("change.select2");
     }
 
-    function setProductEnabled(enabled) {
-        product.disabled = !enabled;
+    // --------------------------------
+    // Reset dropdown
+    // --------------------------------
+    function reset($select, placeholder) {
+        $select.empty();
+        $select.append(new Option(placeholder, "", true, true));
+        $select.prop("disabled", true);
+        refresh($select);
     }
 
-    function setLineEnabled(enabled) {
-        line.disabled = !enabled;
+    // --------------------------------
+    // Mengaktifkan dropdown
+    // --------------------------------
+    function enable($select) {
+        $select.prop("disabled", false);
+        refresh($select);
     }
 
-    // ========================================
-    // SAAT PLANT BERUBAH
-    // ========================================
-    plant.addEventListener("change", async () => {
+    // --------------------------------
+    // Ambil data JSON
+    // Endpoint menggunakan { id, text }
+    // --------------------------------
+    async function getData(url, parameter, value, signal) {
+        if (!url) {
+            throw new Error("URL endpoint tidak ditemukan.");
+        }
+
+        const endpoint = new URL(url, window.location.origin);
+        endpoint.searchParams.set(parameter, value);
+
+        const response = await fetch(endpoint, {
+            signal,
+            headers: {
+                Accept: "application/json"
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+            throw new Error("Respons endpoint bukan array JSON.");
+        }
+
+        return data;
+    }
+
+    // ================================================
+    // PLANT BERUBAH
+    // ================================================
+    $plant.on("change", async function () {
         if (productRequest) productRequest.abort();
         if (lineRequest) lineRequest.abort();
 
-        const plantId = plant.value;
+        const plantId = $plant.val();
 
-        resetSelect(product, "-- Pilih Product --");
-        resetSelect(line, "-- Pilih Line --");
-
-        setProductEnabled(false);
-        setLineEnabled(false);
+        reset($product, "-- Pilih Product --");
+        reset($line, "-- Pilih Line --");
 
         if (!plantId) return;
 
         const controller = new AbortController();
         productRequest = controller;
 
-        resetSelect(product, "Memuat Product...");
+        reset($product, "Memuat Product...");
 
         try {
-            const url = new URL(
-                productsUrl,
-                window.location.origin
+            const data = await getData(
+                $plant.attr("data-products-url"),
+                "plantId",
+                plantId,
+                controller.signal
             );
 
-            url.searchParams.set("plantId", plantId);
-
-            const response = await fetch(url, {
-                signal: controller.signal,
-                headers: {
-                    Accept: "application/json"
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error("Gagal memuat Product");
-            }
-
-            const data = await response.json();
-
             if (controller.signal.aborted ||
-                plant.value !== plantId) {
+                $plant.val() !== plantId) {
                 return;
             }
 
-            resetSelect(product, "-- Pilih Product --");
+            reset($product, "-- Pilih Product --");
 
             data.forEach(item => {
-                product.add(new Option(
-                    `${item.code} - ${item.name}`,
-                    item.id
-                ));
+                $product.append(
+                    new Option(item.text, item.id)
+                );
             });
 
             if (data.length === 0) {
-                resetSelect(
-                    product,
-                    "Tidak ada Product"
-                );
+                reset($product, "Tidak ada Product");
+                return;
             }
 
-            setProductEnabled(true);
+            enable($product);
 
         } catch (error) {
             if (error.name === "AbortError") return;
 
-            console.error(error);
+            console.error("Gagal memuat Product:", error);
 
-            if (plant.value === plantId) {
-                resetSelect(product, "Gagal memuat Product");
-                setProductEnabled(false);
+            if ($plant.val() === plantId) {
+                reset($product, "Gagal memuat Product");
+            }
+
+        } finally {
+            if (productRequest === controller) {
+                productRequest = null;
             }
         }
     });
 
-    // ========================================
-    // SAAT PRODUCT BERUBAH
-    // ========================================
-    product.addEventListener("change", async () => {
+    // ================================================
+    // PRODUCT BERUBAH
+    // ================================================
+    $product.on("change", async function () {
         if (lineRequest) lineRequest.abort();
 
-        const productId = product.value;
-        const selectedPlantId = plant.value;
+        const productId = $product.val();
+        const plantId = $plant.val();
 
-        resetSelect(line, "-- Pilih Line --");
-        setLineEnabled(false);
+        reset($line, "-- Pilih Line --");
 
-        if (!productId || !selectedPlantId) return;
+        if (!productId || !plantId) return;
 
         const controller = new AbortController();
         lineRequest = controller;
 
-        resetSelect(line, "Memuat Line...");
+        reset($line, "Memuat Line...");
 
         try {
-            const url = new URL(
-                linesUrl,
-                window.location.origin
+            const data = await getData(
+                $product.attr("data-lines-url"),
+                "productId",
+                productId,
+                controller.signal
             );
 
-            url.searchParams.set("productId", productId);
-
-            const response = await fetch(url, {
-                signal: controller.signal,
-                headers: {
-                    Accept: "application/json"
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error("Gagal memuat Line");
-            }
-
-            const data = await response.json();
-
             if (controller.signal.aborted ||
-                product.value !== productId ||
-                plant.value !== selectedPlantId) {
+                $product.val() !== productId ||
+                $plant.val() !== plantId) {
                 return;
             }
 
-            resetSelect(line, "-- Pilih Line --");
+            reset($line, "-- Pilih Line --");
 
             data.forEach(item => {
-                line.add(new Option(
-                    `${item.code} - ${item.name}`,
-                    item.id
-                ));
+                $line.append(
+                    new Option(item.text, item.id)
+                );
             });
 
             if (data.length === 0) {
-                resetSelect(line, "Tidak ada Line");
+                reset($line, "Tidak ada Line");
+                return;
             }
 
-            setLineEnabled(true);
+            enable($line);
 
         } catch (error) {
             if (error.name === "AbortError") return;
 
-            console.error(error);
+            console.error("Gagal memuat Line:", error);
 
-            if (product.value === productId &&
-                plant.value === selectedPlantId) {
-                resetSelect(line, "Gagal memuat Line");
-                setLineEnabled(false);
+            if ($product.val() === productId &&
+                $plant.val() === plantId) {
+                reset($line, "Gagal memuat Line");
+            }
+
+        } finally {
+            if (lineRequest === controller) {
+                lineRequest = null;
             }
         }
     });
 
-    // ========================================
+    // ================================================
     // KONDISI AWAL CREATE / EDIT
-    // ========================================
+    // ================================================
 
-    // Pada Edit, pilihan lama sudah diberikan
-    // oleh AssetController dan tidak perlu di-fetch ulang.
-    setProductEnabled(Boolean(plant.value));
-    setLineEnabled(Boolean(plant.value && product.value));
+    // Create:
+    // Product dan Line kosong sampai Plant dipilih.
+    //
+    // Edit:
+    // Pilihan lama dipertahankan.
+
+    $product.prop("disabled", !$plant.val());
+    $line.prop(
+        "disabled",
+        !($plant.val() && $product.val())
+    );
+
+    refresh($plant);
+    refresh($product);
+    refresh($line);
 });

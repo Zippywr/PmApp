@@ -10,15 +10,12 @@ public class PmTaskTemplateFormViewModel
     public string? IdPm { get; set; }
 
     [Required(ErrorMessage = "Mesin wajib dipilih")]
-    [Range(1, int.MaxValue, ErrorMessage = "Pilih mesin yang valid")]
     [Display(Name = "Mesin")]
     public int AssetId { get; set; }
 
-    [Required(ErrorMessage = "Unit wajib dipilih")]
     [Display(Name = "Unit")]
     public int? UnitId { get; set; }
 
-    [Required(ErrorMessage = "Sub Unit wajib dipilih")]
     [Display(Name = "Sub Unit")]
     public int? SubUnitId { get; set; }
 
@@ -50,8 +47,8 @@ public class PmTaskTemplateFormViewModel
     public int StartMonth { get; set; } = 1;
 
     [Display(Name = "Minggu")]
-    [Range(0, 4, ErrorMessage = "Minggu harus antara 0–4")]
-    public int Week { get; set; } = 0;
+    [Range(0, 4, ErrorMessage = "Minggu harus antara 0-4")]
+    public int Week { get; set; } = 1;   // ← TAMBAH INI
 
     [MaxLength(500)]
     [Display(Name = "Remark")]
@@ -60,19 +57,26 @@ public class PmTaskTemplateFormViewModel
     [Display(Name = "Aktif")]
     public bool IsActive { get; set; } = true;
 
-    [Range(1, 99, ErrorMessage = "Task Sequence harus 01 sampai 99")]
+    [Required(ErrorMessage = "Unit wajib diisi")]
+    [MaxLength(200)]
+    [Display(Name = "Unit")]
+    public string UnitName { get; set; } = "";
+
+    [Required(ErrorMessage = "Sub Unit wajib diisi")]
+    [MaxLength(200)]
+    [Display(Name = "Sub Unit")]
+    public string SubUnitName { get; set; } = "";
+
+    public List<string> UnitSuggestion { get; set; } = new();
+    public List<string> SubUnitSuggestion { get; set; } = new();
+
+    [Range(1, 99)]
     [Display(Name = "Task Sequence (Opsional)")]
     public int? TaskSequence { get; set; }
 
-    [Display(Name = "Plant")]
     public int? PlantId { get; set; }
-
-    [Display(Name = "Product")]
     public int? ProductId { get; set; }
-
-    [Display(Name = "Line")]
     public int? LineId { get; set; }
-
     public List<SelectListItem> PlantList { get; set; } = new();
     public List<SelectListItem> ProductList { get; set; } = new();
     public List<SelectListItem> LineList { get; set; } = new();
@@ -85,5 +89,4 @@ public class PmTaskTemplateFormViewModel
     // Datalist suggestions
     public List<string> MethodSuggestion { get; set; } = new();
     public List<string> StandardSuggestion { get; set; } = new();
-
 }

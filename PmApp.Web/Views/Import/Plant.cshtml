@@ -101,7 +101,7 @@ else
                 <h6 class="text-primary">
                     <span class="badge bg-primary">3</span> Upload File
                 </h6>
-                <form asp-action="Plant" method="post" enctype="multipart/form-data">
+                <form asp-action="Plant" method="post" enctype="multipart/form-data" class="form-confirm" data-confirm-title="Konfirmasi Import Plant" data-confirm-message="Import Plant dari file Excel ini?" data-confirm-button="Ya, Import" data-loading-text="Mengimport data Excel...">
                     @Html.AntiForgeryToken()
 
                     <div class="mb-3">

@@ -399,18 +399,24 @@ public class ImportController : Controller
     }
 
     // ============================================================
-    // ================ UNIT ======================================
+    // ================ UNIT (TANPA INPUT CODE) ====================
     // ============================================================
+    private static readonly string[] UnitHeaders = { "Nama Unit", "Deskripsi" };
+
+    [HttpGet]
     public IActionResult Unit()
     {
-        SetConfig("Unit", "bi-boxes", "Unit",
-            new[] { "Kode", "Nama Unit", "Deskripsi" }, "Template_Unit.xlsx");
+        ConfigureUnit();
         return View("Master");
     }
 
+    private void ConfigureUnit() => SetConfig("Unit", "bi-boxes", "Unit",
+        UnitHeaders, "Template_Unit.xlsx");
+
+    [HttpGet]
     public IActionResult TemplateUnit()
     {
-        var bytes = _excel.GenerateTemplate(new[] { "Kode", "Nama Unit", "Deskripsi" }, "Unit");
+        var bytes = _excel.GenerateTemplate(UnitHeaders, "Unit");
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template_Unit.xlsx");
     }
 
@@ -418,47 +424,68 @@ public class ImportController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Unit(IFormFile file)
     {
-        SetConfig("Unit", "bi-boxes", "Unit",
-            new[] { "Kode", "Nama Unit", "Deskripsi" }, "Template_Unit.xlsx");
-
+        ConfigureUnit();
         var rows = ReadOrError(file, out var err);
         if (rows == null) { ViewBag.Error = err; return View("Master"); }
 
-        int success = 0; var errors = new List<string>(); int rowNum = 1;
-        foreach (var row in rows)
+        var existing = new HashSet<string>(
+            await _db.Units.AsNoTracking().Select(u => u.Name).ToListAsync(),
+            StringComparer.OrdinalIgnoreCase);
+        var pending = new List<Unit>();
+        var errors = new List<string>();
+
+        for (int i = 0; i < rows.Count; i++)
         {
-            rowNum++;
-            var code = row.GetValueOrDefault("Kode", "").Trim();
+            var row = rows[i];
             var name = row.GetValueOrDefault("Nama Unit", "").Trim();
             var desc = row.GetValueOrDefault("Deskripsi", "").Trim();
+            int number = i + 2;
 
-            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(name))
-            { errors.Add($"Baris {rowNum}: Kode atau Nama kosong"); continue; }
+            if (string.IsNullOrWhiteSpace(name) || name.Length > 200 || desc.Length > 500)
+            { errors.Add($"Baris {number}: Nama Unit wajib diisi (maks. 200 karakter), Deskripsi maks. 500 karakter."); continue; }
+            if (!existing.Add(name))
+            { errors.Add($"Baris {number}: Unit '{name}' sudah ada atau berulang dalam file."); continue; }
 
-            if (await _db.Units.AnyAsync(u => u.Code == code))
-            { errors.Add($"Baris {rowNum}: Kode '{code}' sudah ada"); continue; }
-
-            _db.Units.Add(new Unit { Code = code, Name = name, Description = desc.NullIfEmpty(), CreatedBy = "system", CreatedDate = DateTime.Now });
-            success++;
+            pending.Add(new Unit
+            {
+                Code = "AUTO-" + Guid.NewGuid().ToString("N"),
+                Name = name,
+                Description = desc.NullIfEmpty()
+            });
         }
-        if (success > 0) await _db.SaveChangesAsync();
-        ViewBag.Uploaded = true; ViewBag.SuccessCount = success; ViewBag.TotalRows = rows.Count; ViewBag.Errors = errors;
+
+        if (errors.Count > 0)
+        {
+            errors.Insert(0, "Import dibatalkan. Perbaiki baris yang salah lalu upload kembali.");
+            ReportImport(rows.Count, 0, errors);
+            return View("Master");
+        }
+
+        int success = await SaveBatchAsync(pending, errors);
+        ReportImport(rows.Count, success, errors);
         return View("Master");
     }
 
     // ============================================================
-    // ================ SUB UNIT ==================================
+    // ================ SUB UNIT (BERDASARKAN NAMA UNIT) ===========
     // ============================================================
+    private static readonly string[] SubUnitHeaders =
+        { "Nama Unit", "Nama Sub Unit", "Deskripsi" };
+
+    [HttpGet]
     public IActionResult SubUnit()
     {
-        SetConfig("Sub Unit", "bi-box-seam", "SubUnit",
-            new[] { "Kode", "Nama Sub Unit", "Kode Unit", "Deskripsi" }, "Template_SubUnit.xlsx");
+        ConfigureSubUnit();
         return View("Master");
     }
 
+    private void ConfigureSubUnit() => SetConfig("Sub Unit", "bi-box-seam", "SubUnit",
+        SubUnitHeaders, "Template_SubUnit.xlsx");
+
+    [HttpGet]
     public IActionResult TemplateSubUnit()
     {
-        var bytes = _excel.GenerateTemplate(new[] { "Kode", "Nama Sub Unit", "Kode Unit", "Deskripsi" }, "SubUnit");
+        var bytes = _excel.GenerateTemplate(SubUnitHeaders, "SubUnit");
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template_SubUnit.xlsx");
     }
 
@@ -466,55 +493,81 @@ public class ImportController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SubUnit(IFormFile file)
     {
-        SetConfig("Sub Unit", "bi-box-seam", "SubUnit",
-            new[] { "Kode", "Nama Sub Unit", "Kode Unit", "Deskripsi" }, "Template_SubUnit.xlsx");
-
+        ConfigureSubUnit();
         var rows = ReadOrError(file, out var err);
         if (rows == null) { ViewBag.Error = err; return View("Master"); }
 
-        var units = await _db.Units.ToListAsync();
+        var units = await _db.Units.AsNoTracking().ToListAsync();
+        var existing = new HashSet<string>(
+            (await _db.SubUnits.AsNoTracking()
+                .Select(s => new { s.UnitId, s.Name }).ToListAsync())
+                .Select(s => $"{s.UnitId}\u001f{s.Name}"),
+            StringComparer.OrdinalIgnoreCase);
+        var pending = new List<SubUnit>();
+        var errors = new List<string>();
 
-        int success = 0; var errors = new List<string>(); int rowNum = 1;
-        foreach (var row in rows)
+        for (int i = 0; i < rows.Count; i++)
         {
-            rowNum++;
-            var code = row.GetValueOrDefault("Kode", "").Trim();
+            var row = rows[i];
+            int number = i + 2;
+            var unitName = row.GetValueOrDefault("Nama Unit", "").Trim();
             var name = row.GetValueOrDefault("Nama Sub Unit", "").Trim();
-            var unitCode = row.GetValueOrDefault("Kode Unit", "").Trim();
             var desc = row.GetValueOrDefault("Deskripsi", "").Trim();
 
-            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(name))
-            { errors.Add($"Baris {rowNum}: Kode atau Nama kosong"); continue; }
+            if (string.IsNullOrWhiteSpace(unitName) || string.IsNullOrWhiteSpace(name) ||
+                name.Length > 200 || desc.Length > 500)
+            { errors.Add($"Baris {number}: Nama Unit dan Nama Sub Unit wajib diisi. Batas nama 200 dan deskripsi 500 karakter."); continue; }
 
-            var unit = units.FirstOrDefault(u => u.Code == unitCode);
-            if (unit == null)
-            { errors.Add($"Baris {rowNum}: Kode Unit '{unitCode}' tidak ditemukan"); continue; }
+            var matches = units.Where(u =>
+                u.Name.Equals(unitName, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (matches.Count != 1)
+            { errors.Add($"Baris {number}: Nama Unit '{unitName}' tidak ditemukan atau ambigu. Import Unit terlebih dahulu."); continue; }
 
-            if (await _db.SubUnits.AnyAsync(s => s.Code == code))
-            { errors.Add($"Baris {rowNum}: Kode '{code}' sudah ada"); continue; }
+            var unit = matches[0];
+            if (!existing.Add($"{unit.Id}\u001f{name}"))
+            { errors.Add($"Baris {number}: Sub Unit '{name}' sudah terdaftar atau berulang pada Unit '{unitName}'."); continue; }
 
-            _db.SubUnits.Add(new SubUnit { Code = code, Name = name, UnitId = unit.Id, Description = desc.NullIfEmpty(), CreatedBy = "system", CreatedDate = DateTime.Now });
-            success++;
+            pending.Add(new SubUnit
+            {
+                Code = "AUTO-" + Guid.NewGuid().ToString("N"),
+                UnitId = unit.Id,
+                Name = name,
+                Description = desc.NullIfEmpty()
+            });
         }
-        if (success > 0) await _db.SaveChangesAsync();
-        ViewBag.Uploaded = true; ViewBag.SuccessCount = success; ViewBag.TotalRows = rows.Count; ViewBag.Errors = errors;
+
+        if (errors.Count > 0)
+        {
+            errors.Insert(0, "Import dibatalkan. Perbaiki baris yang salah lalu upload kembali.");
+            ReportImport(rows.Count, 0, errors);
+            return View("Master");
+        }
+
+        int success = await SaveBatchAsync(pending, errors);
+        ReportImport(rows.Count, success, errors);
         return View("Master");
     }
 
     // ============================================================
-    // ================ METODE ====================================
+    // ================ METODE (TANPA INPUT CODE) ==================
     // ============================================================
+    private static readonly string[] MetodeHeaders =
+        { "Nama Metode", "Initial", "Machine State", "Deskripsi" };
+
+    [HttpGet]
     public IActionResult Metode()
     {
-        SetConfig("Metode", "bi-wrench", "Metode",
-            new[] { "Kode", "Nama Metode", "Initial", "Machine State", "Deskripsi" }, "Template_Metode.xlsx");
+        ConfigureMetode();
         return View("Master");
     }
 
+    private void ConfigureMetode() => SetConfig("Metode", "bi-wrench", "Metode",
+        MetodeHeaders, "Template_Metode.xlsx");
+
+    [HttpGet]
     public IActionResult TemplateMetode()
     {
-        var bytes = _excel.GenerateTemplate(
-            new[] { "Kode", "Nama Metode", "Initial", "Machine State", "Deskripsi" }, "Metode");
+        var bytes = _excel.GenerateTemplate(MetodeHeaders, "Metode");
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template_Metode.xlsx");
     }
 
@@ -522,65 +575,86 @@ public class ImportController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Metode(IFormFile file)
     {
-        SetConfig("Metode", "bi-wrench", "Metode",
-            new[] { "Kode", "Nama Metode", "Initial", "Machine State", "Deskripsi" }, "Template_Metode.xlsx");
-
+        ConfigureMetode();
         var rows = ReadOrError(file, out var err);
         if (rows == null) { ViewBag.Error = err; return View("Master"); }
 
-        int success = 0; var errors = new List<string>(); int rowNum = 1;
-        foreach (var row in rows)
+        var existing = new HashSet<string>(
+            await _db.Metodes.AsNoTracking().Select(m => m.Name).ToListAsync(),
+            StringComparer.OrdinalIgnoreCase);
+        var pending = new List<Metode>();
+        var errors = new List<string>();
+
+        for (int i = 0; i < rows.Count; i++)
         {
-            rowNum++;
-            var code = row.GetValueOrDefault("Kode", "").Trim();
+            var row = rows[i];
+            int number = i + 2;
             var name = row.GetValueOrDefault("Nama Metode", "").Trim();
             var initial = row.GetValueOrDefault("Initial", "").Trim();
-            var stateStr = row.GetValueOrDefault("Machine State", "OFF").Trim();
+            var stateText = row.GetValueOrDefault("Machine State", "OFF").Trim();
             var desc = row.GetValueOrDefault("Deskripsi", "").Trim();
 
-            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(name))
-            { errors.Add($"Baris {rowNum}: Kode atau Nama kosong"); continue; }
+            if (string.IsNullOrWhiteSpace(name) || name.Length > 200 || desc.Length > 500)
+            { errors.Add($"Baris {number}: Nama Metode wajib diisi (maks. 200 karakter), deskripsi maks. 500 karakter."); continue; }
 
-            if (await _db.Metodes.AnyAsync(m => m.Code == code))
-            { errors.Add($"Baris {rowNum}: Kode '{code}' sudah ada"); continue; }
-
-            // Parse Machine State (ON/OFF/Either)
-            var machineState = MachineRunningState.OFF;
-            if (stateStr.Equals("ON", StringComparison.OrdinalIgnoreCase))
-                machineState = MachineRunningState.ON;
-            else if (stateStr.Equals("Either", StringComparison.OrdinalIgnoreCase))
-                machineState = MachineRunningState.Either;
-
-            _db.Metodes.Add(new Metode
+            if (string.IsNullOrEmpty(initial))
             {
-                Code = code,
+                var letters = new string(name.Where(char.IsLetter).ToArray());
+                initial = letters.Length > 3 ? letters[..3].ToUpperInvariant() : letters.ToUpperInvariant();
+            }
+            if (initial.Length > 20)
+            { errors.Add($"Baris {number}: Initial maksimal 20 karakter."); continue; }
+
+            if (string.IsNullOrEmpty(stateText)) stateText = "OFF";
+            if (!Enum.TryParse<MachineRunningState>(stateText, true, out var state) ||
+                !Enum.IsDefined(typeof(MachineRunningState), state))
+            { errors.Add($"Baris {number}: Machine State '{stateText}' tidak valid (ON/OFF/Either)."); continue; }
+
+            if (!existing.Add(name))
+            { errors.Add($"Baris {number}: Metode '{name}' sudah ada atau berulang dalam file."); continue; }
+
+            pending.Add(new Metode
+            {
+                Code = "AUTO-" + Guid.NewGuid().ToString("N"),
                 Name = name,
                 Initial = initial.NullIfEmpty(),
-                MachineState = machineState,
-                Description = desc.NullIfEmpty(),
-                CreatedBy = "system",
-                CreatedDate = DateTime.Now
+                MachineState = state,
+                Description = desc.NullIfEmpty()
             });
-            success++;
         }
-        if (success > 0) await _db.SaveChangesAsync();
-        ViewBag.Uploaded = true; ViewBag.SuccessCount = success; ViewBag.TotalRows = rows.Count; ViewBag.Errors = errors;
+
+        if (errors.Count > 0)
+        {
+            errors.Insert(0, "Import dibatalkan. Perbaiki baris yang salah lalu upload kembali.");
+            ReportImport(rows.Count, 0, errors);
+            return View("Master");
+        }
+
+        int success = await SaveBatchAsync(pending, errors);
+        ReportImport(rows.Count, success, errors);
         return View("Master");
     }
 
     // ============================================================
-    // ================ STANDAR ===================================
+    // ================ STANDAR (BERDASARKAN NAMA) =================
     // ============================================================
+    private static readonly string[] StandarHeaders =
+        { "Nama Standar", "Deskripsi" };
+
+    [HttpGet]
     public IActionResult Standar()
     {
-        SetConfig("Standar", "bi-rulers", "Standar",
-            new[] { "Nama Standar", "Deskripsi" }, "Template_Standar.xlsx");
+        ConfigureStandar();
         return View("Master");
     }
 
+    private void ConfigureStandar() => SetConfig("Standar", "bi-rulers", "Standar",
+        StandarHeaders, "Template_Standar.xlsx");
+
+    [HttpGet]
     public IActionResult TemplateStandar()
     {
-        var bytes = _excel.GenerateTemplate(new[] { "Nama Standar", "Deskripsi" }, "Standar");
+        var bytes = _excel.GenerateTemplate(StandarHeaders, "Standar");
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template_Standar.xlsx");
     }
 
@@ -588,30 +662,40 @@ public class ImportController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Standar(IFormFile file)
     {
-        SetConfig("Standar", "bi-rulers", "Standar",
-            new[] { "Nama Standar", "Deskripsi" }, "Template_Standar.xlsx");
-
+        ConfigureStandar();
         var rows = ReadOrError(file, out var err);
         if (rows == null) { ViewBag.Error = err; return View("Master"); }
 
-        int success = 0; var errors = new List<string>(); int rowNum = 1;
-        foreach (var row in rows)
+        var existing = new HashSet<string>(
+            await _db.Standars.AsNoTracking().Select(s => s.Name).ToListAsync(),
+            StringComparer.OrdinalIgnoreCase);
+        var pending = new List<Standar>();
+        var errors = new List<string>();
+
+        for (int i = 0; i < rows.Count; i++)
         {
-            rowNum++;
+            var row = rows[i];
+            int number = i + 2;
             var name = row.GetValueOrDefault("Nama Standar", "").Trim();
             var desc = row.GetValueOrDefault("Deskripsi", "").Trim();
 
-            if (string.IsNullOrEmpty(name))
-            { errors.Add($"Baris {rowNum}: Nama Standar kosong"); continue; }
+            if (string.IsNullOrWhiteSpace(name) || name.Length > 500 || desc.Length > 500)
+            { errors.Add($"Baris {number}: Nama Standar wajib diisi (maks. 500 karakter), deskripsi maks. 500 karakter."); continue; }
+            if (!existing.Add(name))
+            { errors.Add($"Baris {number}: Standar '{name}' sudah ada atau berulang dalam file."); continue; }
 
-            if (await _db.Standars.AnyAsync(s => s.Name.ToLower() == name.ToLower()))
-            { errors.Add($"Baris {rowNum}: Standar '{name}' sudah ada"); continue; }
-
-            _db.Standars.Add(new Standar { Name = name, Description = desc.NullIfEmpty(), CreatedBy = "system", CreatedDate = DateTime.Now });
-            success++;
+            pending.Add(new Standar { Name = name, Description = desc.NullIfEmpty() });
         }
-        if (success > 0) await _db.SaveChangesAsync();
-        ViewBag.Uploaded = true; ViewBag.SuccessCount = success; ViewBag.TotalRows = rows.Count; ViewBag.Errors = errors;
+
+        if (errors.Count > 0)
+        {
+            errors.Insert(0, "Import dibatalkan. Perbaiki baris yang salah lalu upload kembali.");
+            ReportImport(rows.Count, 0, errors);
+            return View("Master");
+        }
+
+        int success = await SaveBatchAsync(pending, errors);
+        ReportImport(rows.Count, success, errors);
         return View("Master");
     }
 
@@ -867,8 +951,8 @@ public class ImportController : Controller
     {
         public int RowNumber { get; init; }
         public int AssetId { get; init; }
-        public int UnitId { get; init; }
-        public int SubUnitId { get; init; }
+        public string UnitName { get; init; } = "";
+        public string SubUnitName { get; init; } = "";
         public string MethodName { get; init; } = "";
         public string StandardName { get; init; } = "";
         public int WorkHourMinutes { get; init; }
@@ -898,8 +982,7 @@ public class ImportController : Controller
         var drafts = new List<PmTaskImportRow>();
 
         var assets = await _db.Assets.AsNoTracking().ToListAsync();
-        var units = await _db.Units.AsNoTracking().ToListAsync();
-        var subUnits = await _db.SubUnits.AsNoTracking().ToListAsync();
+
 
         // TAHAP 1: Validasi seluruh isi Excel sebelum menyimpan apa pun.
         for (int index = 0; index < rows.Count; index++)
@@ -922,14 +1005,10 @@ public class ImportController : Controller
             var subUnitName = Get("Sub Unit");
             var methodName = Get("Metode");
             var standardName = Get("Standar");
-            var unit = units.FirstOrDefault(u =>
-                u.Name.Equals(unitName, StringComparison.OrdinalIgnoreCase));
-            var subUnit = subUnits.FirstOrDefault(u =>
-                u.Name.Equals(subUnitName, StringComparison.OrdinalIgnoreCase));
-
-            if (unit == null || subUnit == null || subUnit.UnitId != unit.Id)
+            if (string.IsNullOrWhiteSpace(unitName) || string.IsNullOrWhiteSpace(subUnitName) ||
+                unitName.Length > 200 || subUnitName.Length > 200)
             {
-                errors.Add($"Baris {rowNumber}: Unit/Sub Unit tidak ditemukan atau tidak cocok.");
+                errors.Add($"Baris {rowNumber}: Unit dan Sub Unit wajib diisi (maksimal 200 karakter).");
                 continue;
             }
             if (string.IsNullOrWhiteSpace(methodName) ||
@@ -981,8 +1060,8 @@ public class ImportController : Controller
             {
                 RowNumber = rowNumber,
                 AssetId = asset.Id,
-                UnitId = unit.Id,
-                SubUnitId = subUnit.Id,
+                UnitName = unitName,
+                SubUnitName = subUnitName,
                 MethodName = methodName,
                 StandardName = standardName,
                 WorkHourMinutes = minutes,
@@ -1053,6 +1132,55 @@ public class ImportController : Controller
                 await transaction.RollbackAsync();
                 ReportImport(rows.Count, 0, errors);
                 return View("Master");
+            }
+
+            // TAHAP 4: Cari/buat Unit dan Sub Unit; satu transaksi dengan Task PM.
+            var units = await _db.Units.ToListAsync();
+            var subUnits = await _db.SubUnits.ToListAsync();
+            var unitIds = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var subIds = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var name in drafts.Select(d => d.UnitName)
+                .Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                var unit = units.FirstOrDefault(u =>
+                    u.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                if (unit == null)
+                {
+                    unit = new Unit
+                    {
+                        Code = "AUTO-" + Guid.NewGuid().ToString("N"),
+                        Name = name,
+                        Description = "Auto-created dari Import Task PM"
+                    };
+                    _db.Units.Add(unit);
+                    units.Add(unit);
+                    await _db.SaveChangesAsync();
+                }
+                unitIds[name] = unit.Id;
+            }
+
+            foreach (var draft in drafts)
+            {
+                int unitId = unitIds[draft.UnitName];
+                string key = unitId + "\u001f" + draft.SubUnitName.ToLowerInvariant();
+                if (subIds.ContainsKey(key)) continue;
+                var sub = subUnits.FirstOrDefault(s => s.UnitId == unitId &&
+                    s.Name.Equals(draft.SubUnitName, StringComparison.OrdinalIgnoreCase));
+                if (sub == null)
+                {
+                    sub = new SubUnit
+                    {
+                        Code = "AUTO-" + Guid.NewGuid().ToString("N"),
+                        Name = draft.SubUnitName,
+                        UnitId = unitId,
+                        Description = "Auto-created dari Import Task PM"
+                    };
+                    _db.SubUnits.Add(sub);
+                    subUnits.Add(sub);
+                    await _db.SaveChangesAsync();
+                }
+                subIds[key] = sub.Id;
             }
 
             // TAHAP 4: Pilih/buat Metode dan Standar dalam transaksi.
@@ -1133,8 +1261,8 @@ public class ImportController : Controller
                 {
                     IdPm = draft.IdPm,
                     AssetId = draft.AssetId,
-                    UnitId = draft.UnitId,
-                    SubUnitId = draft.SubUnitId,
+                    UnitId = unitIds[draft.UnitName],
+                    SubUnitId = subIds[unitIds[draft.UnitName] + "\u001f" + draft.SubUnitName.ToLowerInvariant()],
                     MethodId = method.Id,
                     StandardId = standard.Id,
                     WorkHourMinutes = draft.WorkHourMinutes,

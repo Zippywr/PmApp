@@ -7,18 +7,13 @@ public class SubUnitFormViewModel
 {
     public int Id { get; set; }
 
-    [Required(ErrorMessage = "Kode sub unit wajib diisi")]
-    [MaxLength(50)]
-    [Display(Name = "Kode Sub Unit")]
-    public string Code { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "Nama sub unit wajib diisi")]
+    [Required(ErrorMessage = "Nama Sub Unit wajib diisi")]
     [MaxLength(200)]
     [Display(Name = "Nama Sub Unit")]
     public string Name { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Unit wajib dipilih")]
-    [Display(Name = "Unit")]
+    [Range(1, int.MaxValue, ErrorMessage = "Unit wajib dipilih")]
+    [Display(Name = "Unit Induk")]
     public int UnitId { get; set; }
 
     [MaxLength(500)]

@@ -51,7 +51,7 @@
 
                 <select asp-for="PlantId"
                         asp-items="Model.PlantList"
-                        class="form-select"
+                        class="form-select searchable-select"
                         data-products-url="@Url.Action("GetProducts", "Asset")">
                     <option value="">-- Pilih Plant --</option>
                 </select>
@@ -67,7 +67,7 @@
 
                 <select asp-for="ProductId"
                         asp-items="Model.ProductList"
-                        class="form-select"
+                        class="form-select searchable-select"
                         data-lines-url="@Url.Action("GetLines", "Asset")">
                     <option value="">-- Pilih Product --</option>
                 </select>
@@ -83,7 +83,7 @@
 
                 <select asp-for="LineId"
                         asp-items="Model.LineList"
-                        class="form-select">
+                        class="form-select searchable-select">
                     <option value="">-- Pilih Line --</option>
                 </select>
 
@@ -98,7 +98,7 @@
 
                 <select asp-for="McCategoryId"
                         asp-items="Model.McCategoryList"
-                        class="form-select">
+                        class="form-select searchable-select">
                     <option value="">-- Pilih Kategori Mesin --</option>
                 </select>
 

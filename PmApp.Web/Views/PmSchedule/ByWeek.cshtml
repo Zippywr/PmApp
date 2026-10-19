@@ -89,7 +89,7 @@
 }
 else
 {
-    <form asp-action="UpdateWeek" method="post">
+    <form asp-action="UpdateWeek" method="post" class="form-confirm" data-confirm-title="Konfirmasi Update Mingguan" data-confirm-message="Simpan perubahan PM minggu ini?" data-confirm-button="Ya, Simpan" data-loading-text="Memperbarui PM mingguan...">
         @Html.AntiForgeryToken()
         <input type="hidden" name="weekStart" value="@Model.WeekStart.ToString("yyyy-MM-dd")" />
 

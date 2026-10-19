@@ -32,7 +32,10 @@
         <h5 class="mb-2"><i class="bi bi-check-circle"></i> Hasil Import</h5>
         <p class="mb-0">
             <strong>@successCount</strong> baris berhasil dari <strong>@totalRows</strong> total baris.
-            @if (errors.Any()) { <span class="ms-2"><strong>@errors.Count</strong> baris gagal.</span> }
+            @if (errors.Any())
+            {
+                <span class="ms-2"><strong>@errors.Count</strong> baris gagal.</span>
+            }
         </p>
     </div>
 
@@ -81,7 +84,7 @@ else
 
             <div class="mb-4">
                 <h6 class="text-primary"><span class="badge bg-primary">3</span> Upload File</h6>
-                <form asp-action="@actionName" method="post" enctype="multipart/form-data">
+                <form asp-action="@actionName" method="post" enctype="multipart/form-data" class="form-confirm" data-confirm-title="Konfirmasi Import" data-confirm-message="Import data dari file Excel ini?" data-confirm-button="Ya, Import" data-loading-text="Mengimport data Excel...">
                     @Html.AntiForgeryToken()
                     <div class="mb-3">
                         <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required />

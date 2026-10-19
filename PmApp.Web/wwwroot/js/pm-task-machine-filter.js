@@ -1,123 +1,247 @@
 ﻿
-document.addEventListener("DOMContentLoaded", () => {
-    const plant = document.getElementById("PlantId");
-    const product = document.getElementById("ProductId");
-    const line = document.getElementById("LineId");
-    const machine = document.getElementById("AssetId");
+$(function () {
 
-    if (!plant || !product || !line || !machine) return;
+    // ============================================
+    // DROPDOWN PLANT > PRODUCT > LINE > MACHINE
+    // Mendukung Select2 dan dropdown biasa
+    // ============================================
 
-    let activeRequest = null;
+    const $plant = $("#PlantId");
+    const $product = $("#ProductId");
+    const $line = $("#LineId");
+    const $machine = $("#AssetId");
 
-    function reset(select, text) {
-        select.replaceChildren(new Option(text, ""));
-        select.value = "";
+    if (!$plant.length ||
+        !$product.length ||
+        !$line.length ||
+        !$machine.length) {
+        return;
     }
 
-    async function loadOptions(url, parameter, value, target) {
-        if (activeRequest) activeRequest.abort();
+    let request = null;
+    let requestVersion = 0;
 
+    // ============================================
+    // REFRESH TAMPILAN SELECT2
+    // ============================================
+    function refresh($select) {
+        $select.trigger("change.select2");
+    }
+
+    // ============================================
+    // RESET DROPDOWN
+    // ============================================
+    function reset($select, placeholder) {
+        $select.empty();
+
+        $select.append(
+            new Option(placeholder, "", true, true)
+        );
+
+        $select.prop("disabled", true);
+        refresh($select);
+    }
+
+    // ============================================
+    // BATALKAN REQUEST SEBELUMNYA
+    // ============================================
+    function cancelRequest() {
+        requestVersion++;
+
+        if (request) {
+            request.abort();
+            request = null;
+        }
+    }
+
+    // ============================================
+    // LOAD DATA DARI CONTROLLER
+    // ============================================
+    async function loadOptions(
+        url,
+        parameter,
+        value,
+        $target,
+        placeholder
+    ) {
+        cancelRequest();
+
+        const version = requestVersion;
         const controller = new AbortController();
-        activeRequest = controller;
 
-        target.disabled = true;
-        reset(target, "Memuat data...");
+        request = controller;
+
+        reset($target, "Memuat data...");
 
         try {
-            const endpoint = new URL(url, window.location.origin);
+            const endpoint = new URL(
+                url,
+                window.location.origin
+            );
+
             endpoint.searchParams.set(parameter, value);
 
             const response = await fetch(endpoint, {
                 signal: controller.signal,
-                headers: { "Accept": "application/json" }
+                headers: {
+                    "Accept": "application/json"
+                }
             });
 
             if (!response.ok) {
-                throw new Error("Gagal memuat data.");
+                throw new Error(
+                    "HTTP " + response.status
+                );
             }
 
             const data = await response.json();
 
-            if (controller.signal.aborted) return;
+            // Abaikan respons yang sudah tidak relevan
+            if (version !== requestVersion) return;
 
-            reset(target, "-- Pilih --");
+            $target.empty();
+
+            $target.append(
+                new Option(placeholder, "", true, true)
+            );
 
             data.forEach(item => {
-                target.add(new Option(item.text, item.id));
+                $target.append(
+                    new Option(item.text, item.id)
+                );
             });
 
             if (data.length === 0) {
-                reset(target, "Tidak ada data");
+                reset($target, "Tidak ada data");
+                return;
             }
 
-            target.disabled = false;
-        } catch (error) {
-            if (error.name === "AbortError") return;
+            $target.prop("disabled", false);
 
-            console.error(error);
-            reset(target, "Gagal memuat data");
-            target.disabled = true;
+            refresh($target);
+
+        } catch (error) {
+
+            if (error.name === "AbortError") {
+                return;
+            }
+
+            if (version !== requestVersion) return;
+
+            console.error(
+                "Gagal memuat dropdown:",
+                error
+            );
+
+            reset($target, "Gagal memuat data");
+
+        } finally {
+            if (version === requestVersion) {
+                request = null;
+            }
         }
     }
 
-    plant.addEventListener("change", async () => {
-        if (activeRequest) activeRequest.abort();
+    // ============================================
+    // PLANT BERUBAH
+    // ============================================
+    $plant.on("change", async function () {
 
-        reset(product, "-- Pilih Product --");
-        reset(line, "-- Pilih Line --");
-        reset(machine, "-- Pilih Machine --");
+        cancelRequest();
 
-        product.disabled = true;
-        line.disabled = true;
-        machine.disabled = true;
+        reset($product, "-- Pilih Product --");
+        reset($line, "-- Pilih Line --");
+        reset($machine, "-- Pilih Machine --");
 
-        if (!plant.value) return;
+        const plantId = $plant.val();
+
+        if (!plantId) return;
 
         await loadOptions(
-            plant.dataset.productsUrl,
+            $plant.data("products-url"),
             "plantId",
-            plant.value,
-            product
+            plantId,
+            $product,
+            "-- Pilih Product --"
         );
     });
 
-    product.addEventListener("change", async () => {
-        if (activeRequest) activeRequest.abort();
+    // ============================================
+    // PRODUCT BERUBAH
+    // ============================================
+    $product.on("change", async function () {
 
-        reset(line, "-- Pilih Line --");
-        reset(machine, "-- Pilih Machine --");
+        cancelRequest();
 
-        line.disabled = true;
-        machine.disabled = true;
+        reset($line, "-- Pilih Line --");
+        reset($machine, "-- Pilih Machine --");
 
-        if (!product.value) return;
+        const productId = $product.val();
+
+        if (!productId) return;
 
         await loadOptions(
-            product.dataset.linesUrl,
+            $product.data("lines-url"),
             "productId",
-            product.value,
-            line
+            productId,
+            $line,
+            "-- Pilih Line --"
         );
     });
 
-    line.addEventListener("change", async () => {
-        if (activeRequest) activeRequest.abort();
+    // ============================================
+    // LINE BERUBAH
+    // ============================================
+    $line.on("change", async function () {
 
-        reset(machine, "-- Pilih Machine --");
-        machine.disabled = true;
+        cancelRequest();
 
-        if (!line.value) return;
+        reset($machine, "-- Pilih Machine --");
+
+        const lineId = $line.val();
+
+        if (!lineId) return;
 
         await loadOptions(
-            line.dataset.machinesUrl,
+            $line.data("machines-url"),
             "lineId",
-            line.value,
-            machine
+            lineId,
+            $machine,
+            "-- Pilih Machine --"
         );
     });
 
-    // Kondisi awal Create
-    product.disabled = !plant.value;
-    line.disabled = !product.value;
-    machine.disabled = !line.value;
+    // ============================================
+    // MACHINE BERUBAH
+    // Agar preview ID-PM ikut diperbarui
+    // ============================================
+    $machine.on("select2:select select2:clear", function () {
+
+        this.dispatchEvent(
+            new Event("change", { bubbles: false })
+        );
+    });
+
+    // ============================================
+    // KONDISI AWAL
+    // ============================================
+    $product.prop(
+        "disabled",
+        !$plant.val()
+    );
+
+    $line.prop(
+        "disabled",
+        !$product.val()
+    );
+
+    $machine.prop(
+        "disabled",
+        !$line.val()
+    );
+
+    refresh($product);
+    refresh($line);
+    refresh($machine);
+
 });

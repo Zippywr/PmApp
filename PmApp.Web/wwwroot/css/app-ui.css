@@ -109,3 +109,43 @@
     font-size: 1.25rem !important;
     color: #545454 !important;
 }
+
+/* Searchable Select2 — PM System */
+
+.select2-container {
+    width: 100% !important;
+}
+
+.select2-container--default .select2-selection--single {
+    min-height: 44px;
+    border: 1px solid #ced4da;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+}
+
+    .select2-container--default
+    .select2-selection--single
+    .select2-selection__rendered {
+        color: #212529;
+        padding-left: 12px;
+        padding-right: 30px;
+        line-height: normal;
+    }
+
+    .select2-container--default
+    .select2-selection--single
+    .select2-selection__arrow {
+        height: 42px;
+    }
+
+.select2-container--default
+.select2-results__options {
+    max-height: 220px !important;
+}
+
+.select2-container--default.select2-container--focus
+.select2-selection--single {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 .2rem rgba(37, 99, 235, .12);
+}

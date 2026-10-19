@@ -37,7 +37,6 @@
         <table class="table table-hover mb-0 datatable">
             <thead class="table-light">
                 <tr>
-                    <th>Kode</th>
                     <th>Nama Sub Unit</th>
                     <th>Unit</th>
                     <th>Deskripsi</th>
@@ -48,7 +47,6 @@
                 @foreach (var item in Model)
                 {
                     <tr>
-                        <td><strong>@item.Code</strong></td>
                         <td>@item.Name</td>
                         <td><span class="badge bg-info">@item.Unit?.Name</span></td>
                         <td>@item.Description</td>
@@ -64,7 +62,7 @@
                                 <button type="button"
                                         class="btn btn-sm btn-danger btn-delete"
                                         data-name="Sub Unit '@item.Name'"
-                                        data-detail="Kode: @item.Code">
+                                        data-detail="Unit: @item.Unit?.Name">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>

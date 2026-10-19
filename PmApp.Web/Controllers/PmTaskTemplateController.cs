@@ -38,7 +38,7 @@ public class PmTaskTemplateController : Controller
     // ============================================================
     // LIST PM — Grouped by Machine
     // ============================================================
-    public async Task<IActionResult> ListPm(int? lineId, int? assetId, string? search)
+    public async Task<IActionResult> ListPm(int? lineId, int? productId, string? search)
     {
         var tasksQuery = _db.PmTaskTemplates
             .Include(t => t.Asset).ThenInclude(a => a!.Line)
@@ -50,8 +50,8 @@ public class PmTaskTemplateController : Controller
             .Where(t => t.IsActive)
             .AsQueryable();
 
-        if (assetId.HasValue)
-            tasksQuery = tasksQuery.Where(t => t.AssetId == assetId.Value);
+        if (productId.HasValue)
+            tasksQuery = tasksQuery.Where(t => t.Asset!.ProductId == productId.Value);
 
         if (lineId.HasValue)
             tasksQuery = tasksQuery.Where(t => t.Asset!.LineId == lineId.Value);
@@ -83,9 +83,10 @@ public class PmTaskTemplateController : Controller
             .ToList();
 
         ViewBag.Lines = await _db.Lines.OrderBy(l => l.Code).ToListAsync();
-        ViewBag.Assets = await _db.Assets.OrderBy(a => a.Code).ToListAsync();
+        ViewBag.Products = await _db.Products.AsNoTracking()
+            .OrderBy(p => p.Name).ToListAsync();
         ViewBag.LineId = lineId;
-        ViewBag.AssetId = assetId;
+        ViewBag.ProductId = productId;
         ViewBag.Search = search;
 
         return View(grouped);
@@ -110,6 +111,10 @@ public class PmTaskTemplateController : Controller
     public async Task<IActionResult> Create(PmTaskTemplateFormViewModel vm)
     {
         await ValidateMachineHierarchyAsync(vm);
+        if (string.IsNullOrWhiteSpace(vm.UnitName))
+            ModelState.AddModelError(nameof(vm.UnitName), "Unit wajib diisi.");
+        if (string.IsNullOrWhiteSpace(vm.SubUnitName))
+            ModelState.AddModelError(nameof(vm.SubUnitName), "Sub Unit wajib diisi.");
 
         if (!ModelState.IsValid)
         {
@@ -127,6 +132,7 @@ public class PmTaskTemplateController : Controller
             var idPm = await _pmIdGenerator.GenerateAsync(
                 vm.AssetId, vm.TaskSequence);
 
+            var (unitId, subUnitId) = await GetOrCreateUnitSubUnitAsync(vm.UnitName, vm.SubUnitName);
             var methodId = await GetOrCreateMetodeAsync(vm.MethodName);
             var standardId = await GetOrCreateStandarAsync(vm.StandardName);
             var week = await GetWeekNumberAsync(vm.AssetId, vm.Week);
@@ -135,8 +141,8 @@ public class PmTaskTemplateController : Controller
             {
                 IdPm = idPm,
                 AssetId = vm.AssetId,
-                UnitId = vm.UnitId,
-                SubUnitId = vm.SubUnitId,
+                UnitId = unitId,
+                SubUnitId = subUnitId,
                 MethodId = methodId,
                 StandardId = standardId,
                 WorkHourMinutes = vm.WorkHourMinutes,
@@ -180,6 +186,8 @@ public class PmTaskTemplateController : Controller
     public async Task<IActionResult> Edit(int id)
     {
         var task = await _db.PmTaskTemplates
+            .Include(t => t.Unit)
+            .Include(t => t.SubUnit)
             .Include(t => t.Method)
             .Include(t => t.Standard)
             .FirstOrDefaultAsync(t => t.Id == id);
@@ -192,6 +200,8 @@ public class PmTaskTemplateController : Controller
             AssetId = task.AssetId,
             UnitId = task.UnitId,
             SubUnitId = task.SubUnitId,
+            UnitName = task.Unit?.Name ?? "",
+            SubUnitName = task.SubUnit?.Name ?? "",
             MethodName = task.Method?.Name ?? string.Empty,
             StandardName = task.Standard?.Name ?? string.Empty,
             WorkHourMinutes = task.WorkHourMinutes,
@@ -244,27 +254,39 @@ public class PmTaskTemplateController : Controller
             return View(vm);
         }
 
-        var methodId = await GetOrCreateMetodeAsync(vm.MethodName);
-        var standardId = await GetOrCreateStandarAsync(vm.StandardName);
+        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        try
+        {
+            var (unitId, subUnitId) = await GetOrCreateUnitSubUnitAsync(vm.UnitName, vm.SubUnitName);
+            var methodId = await GetOrCreateMetodeAsync(vm.MethodName);
+            var standardId = await GetOrCreateStandarAsync(vm.StandardName);
 
-        // TIDAK ADA:
-        // task.AssetId = vm.AssetId;
-        // task.IdPm = vm.IdPm;
+            // Mesin dan ID-PM tidak diubah.
+            task.UnitId = unitId;
+            task.SubUnitId = subUnitId;
+            task.MethodId = methodId;
+            task.StandardId = standardId;
+            task.WorkHourMinutes = vm.WorkHourMinutes;
+            task.ManPower = vm.ManPower;
+            task.MachineState = vm.MachineState;
+            task.PeriodeMonth = vm.PeriodeMonth;
+            task.StartMonth = vm.StartMonth;
+            task.Week = vm.Week;
+            task.Remark = vm.Remark;
+            task.IsActive = vm.IsActive;
 
-        task.UnitId = vm.UnitId;
-        task.SubUnitId = vm.SubUnitId;
-        task.MethodId = methodId;
-        task.StandardId = standardId;
-        task.WorkHourMinutes = vm.WorkHourMinutes;
-        task.ManPower = vm.ManPower;
-        task.MachineState = vm.MachineState;
-        task.PeriodeMonth = vm.PeriodeMonth;
-        task.StartMonth = vm.StartMonth;
-        task.Week = vm.Week;
-        task.Remark = vm.Remark;
-        task.IsActive = vm.IsActive;
-
-        await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or DbUpdateException)
+        {
+            await transaction.RollbackAsync();
+            _db.ChangeTracker.Clear();
+            ModelState.AddModelError(string.Empty,
+                "Gagal menyimpan Unit/Sub Unit atau Task. Periksa duplikasi dan coba lagi.");
+            await PopulateDropdownsAsync(vm);
+            return View(vm);
+        }
 
         TempData["Success"] =
             $"Task PM {task.IdPm} berhasil diperbarui.";
@@ -319,6 +341,58 @@ public class PmTaskTemplateController : Controller
 
         // Rotasi: 1, 2, 3, 4, 1, 2, 3, 4, ...
         return (existingCount % 4) + 1;
+    }
+
+    // UNIT / SUB UNIT — mencari atau membuat dalam transaksi milik caller.
+    private async Task<(int UnitId, int SubUnitId)> GetOrCreateUnitSubUnitAsync(
+        string? unitInput, string? subUnitInput)
+    {
+        var unitName = unitInput?.Trim() ?? "";
+        var subName = subUnitInput?.Trim() ?? "";
+        if (unitName.Length is < 1 or > 200 || subName.Length is < 1 or > 200)
+            throw new InvalidOperationException("Nama Unit/Sub Unit harus 1–200 karakter.");
+
+        var normalizedUnit = unitName.ToLower();
+        var unit = await _db.Units.FirstOrDefaultAsync(u => u.Name.ToLower() == normalizedUnit);
+        if (unit == null)
+        {
+            unit = new Unit
+            {
+                Code = "AUTO-" + Guid.NewGuid().ToString("N"),
+                Name = unitName,
+                Description = "Auto-created dari form PM"
+            };
+            _db.Units.Add(unit);
+            await _db.SaveChangesAsync();
+        }
+
+        var normalizedSub = subName.ToLower();
+        var sub = await _db.SubUnits.FirstOrDefaultAsync(s =>
+            s.UnitId == unit.Id && s.Name.ToLower() == normalizedSub);
+        if (sub == null)
+        {
+            sub = new SubUnit
+            {
+                Code = "AUTO-" + Guid.NewGuid().ToString("N"),
+                Name = subName,
+                UnitId = unit.Id,
+                Description = "Auto-created dari form PM"
+            };
+            _db.SubUnits.Add(sub);
+            await _db.SaveChangesAsync();
+        }
+        return (unit.Id, sub.Id);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetSubUnitNames(string? unitName)
+    {
+        if (string.IsNullOrWhiteSpace(unitName)) return Json(Array.Empty<string>());
+        var normalized = unitName.Trim().ToLower();
+        var data = await _db.SubUnits.AsNoTracking()
+            .Where(s => s.Unit != null && s.Unit.Name.ToLower() == normalized)
+            .OrderBy(s => s.Name).Select(s => s.Name).ToListAsync();
+        return Json(data);
     }
 
     // ============================================================
@@ -653,6 +727,14 @@ public class PmTaskTemplateController : Controller
             })
             .ToListAsync();
 
+        vm.UnitSuggestion = await _db.Units.AsNoTracking()
+            .OrderBy(u => u.Name).Select(u => u.Name).ToListAsync();
+        vm.SubUnitSuggestion = string.IsNullOrWhiteSpace(vm.UnitName)
+            ? new List<string>()
+            : await _db.SubUnits.AsNoTracking()
+                .Where(s => s.Unit != null && s.Unit.Name.ToLower() == vm.UnitName.Trim().ToLower())
+                .OrderBy(s => s.Name).Select(s => s.Name).ToListAsync();
+
         // ========================================================
         // 5. UNIT
         // ========================================================
@@ -662,7 +744,7 @@ public class PmTaskTemplateController : Controller
             .Select(u => new SelectListItem
             {
                 Value = u.Id.ToString(),
-                Text = u.Code + " - " + u.Name
+                Text = u.Name
             })
             .ToListAsync();
 
@@ -675,7 +757,7 @@ public class PmTaskTemplateController : Controller
             .Select(s => new SelectListItem
             {
                 Value = s.Id.ToString(),
-                Text = s.Code + " - " + s.Name
+                Text = s.Name
             })
             .ToListAsync();
 

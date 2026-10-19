@@ -2,9 +2,9 @@
 @{
     ViewData["Title"] = "Daftar Task PM";
     var lines = (List<PmApp.Web.Models.Entities.Line>)ViewBag.Lines;
-    var assets = (List<PmApp.Web.Models.Entities.Asset>)ViewBag.Assets;
+    var products = (List<PmApp.Web.Models.Entities.Product>)ViewBag.Products;
     var lineId = (int?)ViewBag.LineId;
-    var assetId = (int?)ViewBag.AssetId;
+    var productId = (int?)ViewBag.ProductId;
     var search = (string?)ViewBag.Search;
     int totalMachines = Model.Count();
     int totalTasks = Model.Sum(g => g.Tasks.Count);
@@ -27,6 +27,52 @@
     </script>
 }
 
+<style>
+    .pm-machine-header {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .pm-machine-title {
+        flex-shrink: 0;
+    }
+
+    .pm-machine-meta {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+        margin-left: auto;
+        flex-wrap: wrap;
+    }
+
+    .pm-machine-export {
+        margin-left: 3px;
+    }
+
+        .pm-machine-export .dropdown-menu {
+            z-index: 1080;
+        }
+
+    .pm-machine-toggle {
+        flex-shrink: 0;
+        margin-left: 4px;
+    }
+
+    @@media (max-width: 767.98px) {
+        .pm-machine-header {
+            flex-wrap: wrap;
+        }
+
+        .pm-machine-meta {
+            margin-left: auto;
+            justify-content: flex-end;
+        }
+    }
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">
         <i class="bi bi-list-ul"></i> Daftar Task PM
@@ -44,7 +90,7 @@
         <form method="get" class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label">Line</label>
-                <select name="lineId" class="form-select">
+                <select name="lineId" class="form-select searchable-select">
                     <option value="">-- Semua Line --</option>
                     @foreach (var l in lines)
                     {
@@ -60,18 +106,18 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">Mesin</label>
-                <select name="assetId" class="form-select">
-                    <option value="">-- Semua Mesin --</option>
-                    @foreach (var a in assets)
+                <label class="form-label">Product</label>
+                <select name="productId" class="form-select searchable-select">
+                    <option value="">-- Semua Product --</option>
+                    @foreach (var p in products)
                     {
-                        if (assetId == a.Id)
+                        if (productId == p.Id)
                         {
-                            <option value="@a.Id" selected>@a.Code - @a.Name</option>
+                            <option value="@p.Id" selected>@p.Code - @p.Name</option>
                         }
                         else
                         {
-                            <option value="@a.Id">@a.Code - @a.Name</option>
+                            <option value="@p.Id">@p.Code - @p.Name</option>
                         }
                     }
                 </select>
@@ -105,81 +151,89 @@
 else
 {
     <div class="accordion" id="machineAccordion">
-        @{ int idx = 0; }
+        @{
+            int idx = 0;
+        }
         @foreach (var group in Model)
         {
             idx++;
             var collapseId = "machine-" + group.Asset.Id;
             var isOpen = Model.Count() == 1;
 
-            <div class="accordion-item mb-2 border-0 shadow-sm">
-                <h2 class="accordion-header" id="heading-@group.Asset.Id">
-                    <div class="accordion-button @(isOpen ? "" : "collapsed") d-flex flex-wrap align-items-center gap-3"
-                         data-bs-toggle="collapse"
-                         data-bs-target="#@collapseId"
-                         aria-expanded="@(isOpen ? "true" : "false")"
-                         role="button"
-                         style="cursor: pointer;">
+            <div class="accordion-item mb-2 border-0 shadow-sm pm-machine-item">
+                <div class="pm-machine-header d-flex align-items-center gap-3 px-3 py-3">
+                    <button type="button"
+                            class="pm-machine-toggle btn p-0 border-0 bg-transparent text-start d-flex align-items-center gap-2"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#@collapseId"
+                            aria-expanded="@(isOpen ? "true" : "false")"
+                            aria-controls="@collapseId">
+                        <i class="bi bi-gear-fill text-primary"></i>
+                        <strong>@group.Asset.Code</strong>
+                        @if (!string.IsNullOrWhiteSpace(group.Asset.Name) &&
+                             !string.Equals(group.Asset.Name, group.Asset.Code, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <span class="text-muted d-none d-lg-inline">@group.Asset.Name</span>
+                        }
+                    </button>
 
-                        <div>
-                            <i class="bi bi-gear-fill text-primary"></i>
-                            <strong class="ms-1">@group.Asset.Code</strong>
-                            <span class="text-muted ms-2">@group.Asset.Name</span>
-                        </div>
-
-                        <div class="ms-auto d-flex align-items-center gap-2">
-
-                            @if (group.Asset.Line != null)
-                            {
-                                <span class="badge bg-info">
-                                    <i class="bi bi-diagram-2"></i> @group.Asset.Line.Name
-                                </span>
-                            }
-                            @if (group.Asset.Area != null)
-                            {
-                                <span class="badge bg-secondary">
-                                    <i class="bi bi-grid-3x3-gap"></i> @group.Asset.Area.Name
-                                </span>
-                            }
-                            <span class="badge bg-primary">
-                                <i class="bi bi-list-check"></i> @group.Tasks.Count Task
+                    <div class="pm-machine-meta d-flex align-items-center flex-wrap ms-auto">
+                        @if (group.Asset.Line != null)
+                        {
+                            <span class="badge bg-info text-dark">
+                                <i class="bi bi-diagram-2"></i> @group.Asset.Line.Name
                             </span>
+                        }
+                        @if (group.Asset.ProductId.HasValue)
+                        {
+                            var product = products.FirstOrDefault(p => p.Id == group.Asset.ProductId.Value);
+                            if (product != null)
+                            {
+                                <span class="badge bg-secondary" title="Product">
+                                    <i class="bi bi-box"></i> @product.Name
+                                </span>
+                            }
+                        }
+                        <span class="badge bg-primary">
+                            <i class="bi bi-list-check"></i> @group.Tasks.Count Task
+                        </span>
 
-                            <div class="dropdown" onclick="event.stopPropagation();">
-                                <button type="button"
-                                        class="btn btn-sm btn-success dropdown-toggle"
-                                        data-bs-toggle="dropdown"
-                                        data-bs-auto-close="true"
-                                        aria-expanded="false">
-                                    <i class="bi bi-download"></i> Export
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <a class="dropdown-item"
-                                           asp-controller="Export" asp-action="MachineExcel"
-                                           asp-route-assetId="@group.Asset.Id">
-                                            <i class="bi bi-file-earmark-excel text-success"></i> Excel (.xlsx)
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item"
-                                           asp-controller="Export" asp-action="MachinePdf"
-                                           asp-route-assetId="@group.Asset.Id">
-                                            <i class="bi bi-file-earmark-pdf text-danger"></i> PDF
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item"
-                                           asp-controller="Export" asp-action="MachineCsv"
-                                           asp-route-assetId="@group.Asset.Id">
-                                            <i class="bi bi-file-earmark-text text-secondary"></i> CSV
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
+                        <div class="dropdown pm-machine-export">
+                            <button type="button"
+                                    class="btn btn-sm btn-success dropdown-toggle"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false">
+                                <i class="bi bi-download"></i> Export
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Export" asp-action="MachineExcel"
+                                       asp-route-assetId="@group.Asset.Id">
+                                        <i class="bi bi-file-earmark-excel text-success"></i> Excel (.xlsx)
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Export" asp-action="MachinePdf"
+                                       asp-route-assetId="@group.Asset.Id">
+                                        <i class="bi bi-file-earmark-pdf text-danger"></i> PDF
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Export" asp-action="MachineCsv"
+                                       asp-route-assetId="@group.Asset.Id">
+                                        <i class="bi bi-file-earmark-text text-secondary"></i> CSV
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
                     </div>
-                </h2>
+                    <button type="button" class="pm-machine-arrow btn btn-sm btn-link text-dark p-2"
+                            data-bs-toggle="collapse" data-bs-target="#@collapseId"
+                            aria-controls="@collapseId" aria-expanded="@(isOpen ? "true" : "false")"
+                            aria-label="Buka atau tutup Task PM">
+                        <i class="bi bi-chevron-down pm-machine-chevron"></i>
+                    </button>
+                </div>
 
                 <div id="@collapseId"
                      class="accordion-collapse collapse @(isOpen ? "show" : "")"

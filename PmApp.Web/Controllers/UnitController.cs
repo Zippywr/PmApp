@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PmApp.Web.Data;
 using PmApp.Web.Models.Entities;
@@ -6,6 +7,7 @@ using PmApp.Web.Models.ViewModels;
 
 namespace PmApp.Web.Controllers;
 
+[Authorize(Roles = AppRoles.Admin)]
 public class UnitController : Controller
 {
     private readonly AppDbContext _db;
@@ -17,7 +19,7 @@ public class UnitController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var list = await _db.Units.OrderBy(u => u.Code).ToListAsync();
+        var list = await _db.Units.OrderBy(u => u.Name).ToListAsync();
         return View(list);
     }
 
@@ -30,17 +32,20 @@ public class UnitController : Controller
     {
         if (!ModelState.IsValid) return View(vm);
 
-        if (await _db.Units.AnyAsync(u => u.Code == vm.Code))
+        var name = vm.Name.Trim();
+        if (await _db.Units.AnyAsync(u => u.Name.ToLower() == name.ToLower()))
         {
-            ModelState.AddModelError(nameof(vm.Code), "Kode unit sudah digunakan");
+            ModelState.AddModelError(nameof(vm.Name), "Nama Unit sudah digunakan.");
             return View(vm);
         }
 
         _db.Units.Add(new Unit
         {
-            Code = vm.Code,
-            Name = vm.Name,
-            Description = vm.Description
+            // Sementara tetap diisi karena kolom Code NOT NULL + unique index.
+            // Tidak ditampilkan/diinput pengguna.
+            Code = "AUTO-" + Guid.NewGuid().ToString("N"),
+            Name = name,
+            Description = vm.Description?.Trim()
         });
 
         await _db.SaveChangesAsync();
@@ -57,7 +62,6 @@ public class UnitController : Controller
         return View(new UnitFormViewModel
         {
             Id = item.Id,
-            Code = item.Code,
             Name = item.Name,
             Description = item.Description
         });
@@ -73,15 +77,16 @@ public class UnitController : Controller
         var item = await _db.Units.FirstOrDefaultAsync(u => u.Id == id);
         if (item == null) return NotFound();
 
-        if (await _db.Units.AnyAsync(u => u.Code == vm.Code && u.Id != id))
+        var name = vm.Name.Trim();
+        if (await _db.Units.AnyAsync(u => u.Id != id && u.Name.ToLower() == name.ToLower()))
         {
-            ModelState.AddModelError(nameof(vm.Code), "Kode unit sudah digunakan");
+            ModelState.AddModelError(nameof(vm.Name), "Nama Unit sudah digunakan.");
             return View(vm);
         }
 
-        item.Code = vm.Code;
-        item.Name = vm.Name;
-        item.Description = vm.Description;
+        // Code lama tidak diubah saat Edit.
+        item.Name = name;
+        item.Description = vm.Description?.Trim();
 
         await _db.SaveChangesAsync();
         TempData["Success"] = "Unit berhasil diperbarui.";

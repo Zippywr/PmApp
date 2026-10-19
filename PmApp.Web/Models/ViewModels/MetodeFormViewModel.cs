@@ -7,12 +7,7 @@ public class MetodeFormViewModel
 {
     public int Id { get; set; }
 
-    [Required(ErrorMessage = "Kode metode wajib diisi")]
-    [MaxLength(50)]
-    [Display(Name = "Kode Metode")]
-    public string Code { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "Nama metode wajib diisi")]
+    [Required(ErrorMessage = "Nama Metode wajib diisi")]
     [MaxLength(200)]
     [Display(Name = "Nama Metode")]
     public string Name { get; set; } = string.Empty;

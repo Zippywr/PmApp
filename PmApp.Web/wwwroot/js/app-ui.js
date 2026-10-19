@@ -64,6 +64,13 @@
         Swal.close();
     };
 
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted && Swal.isVisible()) Swal.close();
+        document.querySelectorAll('form.form-confirm').forEach(function (form) {
+            delete form.dataset.confirmed;
+        });
+    });
+
     // ============================================
     // CONFIRM ACTION
     // ============================================
@@ -98,9 +105,9 @@
             detailHtml = '<div style="text-align:left; background:#f8f9fa; border-radius:8px; padding:15px; margin-top:15px; font-size:0.9rem;">';
             opts.details.forEach(function (d) {
                 detailHtml += '<div style="padding:4px 0;">' +
-                              '<strong style="color:#495057;">' + d.label + ':</strong> ' +
-                              '<span style="color:#6c757d;"> ' + d.value + '</span>' +
-                              '</div>';
+                    '<strong style="color:#495057;">' + d.label + ':</strong> ' +
+                    '<span style="color:#6c757d;"> ' + d.value + '</span>' +
+                    '</div>';
             });
             detailHtml += '</div>';
         }
@@ -141,7 +148,17 @@
         // 1. Form dengan class "form-confirm" → konfirmasi sebelum submit
         document.querySelectorAll('form.form-confirm').forEach(function (form) {
             form.addEventListener('submit', function (e) {
-                if (form.dataset.confirmed === 'true') return;
+                if (form.dataset.confirmed === 'true') {
+                    showLoading(form.dataset.loadingText || 'Menyimpan data...');
+                    return;
+                }
+
+                // Hindari SweetAlert saat form belum lolos constraint validation.
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    e.preventDefault();
+                    return;
+                }
 
                 e.preventDefault();
 
@@ -157,8 +174,10 @@
                     cancelText: 'Batal',
                     onConfirm: function () {
                         form.dataset.confirmed = 'true';
-                        showLoading('Menyimpan data...');
-                        form.submit();
+                        showLoading(form.dataset.loadingText || 'Menyimpan data...');
+                        // requestSubmit memicu validasi + submit event seperti klik asli.
+                        // Flag confirmed mencegah dialog konfirmasi kedua.
+                        form.requestSubmit();
                     }
                 });
             });

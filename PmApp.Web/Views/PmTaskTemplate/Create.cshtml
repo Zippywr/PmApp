@@ -225,7 +225,8 @@
 
                         <select asp-for="PlantId"
                                 asp-items="Model.PlantList"
-                                class="form-select"
+                                class="form-select searchable-select"
+                                data-placeholder="-- Cari atau Pilih Plant --"
                                 data-products-url="@Url.Action("GetProducts", "PmTaskTemplate")">
                             <option value="">-- Pilih Plant --</option>
                         </select>
@@ -240,12 +241,12 @@
 
                         <select asp-for="ProductId"
                                 asp-items="Model.ProductList"
-                                class="form-select"
+                                class="form-select searchable-select"
+                                data-placeholder="-- Cari atau Pilih Product --"
                                 data-lines-url="@Url.Action("GetLines", "PmTaskTemplate")"
                                 disabled="@(Model.PlantId == null)">
                             <option value="">-- Pilih Product --</option>
                         </select>
-
                         <span asp-validation-for="ProductId"
                               class="text-danger small"></span>
                     </div>
@@ -256,7 +257,8 @@
 
                         <select asp-for="LineId"
                                 asp-items="Model.LineList"
-                                class="form-select"
+                                class="form-select searchable-select"
+                                data-placeholder="-- Cari atau Pilih Line --"
                                 data-machines-url="@Url.Action("GetMachines", "PmTaskTemplate")"
                                 disabled="@(Model.ProductId == null)">
                             <option value="">-- Pilih Line --</option>
@@ -274,7 +276,8 @@
 
                         <select asp-for="AssetId"
                                 asp-items="Model.AssetList"
-                                class="form-select"
+                                class="form-select searchable-select"
+                                data-placeholder="-- Cari atau Pilih Machine --"
                                 disabled="@(Model.LineId == null)">
                             <option value="">-- Pilih Machine --</option>
                         </select>
@@ -399,4 +402,7 @@
 
     <script src="~/js/pm-task-id-preview.js"
             asp-append-version="true"></script>
+
+    <script src="~/js/pm-task-unit-tags.js"
+        asp-append-version="true"></script>
 }

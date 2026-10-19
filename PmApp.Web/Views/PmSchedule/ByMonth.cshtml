@@ -101,7 +101,7 @@
 }
 else
 {
-    <form asp-action="UpdateMonth" method="post">
+    <form asp-action="UpdateMonth" method="post" class="form-confirm" data-confirm-title="Konfirmasi Update Bulanan" data-confirm-message="Simpan perubahan PM bulan ini?" data-confirm-button="Ya, Simpan" data-loading-text="Memperbarui PM bulanan...">
         @Html.AntiForgeryToken()
         <input type="hidden" name="year" value="@Model.Year" />
         <input type="hidden" name="month" value="@Model.Month" />

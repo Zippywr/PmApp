@@ -215,7 +215,7 @@
 <div class="card border-0 shadow-sm">
     <div class="card-body p-4">
 
-        <form asp-action="UpdateCell" asp-route-id="@Model.ScheduleId" method="post">
+        <form asp-action="UpdateCell" asp-route-id="@Model.ScheduleId" method="post" class="form-confirm" data-confirm-title="Konfirmasi Update PM" data-confirm-message="Simpan perubahan pelaksanaan PM ini?" data-confirm-button="Ya, Simpan" data-loading-text="Memperbarui pelaksanaan PM...">
             @Html.AntiForgeryToken()
 
             <!-- ============ SECTION 1: JADWAL ============ -->

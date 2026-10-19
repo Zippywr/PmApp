@@ -1,22 +1,35 @@
 ﻿@model PmApp.Web.Models.ViewModels.PmTaskTemplateFormViewModel
 
-<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+<!-- ============================================ -->
+<!-- VALIDASI -->
+<!-- ============================================ -->
+<div asp-validation-summary="ModelOnly"
+     class="text-danger mb-3"></div>
 
+<!-- ============================================ -->
+<!-- INFORMASI ID-PM -->
+<!-- Hanya tampil saat Edit -->
+<!-- ============================================ -->
 @if (!string.IsNullOrEmpty(Model.IdPm))
 {
     <div class="alert alert-info">
         <strong>ID-PM:</strong> @Model.IdPm
-        <small class="text-muted">(auto-generated)</small>
+
+        <small class="text-muted ms-2">
+            <i class="bi bi-lock-fill"></i>
+            ID-PM tidak dapat diubah.
+        </small>
     </div>
 }
 
-@* Dropdown Machine di Create sudah ditampilkan
-   bersama filter Plant -> Product -> Line.
-   Dropdown lama tetap tersedia pada halaman Edit. *@
-
+<!-- ============================================ -->
+<!-- INFORMASI MACHINE -->
+<!-- Hanya tampil saat Edit -->
+<!-- ============================================ -->
 @if (Model.Id != 0)
 {
     <div class="mb-4">
+
         <h6 class="text-primary border-bottom pb-2 mb-3">
             Informasi Mesin
         </h6>
@@ -39,6 +52,9 @@
     </div>
 }
 
+<!-- ============================================ -->
+<!-- DETAIL TASK -->
+<!-- ============================================ -->
 @if (Model.Id != 0)
 {
     <h6 class="text-primary border-bottom pb-2 mb-3 mt-3">
@@ -47,106 +63,246 @@
 }
 
 <div class="row">
+
+    <!-- UNIT -->
     <div class="col-md-4 mb-3">
-        <label asp-for="UnitId" class="form-label"></label>
-        <select asp-for="UnitId" asp-items="Model.UnitList" class="form-select">
-            <option value="">-- Pilih Unit --</option>
-        </select>
-        <span asp-validation-for="UnitId" class="text-danger small"></span>
-    </div>
-    <div class="col-md-4 mb-3">
-        <label asp-for="SubUnitId" class="form-label"></label>
-        <select asp-for="SubUnitId" asp-items="Model.SubUnitList" class="form-select">
-            <option value="">-- Pilih Sub Unit --</option>
-        </select>
-        <span asp-validation-for="SubUnitId" class="text-danger small"></span>
-    </div>
-    <div class="col-md-4 mb-3">
-        <label asp-for="MethodName" class="form-label"></label>
-        <select asp-for="MethodName" class="form-select select2-tags" id="methodSelect">
-            <option value="">-- Pilih atau ketik metode --</option>
-            @foreach (var m in Model.MethodSuggestion)
+        <label asp-for="UnitName" class="form-label fw-semibold"></label>
+        <select asp-for="UnitName" id="UnitName" class="form-select" data-subunits-url="@Url.Action("GetSubUnitNames", "PmTaskTemplate")">
+            <option value="">-- Pilih atau ketik Unit --</option>
+            @foreach (var name in Model.UnitSuggestion)
             {
-                <option value="@m" selected="@(Model.MethodName == m)">@m</option>
+                <option value="@name" selected="@(Model.UnitName == name)">@name</option>
             }
-            @if (!string.IsNullOrEmpty(Model.MethodName) && !Model.MethodSuggestion.Contains(Model.MethodName))
+            @if (!string.IsNullOrWhiteSpace(Model.UnitName) && !Model.UnitSuggestion.Contains(Model.UnitName))
             {
-                <option value="@Model.MethodName" selected>@Model.MethodName</option>
+                <option value="@Model.UnitName" selected>@Model.UnitName</option>
             }
         </select>
-        <span asp-validation-for="MethodName" class="text-danger small"></span>
-        <small class="text-muted">Pilih dari daftar atau ketik metode baru</small>
+        <span asp-validation-for="UnitName" class="text-danger small"></span>
     </div>
 
-    <div class="col-md-12 mb-3">
-        <label asp-for="StandardName" class="form-label"></label>
-        <select asp-for="StandardName" class="form-select select2-tags" id="standardSelect">
-            <option value="">-- Pilih atau ketik standar --</option>
-            @foreach (var s in Model.StandardSuggestion)
+    <!-- SUB UNIT -->
+    <div class="col-md-4 mb-3">
+        <label asp-for="SubUnitName" class="form-label fw-semibold"></label>
+        <select asp-for="SubUnitName" id="SubUnitName" class="form-select">
+            <option value="">-- Pilih atau ketik Sub Unit --</option>
+            @foreach (var name in Model.SubUnitSuggestion)
             {
-                <option value="@s" selected="@(Model.StandardName == s)">@s</option>
+                <option value="@name" selected="@(Model.SubUnitName == name)">@name</option>
             }
-            @if (!string.IsNullOrEmpty(Model.StandardName) && !Model.StandardSuggestion.Contains(Model.StandardName))
+            @if (!string.IsNullOrWhiteSpace(Model.SubUnitName) && !Model.SubUnitSuggestion.Contains(Model.SubUnitName))
             {
-                <option value="@Model.StandardName" selected>@Model.StandardName</option>
+                <option value="@Model.SubUnitName" selected>@Model.SubUnitName</option>
             }
         </select>
-        <span asp-validation-for="StandardName" class="text-danger small"></span>
-        <small class="text-muted">Pilih dari daftar atau ketik standar baru</small>
+        <span asp-validation-for="SubUnitName" class="text-danger small"></span>
     </div>
-</div>
 
-<h6 class="text-primary border-bottom pb-2 mb-3 mt-3">Waktu & Frekuensi</h6>
-
-<div class="row">
-    <div class="col-md-3 mb-3">
-        <label asp-for="WorkHourMinutes" class="form-label"></label>
-        <input asp-for="WorkHourMinutes" type="number" class="form-control" min="1" />
-        <span asp-validation-for="WorkHourMinutes" class="text-danger small"></span>
-    </div>
-    <div class="col-md-3 mb-3">
-        <label asp-for="ManPower" class="form-label"></label>
-        <input asp-for="ManPower" type="number" class="form-control" min="1" />
-        <span asp-validation-for="ManPower" class="text-danger small"></span>
-    </div>
-    <div class="col-md-3 mb-3">
-        <label asp-for="PeriodeMonth" class="form-label"></label>
-        <input asp-for="PeriodeMonth" type="number" class="form-control" min="1" />
-        <span asp-validation-for="PeriodeMonth" class="text-danger small"></span>
-    </div>
+    <!-- METODE -->
     <div class="col-md-4 mb-3">
-    <label asp-for="StartMonth" class="form-label"></label>
-    <input asp-for="StartMonth" type="number" class="form-control" min="1" max="12" />
-    </div>
+        <label asp-for="MethodName"
+               class="form-label fw-semibold"></label>
 
-    <div class="col-md-4 mb-3">
-        <label asp-for="Week" class="form-label"></label>
-        <select asp-for="Week" class="form-select">
-            <option value="0">Otomatis (Rotasi Minggu 1–4)</option>
-            <option value="1">Minggu 1 (tgl 1-7)</option>
-            <option value="2">Minggu 2 (tgl 8-14)</option>
-            <option value="3">Minggu 3 (tgl 15-21)</option>
-            <option value="4">Minggu 4 (tgl 22-28)</option>
+        <select asp-for="MethodName"
+                class="form-select select2-tags"
+                id="methodSelect">
+
+            <option value="">
+                -- Pilih atau ketik metode --
+            </option>
+
+            @foreach (var method in Model.MethodSuggestion)
+            {
+                <option value="@method"
+                        selected="@(Model.MethodName == method)">
+                    @method
+                </option>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.MethodName) &&
+                 !Model.MethodSuggestion.Contains(Model.MethodName))
+            {
+                <option value="@Model.MethodName" selected>
+                    @Model.MethodName
+                </option>
+            }
         </select>
-        <span asp-validation-for="Week" class="text-danger small"></span>
-    </div>
 
-    <div class="col-md-4 mb-3">
-        <label asp-for="MachineState" class="form-label"></label>
-        <select asp-for="MachineState" class="form-select"
-                asp-items="Html.GetEnumSelectList<PmApp.Web.Models.MachineRunningState>()"></select>
-    </div>
+        <span asp-validation-for="MethodName"
+              class="text-danger small"></span>
 
-    <div class="col-md-4 mb-3 d-flex align-items-center">
-        <div class="form-check mt-4">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label"></label>
+        <div class="form-text">
+            Pilih metode yang sudah ada atau ketik metode baru.
         </div>
     </div>
 
+    <!-- STANDAR -->
     <div class="col-12 mb-3">
-        <label asp-for="Remark" class="form-label"></label>
-        <textarea asp-for="Remark" class="form-control" rows="2"></textarea>
+        <label asp-for="StandardName"
+               class="form-label fw-semibold"></label>
+
+        <select asp-for="StandardName"
+                class="form-select select2-tags"
+                id="standardSelect">
+
+            <option value="">
+                -- Pilih atau ketik standar --
+            </option>
+
+            @foreach (var standard in Model.StandardSuggestion)
+            {
+                <option value="@standard"
+                        selected="@(Model.StandardName == standard)">
+                    @standard
+                </option>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.StandardName) &&
+                 !Model.StandardSuggestion.Contains(Model.StandardName))
+            {
+                <option value="@Model.StandardName" selected>
+                    @Model.StandardName
+                </option>
+            }
+        </select>
+
+        <span asp-validation-for="StandardName"
+              class="text-danger small"></span>
+
+        <div class="form-text">
+            Pilih standar yang sudah ada atau ketik standar baru.
+        </div>
     </div>
+
 </div>
 
+<!-- ============================================ -->
+<!-- WAKTU DAN FREKUENSI -->
+<!-- ============================================ -->
+<h6 class="text-primary border-bottom pb-2 mb-3 mt-3">
+    Waktu &amp; Frekuensi
+</h6>
+
+<div class="row">
+
+    <!-- WAKTU -->
+    <div class="col-md-3 mb-3">
+        <label asp-for="WorkHourMinutes"
+               class="form-label fw-semibold"></label>
+
+        <input asp-for="WorkHourMinutes"
+               type="number"
+               min="1"
+               class="form-control" />
+
+        <span asp-validation-for="WorkHourMinutes"
+              class="text-danger small"></span>
+    </div>
+
+    <!-- MAN POWER -->
+    <div class="col-md-3 mb-3">
+        <label asp-for="ManPower"
+               class="form-label fw-semibold"></label>
+
+        <input asp-for="ManPower"
+               type="number"
+               min="1"
+               class="form-control" />
+
+        <span asp-validation-for="ManPower"
+              class="text-danger small"></span>
+    </div>
+
+    <!-- PERIODE -->
+    <div class="col-md-3 mb-3">
+        <label asp-for="PeriodeMonth"
+               class="form-label fw-semibold"></label>
+
+        <input asp-for="PeriodeMonth"
+               type="number"
+               min="1"
+               class="form-control" />
+
+        <span asp-validation-for="PeriodeMonth"
+              class="text-danger small"></span>
+    </div>
+
+    <!-- MULAI BULAN -->
+    <div class="col-md-3 mb-3">
+        <label asp-for="StartMonth"
+               class="form-label fw-semibold"></label>
+
+        <input asp-for="StartMonth"
+               type="number"
+               min="1"
+               max="12"
+               class="form-control" />
+
+        <span asp-validation-for="StartMonth"
+              class="text-danger small"></span>
+    </div>
+
+    <!-- WEEK -->
+    <div class="col-md-4 mb-3">
+        <label asp-for="Week"
+               class="form-label fw-semibold"></label>
+
+        <select asp-for="Week"
+                class="form-select">
+            @if (Model.Id == 0)
+            {
+                <option value="0">
+                    Otomatis (Rotasi Minggu 1–4)
+                </option>
+            }
+            <option value="1">Minggu 1 (tgl 1–7)</option>
+            <option value="2">Minggu 2 (tgl 8–14)</option>
+            <option value="3">Minggu 3 (tgl 15–21)</option>
+            <option value="4">Minggu 4 (tgl 22–28)</option>
+        </select>
+
+        <span asp-validation-for="Week"
+              class="text-danger small"></span>
+    </div>
+
+    <!-- KONDISI MESIN -->
+    <div class="col-md-4 mb-3">
+        <label asp-for="MachineState"
+               class="form-label fw-semibold"></label>
+
+        <select asp-for="MachineState"
+                class="form-select"
+                asp-items="Html.GetEnumSelectList<PmApp.Web.Models.MachineRunningState>()">
+        </select>
+
+        <span asp-validation-for="MachineState"
+              class="text-danger small"></span>
+    </div>
+
+    <!-- STATUS AKTIF -->
+    <div class="col-md-4 mb-3 d-flex align-items-center">
+        <div class="form-check mt-4">
+            <input asp-for="IsActive"
+                   class="form-check-input" />
+
+            <label asp-for="IsActive"
+                   class="form-check-label fw-semibold"></label>
+        </div>
+    </div>
+
+    <!-- REMARK -->
+    <div class="col-12 mb-3">
+        <label asp-for="Remark"
+               class="form-label fw-semibold"></label>
+
+        <textarea asp-for="Remark"
+                  class="form-control"
+                  rows="3"
+                  placeholder="Catatan tambahan (opsional)">
+        </textarea>
+
+        <span asp-validation-for="Remark"
+              class="text-danger small"></span>
+    </div>
+
+</div>

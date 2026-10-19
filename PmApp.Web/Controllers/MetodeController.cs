@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PmApp.Web.Data;
 using PmApp.Web.Models.Entities;
@@ -6,6 +7,7 @@ using PmApp.Web.Models.ViewModels;
 
 namespace PmApp.Web.Controllers;
 
+[Authorize(Roles = AppRoles.Admin)]
 public class MetodeController : Controller
 {
     private readonly AppDbContext _db;
@@ -17,7 +19,7 @@ public class MetodeController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var list = await _db.Metodes.OrderBy(m => m.Code).ToListAsync();
+        var list = await _db.Metodes.OrderBy(m => m.Name).ToListAsync();
         return View(list);
     }
 
@@ -30,19 +32,21 @@ public class MetodeController : Controller
     {
         if (!ModelState.IsValid) return View(vm);
 
-        if (await _db.Metodes.AnyAsync(m => m.Code == vm.Code))
+        string name = vm.Name.Trim();
+        if (await _db.Metodes.AnyAsync(m => m.Name.ToLower() == name.ToLower()))
         {
-            ModelState.AddModelError(nameof(vm.Code), "Kode metode sudah digunakan");
+            ModelState.AddModelError(nameof(vm.Name), "Nama Metode sudah digunakan.");
             return View(vm);
         }
 
         _db.Metodes.Add(new Metode
         {
-            Code = vm.Code,
-            Name = vm.Name,
-            Initial = vm.Initial,
+            // Kompatibilitas database lama: Code wajib dan unik, tetapi bukan input user.
+            Code = "AUTO-" + Guid.NewGuid().ToString("N"),
+            Name = name,
+            Initial = string.IsNullOrWhiteSpace(vm.Initial) ? null : vm.Initial.Trim(),
             MachineState = vm.MachineState,
-            Description = vm.Description
+            Description = string.IsNullOrWhiteSpace(vm.Description) ? null : vm.Description.Trim()
         });
 
         await _db.SaveChangesAsync();
@@ -59,7 +63,6 @@ public class MetodeController : Controller
         return View(new MetodeFormViewModel
         {
             Id = item.Id,
-            Code = item.Code,
             Name = item.Name,
             Initial = item.Initial,
             MachineState = item.MachineState,
@@ -77,17 +80,18 @@ public class MetodeController : Controller
         var item = await _db.Metodes.FirstOrDefaultAsync(m => m.Id == id);
         if (item == null) return NotFound();
 
-        if (await _db.Metodes.AnyAsync(m => m.Code == vm.Code && m.Id != id))
+        string name = vm.Name.Trim();
+        if (await _db.Metodes.AnyAsync(m => m.Id != id && m.Name.ToLower() == name.ToLower()))
         {
-            ModelState.AddModelError(nameof(vm.Code), "Kode metode sudah digunakan");
+            ModelState.AddModelError(nameof(vm.Name), "Nama Metode sudah digunakan.");
             return View(vm);
         }
 
-        item.Code = vm.Code;
-        item.Name = vm.Name;
-        item.Initial = vm.Initial;
+        // Code lama tetap: tidak diubah saat Edit.
+        item.Name = name;
+        item.Initial = string.IsNullOrWhiteSpace(vm.Initial) ? null : vm.Initial.Trim();
         item.MachineState = vm.MachineState;
-        item.Description = vm.Description;
+        item.Description = string.IsNullOrWhiteSpace(vm.Description) ? null : vm.Description.Trim();
 
         await _db.SaveChangesAsync();
         TempData["Success"] = "Metode berhasil diperbarui.";
@@ -105,9 +109,15 @@ public class MetodeController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        // Metode yang dipakai Task PM tidak boleh dihapus.
+        if (await _db.PmTaskTemplates.IgnoreQueryFilters().AnyAsync(t => t.MethodId == id))
+        {
+            TempData["Error"] = "Metode tidak bisa dihapus karena sudah digunakan pada Task PM.";
+            return RedirectToAction(nameof(Index));
+        }
+
         item.IsDeleted = true;
         await _db.SaveChangesAsync();
-
         TempData["Success"] = "Metode berhasil dihapus.";
         return RedirectToAction(nameof(Index));
     }

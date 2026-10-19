@@ -22,7 +22,7 @@
     </div>
     <div class="card-body">
 
-        <form asp-action="AddPart" method="post" id="addPartForm">
+        <form asp-action="AddPart" method="post" id="addPartForm" class="form-confirm" data-confirm-title="Konfirmasi Tambah Part" data-confirm-message="Simpan part untuk mesin ini?" data-confirm-button="Ya, Simpan" data-loading-text="Menyimpan part...">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="AssetId" />
             <input type="hidden" asp-for="AssetName" />
