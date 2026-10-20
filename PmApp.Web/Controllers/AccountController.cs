@@ -120,6 +120,9 @@ public class AccountController : Controller
             CookieAuthenticationDefaults.AuthenticationScheme,
             principal);
 
+        if (user.MustChangePassword)
+            return RedirectToAction("ChangePassword", "Profile");
+
         if (!string.IsNullOrEmpty(model.ReturnUrl) &&
             Url.IsLocalUrl(model.ReturnUrl))
         {

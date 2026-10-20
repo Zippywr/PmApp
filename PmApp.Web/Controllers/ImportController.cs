@@ -9,7 +9,7 @@ using PmApp.Web.Services;
 
 namespace PmApp.Web.Controllers;
 
-[Authorize(Policy = "AdminOnly")]
+[Authorize(Roles = "Admin,TS")]
 public class ImportController : Controller
 {
     private readonly AppDbContext _db;

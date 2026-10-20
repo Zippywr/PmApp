@@ -80,9 +80,12 @@
             (@totalMachines mesin, @totalTasks task)
         </small>
     </h4>
-    <a asp-action="Create" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Tambah Task PM
-    </a>
+    @if (User.IsInRole("Admin") || User.IsInRole("TS"))
+    {
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Tambah Task PM
+        </a>
+    }
 </div>
 
 <div class="card border-0 shadow-sm mb-3">
@@ -145,7 +148,7 @@
     <div class="alert alert-warning">
         <i class="bi bi-info-circle"></i>
         Belum ada task PM. Silakan tambah dulu di
-        <a asp-action="Create">Input PM</a>.
+        <a asp-controller="PmSchedule" asp-action="ByMonth">Pelaksanaan PM</a>.
     </div>
 }
 else
@@ -299,22 +302,25 @@ else
                                                 }
                                             </td>
                                             <td class="text-center">
-                                                <a asp-action="Edit" asp-route-id="@task.Id"
-                                                   class="btn btn-sm btn-warning" title="Edit">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
+                                                @if (User.IsInRole("Admin") || User.IsInRole("TS"))
+                                                {
+                                                    <a asp-action="Edit" asp-route-id="@task.Id"
+                                                       class="btn btn-sm btn-warning" title="Edit">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
 
-                                                <form asp-action="Delete" asp-route-id="@task.Id"
-                                                      method="post" class="d-inline">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="button"
-                                                            class="btn btn-sm btn-danger btn-delete"
-                                                            data-name="Task '@task.IdPm'"
-                                                            data-detail="Mesin: @group.Asset.Code"
-                                                            title="Hapus">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                </form>
+                                                    <form asp-action="Delete" asp-route-id="@task.Id"
+                                                          method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-danger btn-delete"
+                                                                data-name="Task '@task.IdPm'"
+                                                                data-detail="Mesin: @group.Asset.Code"
+                                                                title="Hapus">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                }
                                             </td>
                                         </tr>
                                     }

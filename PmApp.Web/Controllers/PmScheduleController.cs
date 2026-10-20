@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using PmApp.Web.Data;
 using PmApp.Web.Models;
@@ -12,6 +13,7 @@ public class PmScheduleController : Controller
 {
     private readonly AppDbContext _db;
     private readonly PmScheduleHistoryService _history;
+    private readonly LineAccessService _lineAccess;
 
     private static readonly string[] MonthNames =
     {
@@ -19,10 +21,11 @@ public class PmScheduleController : Controller
         "Juli", "Agustus", "September", "Oktober", "November", "Desember"
     };
 
-    public PmScheduleController(AppDbContext db, PmScheduleHistoryService history)
+    public PmScheduleController(AppDbContext db, PmScheduleHistoryService history, LineAccessService lineAccess)
     {
         _db = db;
         _history = history;
+        _lineAccess = lineAccess;
     }
 
     private static int GetMonthsDelay(int year, int month)
@@ -40,7 +43,8 @@ public class PmScheduleController : Controller
     {
         var today = DateTime.Today;
 
-        var delayList = await _db.PmSchedules
+        var allowed = await _lineAccess.AssignedLineIdsAsync();
+        var delayList = await _lineAccess.ScopeSchedules(_db.PmSchedules, allowed)
             .Where(s =>
                 (s.Year < today.Year || (s.Year == today.Year && s.Month < today.Month))
                 && (s.Status == PmStatus.Scheduled || s.Status == PmStatus.InProgress))
@@ -73,12 +77,15 @@ public class PmScheduleController : Controller
             .Where(t => t.IsActive)
             .AsQueryable();
 
+        var assignedLines = await _lineAccess.AssignedLineIdsAsync();
+        tasksQuery = _lineAccess.ScopeTasks(tasksQuery, assignedLines);
+
         if (assetId.HasValue)
             tasksQuery = tasksQuery.Where(t => t.AssetId == assetId.Value);
 
         var tasks = await tasksQuery.OrderBy(t => t.IdPm).ToListAsync();
 
-        var schedules = await _db.PmSchedules
+        var schedules = await _lineAccess.ScopeSchedules(_db.PmSchedules, assignedLines)
             .Where(s => s.Year == y)
             .ToListAsync();
 
@@ -124,7 +131,8 @@ public class PmScheduleController : Controller
         ViewBag.Year = y;
         ViewBag.AssetId = assetId;
         ViewBag.OnlyDelay = onlyDelay;
-        ViewBag.Assets = await _db.Assets.OrderBy(a => a.Code).ToListAsync();
+        ViewBag.Assets = await _lineAccess.ScopeAssets(_db.Assets, assignedLines)
+            .OrderBy(a => a.Code).ToListAsync();
 
         return View(rows);
     }
@@ -132,135 +140,21 @@ public class PmScheduleController : Controller
     // ============================================================
     // BY WEEK
     // ============================================================
-    public async Task<IActionResult> ByWeek(DateTime? weekStart)
+    public IActionResult ByWeek(DateTime? weekStart)
     {
-        if (!weekStart.HasValue)
-        {
-            var today = DateTime.Today;
-            var currentStart = today;
-            while (currentStart.DayOfWeek != DayOfWeek.Monday)
-                currentStart = currentStart.AddDays(-1);
-
-            var currentEnd = currentStart.AddDays(7);
-
-            var hasThisWeek = await _db.PmSchedules
-                .AnyAsync(s => s.PlanDate >= currentStart && s.PlanDate < currentEnd);
-
-            if (hasThisWeek)
-            {
-                weekStart = today;
-            }
-            else
-            {
-                var nearest = await _db.PmSchedules
-                    .Where(s => s.PlanDate != null)
-                    .OrderBy(s => s.PlanDate)
-                    .Select(s => s.PlanDate)
-                    .FirstOrDefaultAsync();
-
-                weekStart = nearest ?? today;
-            }
-        }
-
-        var start = weekStart.Value;
-        while (start.DayOfWeek != DayOfWeek.Monday)
-            start = start.AddDays(-1);
-
-        var end = start.AddDays(7);
-
-        var schedules = await _db.PmSchedules
-            .Include(s => s.TaskTemplate).ThenInclude(t => t!.Asset)
-            .Include(s => s.TaskTemplate).ThenInclude(t => t!.SubUnit)
-            .Include(s => s.TaskTemplate).ThenInclude(t => t!.Method)
-            .Where(s => s.PlanDate >= start && s.PlanDate < end)
-            .OrderBy(s => s.PlanDate)
-            .ThenBy(s => s.TaskTemplate!.Asset!.Code)
-            .ToListAsync();
-
-        var rows = schedules.Select(s => new PmWeekRow
-        {
-            ScheduleId = s.Id,
-            TaskTemplateId = s.TaskTemplateId,
-            IdPm = s.TaskTemplate?.IdPm ?? "",
-            AssetCode = s.TaskTemplate?.Asset?.Code ?? "-",
-            AssetName = s.TaskTemplate?.Asset?.Name ?? "-",
-            SubUnitName = s.TaskTemplate?.SubUnit?.Name ?? "-",
-            MethodName = s.TaskTemplate?.Method?.Name ?? "-",
-            WorkHourMinutes = s.TaskTemplate?.WorkHourMinutes ?? 0,
-            ManPower = s.TaskTemplate?.ManPower ?? 0,
-            PlanDate = s.PlanDate,
-            ActualDate = s.ActualDate,
-            PIC = s.PIC,
-            Status = s.Status,
-            Result = s.Result,
-            Notes = s.Notes
-        }).ToList();
-
-        var vm = new PmWeekViewModel
-        {
-            WeekStart = start,
-            WeekEnd = end.AddDays(-1),
-            Rows = rows,
-            TotalTask = rows.Count,
-            TotalDone = rows.Count(r => r.Status == PmStatus.Done),
-            TotalPending = rows.Count(r => r.Status == PmStatus.Scheduled || r.Status == PmStatus.InProgress),
-            TotalDelay = rows.Count(r => r.Status == PmStatus.Overdue)
-        };
-
-        return View(vm);
+        // Halaman mingguan lama dialihkan ke Pelaksanaan PM.
+        // Pemilihan periode tetap dilakukan melalui filter bulanan.
+        var date = weekStart ?? DateTime.Today;
+        return RedirectToAction(nameof(ByMonth), new { year = date.Year, month = date.Month });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateWeek(
-        int[] scheduleIds,
-        DateTime?[] planDates,
-        DateTime?[] actualDates,
-        string?[] pics,
-        PmStatus[] statuses,
-        MachineCondition[] results,
-        string?[] notes,
-        DateTime weekStart)
+    [Authorize(Roles = "Admin,TS")]
+    public IActionResult UpdateWeek()
     {
-        int updated = 0;
-
-        for (int i = 0; i < scheduleIds.Length; i++)
-        {
-            var s = await _db.PmSchedules.FirstOrDefaultAsync(x => x.Id == scheduleIds[i]);
-            if (s == null) continue;
-
-            // Simpan state BEFORE
-            var statusBefore = s.Status.ToString();
-            var resultBefore = s.Result.ToString();
-            var picBefore = s.PIC;
-            var planBefore = s.PlanDate;
-            var actualBefore = s.ActualDate;
-            var notesBefore = s.Notes;
-
-            // Update
-            s.PlanDate = i < planDates.Length ? planDates[i] : s.PlanDate;
-            s.ActualDate = i < actualDates.Length ? actualDates[i] : null;
-            s.PIC = i < pics.Length ? pics[i] : null;
-            s.Status = i < statuses.Length ? statuses[i] : PmStatus.Scheduled;
-            s.Result = i < results.Length ? results[i] : MachineCondition.Pending;
-            s.Notes = i < notes.Length ? notes[i] : null;
-
-            if (s.ActualDate.HasValue && s.Status == PmStatus.Scheduled)
-                s.Status = PmStatus.Done;
-
-            await _db.SaveChangesAsync();
-
-            // Log history
-            await _history.LogAsync(
-                s,
-                statusBefore, resultBefore, picBefore,
-                planBefore, actualBefore, notesBefore);
-
-            updated++;
-        }
-
-        TempData["Success"] = $"{updated} task berhasil diupdate.";
-        return RedirectToAction(nameof(ByWeek), new { weekStart = weekStart.ToString("yyyy-MM-dd") });
+        TempData["Error"] = "Update Mingguan lama sudah dinonaktifkan. Gunakan halaman Pelaksanaan PM dan form Isi PM.";
+        return RedirectToAction(nameof(ByMonth));
     }
 
     // ============================================================
@@ -269,6 +163,7 @@ public class PmScheduleController : Controller
     public async Task<IActionResult> Detail(int id, int? year)
     {
         var y = year ?? DateTime.Today.Year;
+        if (!await _lineAccess.CanAccessTaskAsync(id)) return Forbid();
 
         var task = await _db.PmTaskTemplates
             .Include(t => t.Asset).ThenInclude(a => a!.Line)
@@ -341,6 +236,7 @@ public class PmScheduleController : Controller
     // UPDATE CELL — GET
     // ============================================================
     [HttpGet]
+    [Authorize(Roles = "Admin,TS,LineHead")]
     public async Task<IActionResult> UpdateCell(int id)
     {
         var schedule = await _db.PmSchedules
@@ -353,6 +249,8 @@ public class PmScheduleController : Controller
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (schedule == null) return NotFound();
+        if (!await _lineAccess.CanAccessScheduleAsync(id)) return Forbid();
+        ViewBag.CanEditDone = _lineAccess.IsManager;
 
         var task = schedule.TaskTemplate;
 
@@ -405,19 +303,51 @@ public class PmScheduleController : Controller
     // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,TS,LineHead")]
     public async Task<IActionResult> UpdateCell(
         int id,
-        DateTime? planDate,
         DateTime? actualDate,
         string? pic,
-        PmStatus status,
         MachineCondition result,
         string? notes)
     {
         var schedule = await _db.PmSchedules.FirstOrDefaultAsync(s => s.Id == id);
         if (schedule == null) return NotFound();
+        if (!await _lineAccess.CanAccessScheduleAsync(id)) return Forbid();
 
-        // Simpan state BEFORE
+        // Line Head hanya dapat mengisi jika belum Done. Admin boleh mengoreksi PM Done.
+        // Pemeriksaan di server mencegah bypass melalui POST langsung.
+        bool isAdmin = _lineAccess.IsManager;
+        if (schedule.Status == PmStatus.Done && !isAdmin)
+            return Forbid();
+
+        if (!actualDate.HasValue || string.IsNullOrWhiteSpace(pic))
+        {
+            TempData["Error"] = "Actual Date dan PIC wajib diisi sebelum Done.";
+            return RedirectToAction(nameof(UpdateCell), new { id });
+        }
+
+        pic = pic.Trim();
+        notes = notes?.Trim();
+        if (pic.Length > 200 || (notes?.Length ?? 0) > 500)
+        {
+            TempData["Error"] = "PIC maksimal 200 karakter dan Catatan maksimal 500 karakter.";
+            return RedirectToAction(nameof(UpdateCell), new { id });
+        }
+
+        // Partial adalah nilai enum lama yang ditampilkan dengan label Comment.
+        if (result != MachineCondition.OK && result != MachineCondition.NG &&
+            result != MachineCondition.Partial)
+        {
+            TempData["Error"] = "Result wajib dipilih: OK, NG, atau Comment.";
+            return RedirectToAction(nameof(UpdateCell), new { id });
+        }
+        if (result == MachineCondition.Partial && string.IsNullOrWhiteSpace(notes))
+        {
+            TempData["Error"] = "Catatan wajib diisi jika Result adalah Comment.";
+            return RedirectToAction(nameof(UpdateCell), new { id });
+        }
+
         var statusBefore = schedule.Status.ToString();
         var resultBefore = schedule.Result.ToString();
         var picBefore = schedule.PIC;
@@ -425,30 +355,23 @@ public class PmScheduleController : Controller
         var actualBefore = schedule.ActualDate;
         var notesBefore = schedule.Notes;
 
-        // Update
-        schedule.PlanDate = planDate;
+        // PlanDate tidak diedit oleh Line Head; hanya data pelaksanaan.
         schedule.ActualDate = actualDate;
         schedule.PIC = pic;
-        schedule.Status = status;
         schedule.Result = result;
         schedule.Notes = notes;
+        schedule.Status = PmStatus.Done;
 
-        if (actualDate.HasValue && status == PmStatus.Scheduled)
-            schedule.Status = PmStatus.Done;
-
-        if (status == PmStatus.Overdue && actualDate.HasValue)
-            schedule.Status = PmStatus.Done;
-
+        // Status segera Done. Riwayat mencatat identitas akun yang mengubah.
         await _db.SaveChangesAsync();
+        await _history.LogAsync(schedule, statusBefore, resultBefore,
+            picBefore, planBefore, actualBefore, notesBefore,
+            User.Identity?.Name ?? "system");
 
-        // Log history
-        await _history.LogAsync(
-            schedule,
-            statusBefore, resultBefore, picBefore,
-            planBefore, actualBefore, notesBefore);
-
-        TempData["Success"] = "Jadwal berhasil diperbarui.";
-        return RedirectToAction(nameof(Index), new { year = schedule.Year });
+        TempData["Success"] = isAdmin && statusBefore == PmStatus.Done.ToString()
+            ? "Hasil PM berhasil dikoreksi oleh Admin."
+            : "PM berhasil disimpan dan berstatus Done.";
+        return RedirectToAction(nameof(ByMonth), new { year = schedule.Year, month = schedule.Month });
     }
 
     // ============================================================
@@ -463,6 +386,7 @@ public class PmScheduleController : Controller
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (schedule == null) return NotFound();
+        if (!await _lineAccess.CanAccessScheduleAsync(id)) return Forbid();
 
         var history = await _db.PmScheduleHistories
             .Where(h => h.PmScheduleId == id)
@@ -482,19 +406,78 @@ public class PmScheduleController : Controller
     // ============================================================
     // BY MONTH — Update Bulanan (group Week 1-4)
     // ============================================================
-    public async Task<IActionResult> ByMonth(int? year, int? month)
+    public async Task<IActionResult> ByMonth(
+        int? year, int? month, int? productId, int? lineId,
+        int? assetId, string? status, string? search)
     {
-        var y = year ?? DateTime.Today.Year;
-        var m = month ?? DateTime.Today.Month;
+        var today = DateTime.Today;
+        var y = year ?? today.Year;
+        var m = month ?? today.Month;
+
+        if (y < 2000 || y > 2100 || m < 1 || m > 12)
+            return BadRequest("Bulan atau tahun tidak valid.");
 
         var start = new DateTime(y, m, 1);
         var end = start.AddMonths(1);
 
-        var schedules = await _db.PmSchedules
+        var assignedLines = await _lineAccess.AssignedLineIdsAsync();
+        // Pilihan filter tidak mengubah data PM.
+        ViewBag.Products = await _db.Products.AsNoTracking()
+            .Where(p => _lineAccess.IsManager || _db.Lines.Any(l =>
+                l.ProductId == p.Id && assignedLines.Contains(l.Id)))
+            .OrderBy(p => p.Name).ToListAsync();
+        ViewBag.Lines = await _db.Lines.AsNoTracking()
+            .Where(l => _lineAccess.IsManager || assignedLines.Contains(l.Id))
+            .OrderBy(l => l.Name).ToListAsync();
+        ViewBag.Assets = await _lineAccess.ScopeAssets(_db.Assets.AsNoTracking(), assignedLines)
+            .OrderBy(a => a.Code).ToListAsync();
+        ViewBag.ProductId = productId;
+        ViewBag.LineId = lineId;
+        ViewBag.AssetId = assetId;
+        ViewBag.StatusFilter = status ?? "all";
+        ViewBag.Search = search?.Trim() ?? "";
+
+        var query = _lineAccess.ScopeSchedules(_db.PmSchedules, assignedLines)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.Asset)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.SubUnit)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.Method)
-            .Where(s => s.PlanDate >= start && s.PlanDate < end)
+            .Where(s => s.PlanDate >= start && s.PlanDate < end);
+
+        if (productId.HasValue)
+            query = query.Where(s => s.TaskTemplate != null &&
+                s.TaskTemplate.Asset != null &&
+                s.TaskTemplate.Asset.ProductId == productId.Value);
+
+        if (lineId.HasValue)
+            query = query.Where(s => s.TaskTemplate != null &&
+                s.TaskTemplate.Asset != null &&
+                s.TaskTemplate.Asset.LineId == lineId.Value);
+
+        if (assetId.HasValue)
+            query = query.Where(s => s.TaskTemplate != null &&
+                s.TaskTemplate.AssetId == assetId.Value);
+
+        switch ((status ?? "all").Trim().ToLowerInvariant())
+        {
+            case "done": query = query.Where(s => s.Status == PmStatus.Done); break;
+            case "pending": query = query.Where(s => s.Status == PmStatus.Scheduled || s.Status == PmStatus.InProgress); break;
+            case "delay": query = query.Where(s => s.Status == PmStatus.Overdue); break;
+            case "scheduled": query = query.Where(s => s.Status == PmStatus.Scheduled); break;
+            case "progress": query = query.Where(s => s.Status == PmStatus.InProgress); break;
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(s => s.TaskTemplate != null && (
+                s.TaskTemplate.IdPm.Contains(term) ||
+                (s.TaskTemplate.Asset != null && s.TaskTemplate.Asset.Code.Contains(term)) ||
+                (s.TaskTemplate.SubUnit != null && s.TaskTemplate.SubUnit.Name.Contains(term)) ||
+                (s.TaskTemplate.Method != null && s.TaskTemplate.Method.Name.Contains(term))
+            ));
+        }
+
+        var schedules = await query
             .OrderBy(s => s.PlanDate)
             .ThenBy(s => s.TaskTemplate!.Asset!.Code)
             .ToListAsync();
@@ -509,7 +492,7 @@ public class PmScheduleController : Controller
             if (weekStartDay > maxDay) continue;
 
             var weekStart = new DateTime(y, m, weekStartDay);
-            var weekEndDay = Math.Min(weekStartDay + 6, maxDay);
+            var weekEndDay = w == 4 ? maxDay : Math.Min(weekStartDay + 6, maxDay);
             var weekEnd = new DateTime(y, m, weekEndDay);
 
             var weekSchedules = schedules
@@ -569,62 +552,18 @@ public class PmScheduleController : Controller
     // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateMonth(
-        int[] scheduleIds,
-        DateTime?[] planDates,
-        DateTime?[] actualDates,
-        string?[] pics,
-        PmStatus[] statuses,
-        MachineCondition[] results,
-        string?[] notes,
-        int year,
-        int month)
+    [Authorize(Roles = "Admin,TS")]
+    public IActionResult UpdateMonth()
     {
-        int updated = 0;
-
-        for (int i = 0; i < scheduleIds.Length; i++)
-        {
-            var s = await _db.PmSchedules.FirstOrDefaultAsync(x => x.Id == scheduleIds[i]);
-            if (s == null) continue;
-
-            // Simpan state BEFORE
-            var statusBefore = s.Status.ToString();
-            var resultBefore = s.Result.ToString();
-            var picBefore = s.PIC;
-            var planBefore = s.PlanDate;
-            var actualBefore = s.ActualDate;
-            var notesBefore = s.Notes;
-
-            // Update
-            s.PlanDate = i < planDates.Length ? planDates[i] : s.PlanDate;
-            s.ActualDate = i < actualDates.Length ? actualDates[i] : null;
-            s.PIC = i < pics.Length ? pics[i] : null;
-            s.Status = i < statuses.Length ? statuses[i] : PmStatus.Scheduled;
-            s.Result = i < results.Length ? results[i] : MachineCondition.Pending;
-            s.Notes = i < notes.Length ? notes[i] : null;
-
-            if (s.ActualDate.HasValue && s.Status == PmStatus.Scheduled)
-                s.Status = PmStatus.Done;
-
-            await _db.SaveChangesAsync();
-
-            // Log history
-            await _history.LogAsync(
-                s,
-                statusBefore, resultBefore, picBefore,
-                planBefore, actualBefore, notesBefore);
-
-            updated++;
-        }
-
-        TempData["Success"] = $"{updated} task berhasil diupdate.";
-        return RedirectToAction(nameof(ByMonth), new { year = year, month = month });
+        TempData["Error"] = "Update massal lama sudah dinonaktifkan. Gunakan form Isi PM pada Pelaksanaan PM.";
+        return RedirectToAction(nameof(ByMonth));
     }
     // ============================================================
     // REGENERATE
     // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,TS")]
     public async Task<IActionResult> Regenerate(int year)
     {
         var tasks = await _db.PmTaskTemplates
@@ -698,6 +637,7 @@ public class PmScheduleController : Controller
     // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,TS")]
     public async Task<IActionResult> ResetRegenerate(int year)
     {
         var toDelete = await _db.PmSchedules

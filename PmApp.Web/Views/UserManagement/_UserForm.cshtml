@@ -1,0 +1,47 @@
+﻿@model PmApp.Web.Models.ViewModels.UserFormViewModel
+@using PmApp.Web.Models.Entities
+<div asp-validation-summary="All" class="text-danger mb-2"></div>
+<div class="row g-3">
+    <div class="col-md-6">
+        <label asp-for="Username" class="form-label">Username *</label>
+        @if (Model.Id == 0)
+        {
+            <input asp-for="Username" class="form-control" autocomplete="off" required />
+        }
+        else
+        {
+
+            <input asp-for="Username" class="form-control" readonly />
+        }
+        <span asp-validation-for="Username" class="text-danger"></span>
+    </div>
+    <div class="col-md-6"><label asp-for="FullName" class="form-label">Nama Lengkap *</label><input asp-for="FullName" class="form-control" required /><span asp-validation-for="FullName" class="text-danger"></span></div>
+    <div class="col-md-6">
+        <label asp-for="Role" class="form-label">Role *</label><select asp-for="Role" class="form-select" id="rolePicker">
+        <option value="@AppRoles.LineHead">Line Head</option>
+        <option value="@AppRoles.TechnicalSupport">TS</option>
+        <option value="@AppRoles.Admin">Admin</option>
+    </select><span asp-validation-for="Role" class="text-danger"></span>
+</div>
+<div class="col-md-6 d-flex align-items-end pb-1"><div class="form-check form-switch"><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label">Akun aktif</label></div></div>
+<div class="col-12" id="lineSelector">
+    <label class="form-label">Line yang ditugaskan *</label>
+    <div class="border rounded p-3" style="max-height:220px;overflow:auto">
+        @foreach (var ln in Model.LineOptions)
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="LineIds" value="@ln.Value" id="line_@ln.Value" checked="@Model.LineIds.Contains(int.Parse(ln.Value))" />
+                <label class="form-check-label" for="line_@ln.Value">@ln.Text</label>
+            </div>
+        }
+    </div><span asp-validation-for="LineIds" class="text-danger"></span>
+    <small class="text-muted">Hanya Line Head membutuhkan penugasan Line; boleh lebih dari satu.</small>
+</div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const p = document.getElementById('rolePicker'), lines = document.getElementById('lineSelector');
+        function render() { lines.style.display = p.value === 'LineHead' ? '' : 'none'; }
+        p.addEventListener('change', render); render();
+    });
+</script>

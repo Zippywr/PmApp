@@ -56,6 +56,9 @@ namespace PmApp.Web.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("bit");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -90,6 +93,21 @@ namespace PmApp.Web.Migrations
                         .IsUnique();
 
                     b.ToTable("AppUsers");
+                });
+
+            modelBuilder.Entity("PmApp.Web.Models.Entities.AppUserLine", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LineId")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId", "LineId");
+
+                    b.HasIndex("LineId");
+
+                    b.ToTable("AppUserLines");
                 });
 
             modelBuilder.Entity("PmApp.Web.Models.Entities.Area", b =>
@@ -1282,6 +1300,25 @@ namespace PmApp.Web.Migrations
                     b.ToTable("Units");
                 });
 
+            modelBuilder.Entity("PmApp.Web.Models.Entities.AppUserLine", b =>
+                {
+                    b.HasOne("PmApp.Web.Models.Entities.Line", "Line")
+                        .WithMany()
+                        .HasForeignKey("LineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PmApp.Web.Models.Entities.AppUser", "User")
+                        .WithMany("AssignedLines")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Line");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("PmApp.Web.Models.Entities.Area", b =>
                 {
                     b.HasOne("PmApp.Web.Models.Entities.Line", "Line")
@@ -1473,6 +1510,11 @@ namespace PmApp.Web.Migrations
                         .IsRequired();
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("PmApp.Web.Models.Entities.AppUser", b =>
+                {
+                    b.Navigation("AssignedLines");
                 });
 
             modelBuilder.Entity("PmApp.Web.Models.Entities.Asset", b =>

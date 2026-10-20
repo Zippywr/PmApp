@@ -1,15 +1,19 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PmApp.Web.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PmApp.Web.Controllers;
 
+[Authorize(Roles = "Admin,TS,LineHead")]
 public class ExportController : Controller
 {
     private readonly PmExportService _export;
+    private readonly LineAccessService _lineAccess;
 
-    public ExportController(PmExportService export)
+    public ExportController(PmExportService export, LineAccessService lineAccess)
     {
         _export = export;
+        _lineAccess = lineAccess;
     }
 
     public IActionResult Index()
@@ -22,6 +26,8 @@ public class ExportController : Controller
     // ============================================================
     public async Task<IActionResult> ListPmExcel(int? assetId)
     {
+        if (_lineAccess.IsLineHead && (!assetId.HasValue ||
+            !await _lineAccess.CanAccessAssetAsync(assetId.Value))) return Forbid();
         var data = await _export.GetTaskTemplatesAsync(assetId);
         var bytes = _export.ToExcel(data);
         return File(bytes,
@@ -31,6 +37,8 @@ public class ExportController : Controller
 
     public async Task<IActionResult> ListPmPdf(int? assetId)
     {
+        if (_lineAccess.IsLineHead && (!assetId.HasValue ||
+            !await _lineAccess.CanAccessAssetAsync(assetId.Value))) return Forbid();
         var data = await _export.GetTaskTemplatesAsync(assetId);
         var bytes = _export.ToPdf(data, "List PM");
         return File(bytes, "application/pdf",
@@ -39,6 +47,8 @@ public class ExportController : Controller
 
     public async Task<IActionResult> ListPmCsv(int? assetId)
     {
+        if (_lineAccess.IsLineHead && (!assetId.HasValue ||
+            !await _lineAccess.CanAccessAssetAsync(assetId.Value))) return Forbid();
         var data = await _export.GetTaskTemplatesAsync(assetId);
         var bytes = _export.ToCsv(data);
         return File(bytes, "text/csv",
@@ -50,6 +60,7 @@ public class ExportController : Controller
     // ============================================================
     public async Task<IActionResult> MachineExcel(int assetId)
     {
+        if (!await _lineAccess.CanAccessAssetAsync(assetId)) return Forbid();
         var asset = await _export.GetAssetDetailAsync(assetId);
         if (asset == null) return NotFound();
 
@@ -63,6 +74,7 @@ public class ExportController : Controller
 
     public async Task<IActionResult> MachinePdf(int assetId)
     {
+        if (!await _lineAccess.CanAccessAssetAsync(assetId)) return Forbid();
         var asset = await _export.GetAssetDetailAsync(assetId);
         if (asset == null) return NotFound();
 
@@ -75,6 +87,7 @@ public class ExportController : Controller
 
     public async Task<IActionResult> MachineCsv(int assetId)
     {
+        if (!await _lineAccess.CanAccessAssetAsync(assetId)) return Forbid();
         var asset = await _export.GetAssetDetailAsync(assetId);
         if (asset == null) return NotFound();
 
@@ -90,6 +103,8 @@ public class ExportController : Controller
     // ============================================================
     public async Task<IActionResult> ScheduleExcel(int? year, int? assetId)
     {
+        if (_lineAccess.IsLineHead && (!assetId.HasValue ||
+            !await _lineAccess.CanAccessAssetAsync(assetId.Value))) return Forbid();
         var y = year ?? DateTime.Today.Year;
         var data = await _export.GetScheduleMatrixAsync(y, assetId);
         var bytes = _export.ToScheduleExcel(data);
@@ -101,6 +116,8 @@ public class ExportController : Controller
 
     public async Task<IActionResult> SchedulePdf(int? year, int? assetId)
     {
+        if (_lineAccess.IsLineHead && (!assetId.HasValue ||
+            !await _lineAccess.CanAccessAssetAsync(assetId.Value))) return Forbid();
         var y = year ?? DateTime.Today.Year;
         var data = await _export.GetScheduleMatrixAsync(y, assetId);
         var bytes = _export.ToSchedulePdf(data);
@@ -111,6 +128,8 @@ public class ExportController : Controller
 
     public async Task<IActionResult> ScheduleCsv(int? year, int? assetId)
     {
+        if (_lineAccess.IsLineHead && (!assetId.HasValue ||
+            !await _lineAccess.CanAccessAssetAsync(assetId.Value))) return Forbid();
         var y = year ?? DateTime.Today.Year;
         var data = await _export.GetScheduleMatrixAsync(y, assetId);
         var bytes = _export.ToScheduleCsv(data);
@@ -123,6 +142,7 @@ public class ExportController : Controller
     // ============================================================
     public async Task<IActionResult> DetailExcel(int id, int? year)
     {
+        if (!await _lineAccess.CanAccessTaskAsync(id)) return Forbid();
         var y = year ?? DateTime.Today.Year;
         var vm = await _export.GetDetailAsync(id, y);
         if (vm == null) return NotFound();
@@ -139,6 +159,7 @@ public class ExportController : Controller
     // ============================================================
     public async Task<IActionResult> DetailPdf(int id, int? year)
     {
+        if (!await _lineAccess.CanAccessTaskAsync(id)) return Forbid();
         var y = year ?? DateTime.Today.Year;
         var vm = await _export.GetDetailAsync(id, y);
         if (vm == null) return NotFound();

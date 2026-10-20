@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PmApp.Web.Data;
 using PmApp.Web.Models.Entities;
@@ -6,6 +7,7 @@ using PmApp.Web.Models.ViewModels;
 
 namespace PmApp.Web.Controllers;
 
+[Authorize(Roles = "Admin,TS")]
 public class MachineFunctionController : Controller
 {
     private readonly AppDbContext _db;

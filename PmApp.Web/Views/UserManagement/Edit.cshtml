@@ -1,0 +1,17 @@
+﻿@model PmApp.Web.Models.ViewModels.UserFormViewModel
+@{
+    ViewData["Title"] = "Edit Pengguna";
+}
+<div class="d-flex align-items-center justify-content-between mb-3"><h4><i class="bi bi-person-gear"></i> Edit Pengguna</h4><a asp-action="Index" class="btn btn-outline-secondary">Kembali</a></div>
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="alert alert-secondary">Perubahan role, Line, atau status akan mengakhiri sesi login lama pengguna.</div>
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="form-confirm" data-confirm-title="Simpan perubahan pengguna?" data-confirm-message="Akses pengguna akan diperbarui." data-confirm-button="Ya, Simpan">
+            @Html.AntiForgeryToken()<input asp-for="Id" type="hidden" /><partial name="_UserForm" model="Model" />
+            <div class="d-flex gap-2 mt-4"><button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Simpan Perubahan</button><a asp-action="Index" class="btn btn-outline-secondary">Batal</a></div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

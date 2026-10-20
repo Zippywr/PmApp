@@ -1,6 +1,9 @@
 ﻿@model PmApp.Web.Models.ViewModels.PmUpdateCellViewModel
 @{
-    ViewData["Title"] = "Update Jadwal PM";
+    ViewData["Title"] = "Isi Pelaksanaan PM";
+    bool canCorrect = (User.IsInRole("Admin") || User.IsInRole("TS"));
+    bool isDone = Model.Status == PmApp.Web.Models.PmStatus.Done;
+    bool canEdit = !isDone || canCorrect;
 }
 
 <style>
@@ -98,11 +101,11 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
-            <a asp-action="Index" asp-route-year="@Model.Year">
-                <i class="bi bi-calendar3"></i> Jadwal PM @Model.Year
+            <a asp-action="ByMonth" asp-route-year="@Model.Year" asp-route-month="@Model.Month">
+                <i class="bi bi-clipboard-check"></i> Pelaksanaan PM
             </a>
         </li>
-        <li class="breadcrumb-item active">Update</li>
+        <li class="breadcrumb-item active">@(isDone ? "Detail PM" : "Isi PM")</li>
     </ol>
 </nav>
 
@@ -210,133 +213,139 @@
 </div>
 
 <!-- ============================================================ -->
-<!-- FORM UPDATE CARD                                              -->
+<!-- HASIL PELAKSANAAN: satu form utama untuk pengisian PM        -->
 <!-- ============================================================ -->
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-triangle me-1"></i>@TempData["Error"]</div>
+}
+
 <div class="card border-0 shadow-sm">
     <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+            <h5 class="mb-0"><i class="bi bi-clipboard-check text-primary me-1"></i> @(isDone ? "Hasil PM Selesai" : "Isi Hasil PM")</h5>
+            @if (isDone)
+            {
+                <span class="badge bg-success"><i class="bi bi-lock-fill me-1"></i>Done</span>
+            }
+            else
+            {
 
-        <form asp-action="UpdateCell" asp-route-id="@Model.ScheduleId" method="post" class="form-confirm" data-confirm-title="Konfirmasi Update PM" data-confirm-message="Simpan perubahan pelaksanaan PM ini?" data-confirm-button="Ya, Simpan" data-loading-text="Memperbarui pelaksanaan PM...">
+                <span class="badge bg-secondary">@Model.Status</span>
+            }
+        </div>
+
+        @if (isDone && !canCorrect)
+        {
+            <div class="alert alert-info"><i class="bi bi-lock me-1"></i>PM ini sudah Done. Data hanya dapat dilihat oleh Line Head. Koreksi dilakukan oleh Admin.</div>
+        }
+        else if (isDone && canCorrect)
+        {
+            <div class="alert alert-warning"><i class="bi bi-pencil-square me-1"></i>Mode koreksi Admin. Perubahan akan masuk ke riwayat PM.</div>
+        }
+
+        <form asp-action="UpdateCell" asp-route-id="@Model.ScheduleId" method="post" class="form-confirm"
+              data-confirm-title="Konfirmasi Selesai PM"
+              data-confirm-message="Data akan disimpan sebagai Done dan terkunci bagi Line Head. Lanjutkan?"
+              data-confirm-button="Ya, Simpan &amp; Done" data-loading-text="Menyimpan hasil PM...">
             @Html.AntiForgeryToken()
 
-            <!-- ============ SECTION 1: JADWAL ============ -->
-            <div class="form-section-title">
-                <i class="bi bi-calendar-check"></i> JADWAL
-            </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">
-                        <i class="bi bi-calendar-event"></i> Rencana (Plan)
-                    </label>
-                    <input type="date" name="planDate" class="form-control"
-                           value="@(Model.PlanDate?.ToString("yyyy-MM-dd"))" />
-                    <span class="help-text">Bisa diubah untuk atur tanggal spesifik</span>
+            <div class="form-section-title"><i class="bi bi-calendar-check me-1"></i> JADWAL</div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Rencana (Plan)</label>
+                    <div class="form-control bg-light text-muted" aria-readonly="true">@(Model.PlanDate?.ToString("dd/MM/yyyy") ?? "Belum ditentukan")</div>
+                    <span class="help-text">Jadwal hanya dapat diubah dari pengaturan Jadwal PM.</span>
                 </div>
-
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">
-                        <i class="bi bi-check-circle"></i> Tanggal Aktual
-                    </label>
-                    <input type="date" name="actualDate" class="form-control"
-                           value="@(Model.ActualDate?.ToString("yyyy-MM-dd"))" />
-                    <span class="help-text">Isi saat PM benar-benar selesai</span>
+                <div class="col-md-6">
+                    <label class="form-label" for="actualDate"><i class="bi bi-calendar-check me-1"></i> Actual Date <span class="text-danger">*</span></label>
+                    <input id="actualDate" name="actualDate" type="date" class="form-control"
+                           value="@(Model.ActualDate?.ToString("yyyy-MM-dd"))" required disabled="@(!canEdit)" />
+                    <span class="help-text">Tanggal pelaksanaan PM.</span>
                 </div>
             </div>
-
-            <!-- ============ SECTION 2: PELAKSANAAN ============ -->
-            <div class="form-section-title mt-2">
-                <i class="bi bi-person-check"></i> PELAKSANAAN
+            <div class="form-section-title mt-3"><i class="bi bi-person-check me-1"></i> PELAKSANAAN</div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="pic"><i class="bi bi-person me-1"></i> PIC / Penanggung Jawab <span class="text-danger">*</span></label>
+                    <input id="pic" name="pic" type="text" maxlength="200" class="form-control"
+                           value="@Model.PIC" placeholder="Nama pelaksana" required disabled="@(!canEdit)" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Status Setelah Simpan</label>
+                    <div class="form-control bg-light"><span class="badge bg-success">Done</span></div>
+                    <span class="help-text">Setelah Done, Line Head tidak dapat mengedit kembali.</span>
+                </div>
             </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">
-                        <i class="bi bi-person"></i> PIC / Penanggung Jawab
-                    </label>
-                    <input type="text" name="pic" class="form-control"
-                           value="@Model.PIC" placeholder="Contoh: Budi Santoso"
-                           list="picList" autocomplete="off" />
-                    <datalist id="picList">
-                        @foreach (var p in Model.PICs)
+            <div class="form-section-title mt-3"><i class="bi bi-clipboard-check me-1"></i> HASIL</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="result"><i class="bi bi-check2-circle me-1"></i> Result <span class="text-danger">*</span></label>
+                    <select id="result" name="result" class="form-select" required disabled="@(!canEdit)">
+                        <option value="">-- Pilih Result --</option>
+                        @if (Model.Result == PmApp.Web.Models.MachineCondition.OK)
                         {
-                            <option value="@p"></option>
+                            <option value="OK" selected>OK</option>
                         }
-                    </datalist>
-                    <span class="help-text">Nama teknisi yang mengerjakan</span>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">
-                        <i class="bi bi-flag"></i> Status
-                    </label>
-                    <select name="status" class="form-select">
-                        @foreach (var s in Enum.GetValues<PmApp.Web.Models.PmStatus>())
+                        else
                         {
-                            if (s == Model.Status)
-                            {
-                                <option value="@s" selected>@s</option>
-                            }
-                            else
-                            {
-                                <option value="@s">@s</option>
-                            }
+                            <option value="OK">OK</option>
+                        }
+                        @if (Model.Result == PmApp.Web.Models.MachineCondition.NG)
+                        {
+                            <option value="NG" selected>NG</option>
+                        }
+                        else
+                        {
+                            <option value="NG">NG</option>
+                        }
+                        @* Label baru Comment, penyimpanan tetap menggunakan enum Partial yang sudah ada *@
+                        @if (Model.Result == PmApp.Web.Models.MachineCondition.Partial)
+                        {
+                            <option value="Partial" selected>Comment</option>
+                        }
+                        else
+                        {
+                            <option value="Partial">Comment</option>
                         }
                     </select>
-                    <span class="help-text">Scheduled · InProgress · Done · Overdue · Cancelled</span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="notes"><i class="bi bi-journal-text me-1"></i> Catatan <span class="text-danger" id="noteStar" style="display:none">*</span></label>
+                    <textarea id="notes" name="notes" rows="3" maxlength="500" class="form-control"
+                              placeholder="Keterangan tambahan (opsional)" disabled="@(!canEdit)">@Model.Notes</textarea>
+                    <span class="help-text">Wajib diisi jika Result = Comment.</span>
                 </div>
             </div>
-
-            <!-- ============ SECTION 3: HASIL ============ -->
-            <div class="form-section-title mt-2">
-                <i class="bi bi-clipboard-check"></i> HASIL
-            </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">
-                        <i class="bi bi-search"></i> Hasil Pengecekan
-                    </label>
-                    <select name="result" class="form-select">
-                        @foreach (var r in Enum.GetValues<PmApp.Web.Models.MachineCondition>())
-                        {
-                            if (r == Model.Result)
-                            {
-                                <option value="@r" selected>@r</option>
-                            }
-                            else
-                            {
-                                <option value="@r">@r</option>
-                            }
-                        }
-                    </select>
-                    <span class="help-text">
-                        <strong>Pending</strong> · <strong>OK</strong> ·
-                        <strong>Partial</strong> · <strong>NG</strong>
-                    </span>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">
-                        <i class="bi bi-journal-text"></i> Catatan
-                    </label>
-                    <textarea name="notes" class="form-control" rows="3"
-                              placeholder="Catatan tambahan (opsional)">@Model.Notes</textarea>
-                    <span class="help-text">Temuan, kondisi khusus, dll</span>
-                </div>
-            </div>
-
-            <!-- ============ TOMBOL ============ -->
             <hr class="my-4" />
-
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-lg px-4">
-                    <i class="bi bi-save"></i> Simpan Perubahan
-                </button>
-                <a asp-action="Index" asp-route-year="@Model.Year"
-                   class="btn btn-secondary btn-lg px-4">
-                    <i class="bi bi-arrow-left"></i> Batal
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                @if (canEdit)
+                {
+                    <button type="submit" class="btn btn-success btn-lg"><i class="bi bi-check-circle me-1"></i> @(isDone ? "Simpan Koreksi" : "Simpan & Done")</button>
+                }
+                <a asp-action="ByMonth" asp-route-year="@Model.Year" asp-route-month="@Model.Month" class="btn btn-outline-secondary btn-lg">
+                    <i class="bi bi-arrow-left me-1"></i> Kembali ke Pelaksanaan PM
                 </a>
+                <a asp-action="History" asp-route-id="@Model.ScheduleId" class="btn btn-outline-info btn-lg"><i class="bi bi-clock-history me-1"></i> Riwayat</a>
             </div>
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const result = document.getElementById('result');
+            const notes = document.getElementById('notes');
+            const star = document.getElementById('noteStar');
+            if (!result || !notes || !star) return;
+            function syncNotes() {
+                const required = result.value === 'Partial' && !result.disabled;
+                notes.required = required;
+                star.style.display = required ? '' : 'none';
+            }
+            result.addEventListener('change', syncNotes);
+            syncNotes();
+        })();
+    </script>
+}

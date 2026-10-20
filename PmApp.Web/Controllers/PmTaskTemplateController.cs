@@ -16,15 +16,17 @@ public class PmTaskTemplateController : Controller
     private readonly AppDbContext _db;
     private readonly PmScheduleGeneratorService _generator;
     private readonly PmIdGeneratorService _pmIdGenerator;
+    private readonly LineAccessService _lineAccess;
 
     public PmTaskTemplateController(
         AppDbContext db,
         PmScheduleGeneratorService generator,
-        PmIdGeneratorService pmIdGenerator)
+        PmIdGeneratorService pmIdGenerator, LineAccessService lineAccess)
     {
         _db = db;
         _generator = generator;
         _pmIdGenerator = pmIdGenerator;
+        _lineAccess = lineAccess;
     }
 
     // ============================================================
@@ -49,6 +51,9 @@ public class PmTaskTemplateController : Controller
             .Include(t => t.Standard)
             .Where(t => t.IsActive)
             .AsQueryable();
+
+        var allowedLines = await _lineAccess.AssignedLineIdsAsync();
+        tasksQuery = _lineAccess.ScopeTasks(tasksQuery, allowedLines);
 
         if (productId.HasValue)
             tasksQuery = tasksQuery.Where(t => t.Asset!.ProductId == productId.Value);
@@ -82,8 +87,12 @@ public class PmTaskTemplateController : Controller
             .OrderBy(g => g.Asset.Code)
             .ToList();
 
-        ViewBag.Lines = await _db.Lines.OrderBy(l => l.Code).ToListAsync();
+        ViewBag.Lines = await _db.Lines.AsNoTracking()
+            .Where(l => _lineAccess.IsManager || allowedLines.Contains(l.Id))
+            .OrderBy(l => l.Code).ToListAsync();
         ViewBag.Products = await _db.Products.AsNoTracking()
+            .Where(p => _lineAccess.IsManager || _db.Lines.Any(l =>
+                l.ProductId == p.Id && allowedLines.Contains(l.Id)))
             .OrderBy(p => p.Name).ToListAsync();
         ViewBag.LineId = lineId;
         ViewBag.ProductId = productId;
@@ -96,6 +105,7 @@ public class PmTaskTemplateController : Controller
     // CREATE — GET
     // ============================================================
     [HttpGet]
+    [Authorize(Roles = "Admin,TS")]
     public async Task<IActionResult> Create()
     {
         var vm = new PmTaskTemplateFormViewModel();
@@ -108,6 +118,7 @@ public class PmTaskTemplateController : Controller
     // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,TS")]
     public async Task<IActionResult> Create(PmTaskTemplateFormViewModel vm)
     {
         await ValidateMachineHierarchyAsync(vm);
@@ -183,6 +194,7 @@ public class PmTaskTemplateController : Controller
     // EDIT — GET
     // ============================================================
     [HttpGet]
+    [Authorize(Roles = "Admin,TS")]
     public async Task<IActionResult> Edit(int id)
     {
         var task = await _db.PmTaskTemplates
@@ -224,6 +236,7 @@ public class PmTaskTemplateController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,TS")]
     public async Task<IActionResult> Edit(
         int id,
         PmTaskTemplateFormViewModel vm)
@@ -300,6 +313,7 @@ public class PmTaskTemplateController : Controller
     // ============================================================
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,TS")]
     public async Task<IActionResult> Delete(int id)
     {
         var task = await _db.PmTaskTemplates.FirstOrDefaultAsync(t => t.Id == id);
@@ -521,6 +535,7 @@ public class PmTaskTemplateController : Controller
     // DROPDOWN PRODUCT BERDASARKAN PLANT
     // ==========================================
     [HttpGet]
+    [Authorize(Roles = "Admin,TS")]
     public async Task<IActionResult> GetProducts(int plantId)
     {
         var products = await _db.Products
@@ -541,6 +556,7 @@ public class PmTaskTemplateController : Controller
     // DROPDOWN LINE BERDASARKAN PRODUCT
     // ==========================================
     [HttpGet]
+    [Authorize(Roles = "Admin,TS")]
     public async Task<IActionResult> GetLines(int productId)
     {
         var lines = await _db.Lines
@@ -561,6 +577,7 @@ public class PmTaskTemplateController : Controller
     // DROPDOWN MACHINE BERDASARKAN LINE
     // ==========================================
     [HttpGet]
+    [Authorize(Roles = "Admin,TS")]
     public async Task<IActionResult> GetMachines(int lineId)
     {
         var machines = await _db.Assets
@@ -579,6 +596,7 @@ public class PmTaskTemplateController : Controller
 
 
     [HttpGet]
+    [Authorize(Roles = "Admin,TS")]
     public async Task<IActionResult> PreviewIdPm(
         int assetId,
         int? taskSequence)

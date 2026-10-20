@@ -1,28 +1,38 @@
 ﻿@model PmApp.Web.Models.ViewModels.PmMonthViewModel
 @{
-    ViewData["Title"] = "Update PM per Bulan";
+    ViewData["Title"] = "Pelaksanaan PM";
     var monthNames = new[] { "", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember" };
+    bool canCorrect = (User.IsInRole("Admin") || User.IsInRole("TS"));
 }
+
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+        <h4 class="mb-1"><i class="bi bi-clipboard-check text-primary me-1"></i> Pelaksanaan PM</h4>
+        <p class="mb-0 small text-muted">Pilih pekerjaan untuk mengisi hasil PM. Pekerjaan Done hanya dapat dikoreksi Admin.</p>
+    </div>
+</div>
 
 @if (TempData["Success"] != null)
 {
-    <div class="alert alert-success alert-dismissible fade show">
-        <i class="bi bi-check-circle"></i> @TempData["Success"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-1"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-1"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <h4 class="mb-0"><i class="bi bi-calendar-month"></i> Update PM per Bulan</h4>
-</div>
-
-<!-- FILTER BULAN -->
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body">
-        <form method="get" class="row g-2 align-items-end">
-            <div class="col-md-2">
-                <label class="form-label">Bulan</label>
-                <select name="month" class="form-select">
+        <form asp-action="ByMonth" method="get" class="row g-2 align-items-end">
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="monthFilter">Bulan</label>
+                <select id="monthFilter" name="month" class="form-select">
                     @for (int m = 1; m <= 12; m++)
                     {
                         if (Model.Month == m)
@@ -36,221 +46,192 @@
                     }
                 </select>
             </div>
-            <div class="col-md-2">
-                <label class="form-label">Tahun</label>
-                <input type="number" name="year" class="form-control" value="@Model.Year" />
+            <div class="col-6 col-md-2">
+                <label class="form-label" for="yearFilter">Tahun</label>
+                <input id="yearFilter" name="year" type="number" min="2000" max="2100" class="form-control" value="@Model.Year" />
             </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-search"></i> Tampilkan
-                </button>
-                <a asp-action="ByMonth" class="btn btn-secondary">Bulan Ini</a>
+            <div class="col-12"><hr class="my-1" /></div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label" for="productFilter">Product</label>
+                <select id="productFilter" name="productId" class="form-select searchable-select">
+                    <option value="">-- Semua Product --</option>
+                    @foreach (var p in (IEnumerable<PmApp.Web.Models.Entities.Product>)ViewBag.Products)
+                    {
+                        <option value="@p.Id" selected="@(ViewBag.ProductId == (int?)p.Id)">@p.Name</option>
+                    }
+                </select>
             </div>
-            <div class="col-md-5 text-end">
-                <div class="small text-muted">
-                    Periode:
-                    <strong>@Model.MonthName @Model.Year</strong>
-                </div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label" for="lineFilter">Line</label>
+                <select id="lineFilter" name="lineId" class="form-select searchable-select">
+                    <option value="">-- Semua Line --</option>
+                    @foreach (var l in (IEnumerable<PmApp.Web.Models.Entities.Line>)ViewBag.Lines)
+                    {
+                        <option value="@l.Id" selected="@(ViewBag.LineId == (int?)l.Id)">@l.Name</option>
+                    }
+                </select>
             </div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label" for="machineFilter">Mesin</label>
+                <select id="machineFilter" name="assetId" class="form-select searchable-select">
+                    <option value="">-- Semua Mesin --</option>
+                    @foreach (var a in (IEnumerable<PmApp.Web.Models.Entities.Asset>)ViewBag.Assets)
+                    {
+                        <option value="@a.Id" selected="@(ViewBag.AssetId == (int?)a.Id)">@a.Code</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label" for="statusFilter">Status</label>
+                <select id="statusFilter" name="status" class="form-select">
+                    <option value="all" selected="@(ViewBag.StatusFilter == "all")">Semua Status</option>
+                    <option value="scheduled" selected="@(ViewBag.StatusFilter == "scheduled")">Scheduled</option>
+                    <option value="progress" selected="@(ViewBag.StatusFilter == "progress")">On Progress</option>
+                    <option value="pending" selected="@(ViewBag.StatusFilter == "pending")">Pending (termasuk Progress)</option>
+                    <option value="done" selected="@(ViewBag.StatusFilter == "done")">Done</option>
+                    <option value="delay" selected="@(ViewBag.StatusFilter == "delay")">Delay</option>
+                </select>
+            </div>
+            <div class="col-12 col-lg-7">
+                <label class="form-label" for="searchFilter">Cari Task PM</label>
+                <input id="searchFilter" name="search" type="search" class="form-control"
+                       value="@ViewBag.Search" placeholder="Cari ID-PM, kode mesin, Sub Unit, Metode..." />
+            </div>
+            <div class="col-12 col-lg-5 d-flex align-items-end gap-2 flex-wrap">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i> Terapkan Filter</button>
+                <a asp-action="ByMonth" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+                   class="btn btn-outline-secondary">Reset Filter</a>
+            </div>
+            <div class="col-12 col-md-auto d-flex gap-2">
+                <a asp-action="ByMonth" class="btn btn-link px-0">Lihat Bulan Ini</a>
+            </div>
+            <div class="col-12 col-md text-md-end small text-muted">Periode: <strong>@Model.MonthName @Model.Year</strong></div>
         </form>
     </div>
 </div>
 
-<!-- SUMMARY -->
-<div class="row g-3 mb-3">
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm text-white bg-primary">
-            <div class="card-body text-center">
-                <div class="small opacity-75">Total Task</div>
-                <h4 class="mb-0">@Model.TotalTask</h4>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm text-white bg-success">
-            <div class="card-body text-center">
-                <div class="small opacity-75">Done</div>
-                <h4 class="mb-0">@Model.TotalDone</h4>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm text-white bg-warning">
-            <div class="card-body text-center">
-                <div class="small opacity-75">Pending</div>
-                <h4 class="mb-0">@Model.TotalPending</h4>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm text-white bg-delay">
-            <div class="card-body text-center">
-                <div class="small opacity-75">Delay</div>
-                <h4 class="mb-0">@Model.TotalDelay</h4>
-            </div>
-        </div>
-    </div>
+<div class="row g-2 g-md-3 mb-3">
+    <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm bg-primary text-white"><div class="card-body py-3 text-center"><div class="small opacity-75">Total Task</div><h4 class="mb-0">@Model.TotalTask</h4></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm bg-success text-white"><div class="card-body py-3 text-center"><div class="small opacity-75">Done</div><h4 class="mb-0">@Model.TotalDone</h4></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm bg-warning text-dark"><div class="card-body py-3 text-center"><div class="small">Pending</div><h4 class="mb-0">@Model.TotalPending</h4></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm bg-delay text-white"><div class="card-body py-3 text-center"><div class="small opacity-75">Delay</div><h4 class="mb-0">@Model.TotalDelay</h4></div></div></div>
 </div>
 
-@if (!Model.Weeks.Any() || Model.TotalTask == 0)
+@if (Model.TotalTask == 0)
 {
-    <div class="alert alert-info">
-        <i class="bi bi-info-circle"></i>
-        Tidak ada jadwal PM di bulan ini. Coba pilih bulan lain.
-    </div>
+    <div class="alert alert-info"><i class="bi bi-info-circle me-1"></i> Tidak ada PM yang cocok dengan periode atau filter yang dipilih.</div>
 }
 else
 {
-    <form asp-action="UpdateMonth" method="post" class="form-confirm" data-confirm-title="Konfirmasi Update Bulanan" data-confirm-message="Simpan perubahan PM bulan ini?" data-confirm-button="Ya, Simpan" data-loading-text="Memperbarui PM bulanan...">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="year" value="@Model.Year" />
-        <input type="hidden" name="month" value="@Model.Month" />
-
-        @foreach (var week in Model.Weeks)
-        {
-            if (!week.Rows.Any()) continue;
-
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center"
-                     data-bs-toggle="collapse"
-                     data-bs-target="#week-@week.WeekNumber"
-                     style="cursor: pointer;">
-                    <div>
-                        <i class="bi bi-calendar-week text-primary"></i>
-                        <strong class="ms-2">@week.WeekLabel</strong>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <span class="badge bg-primary">@week.TotalTask task</span>
-                        <span class="badge bg-success">@week.TotalDone done</span>
-                        <span class="badge bg-warning text-dark">@week.TotalPending pending</span>
+    @foreach (var week in Model.Weeks)
+    {
+        if (!week.Rows.Any()) continue;
+        var collapseId = "week-" + week.WeekNumber;
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-light p-0">
+                <button class="btn w-100 d-flex align-items-center justify-content-between flex-wrap gap-2 text-start px-3 py-3"
+                        type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId"
+                        aria-controls="@collapseId" aria-expanded="true">
+                    <span class="fw-semibold"><i class="bi bi-calendar-week text-primary me-2"></i>@week.WeekLabel</span>
+                    <span class="d-flex align-items-center flex-wrap gap-1 gap-md-2">
+                        <span class="badge bg-primary">@week.TotalTask Task</span>
+                        <span class="badge bg-success">@week.TotalDone Done</span>
+                        <span class="badge bg-warning text-dark">@week.TotalPending Pending</span>
                         @if (week.TotalDelay > 0)
                         {
-                            <span class="badge bg-delay">@week.TotalDelay delay</span>
+                            <span class="badge bg-danger">@week.TotalDelay Delay</span>
                         }
-                        <i class="bi bi-chevron-down"></i>
-                    </div>
-                </div>
-
-                <div id="week-@week.WeekNumber" class="collapse show">
-                    <div class="card-body p-0" style="overflow-x: auto;">
-                        <table class="table table-hover table-sm mb-0" style="font-size: 0.85rem;">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="min-width: 90px;">ID-PM</th>
-                                    <th style="min-width: 140px;">Mesin</th>
-                                    <th style="min-width: 110px;">Sub Unit</th>
-                                    <th style="min-width: 80px;">Metode</th>
-                                    <th class="text-center" style="width: 50px;">W/H</th>
-                                    <th class="text-center" style="width: 40px;">MP</th>
-                                    <th style="min-width: 120px;">Plan</th>
-                                    <th style="min-width: 120px;">Actual</th>
-                                    <th style="min-width: 130px;">PIC</th>
-                                    <th style="min-width: 110px;">Status</th>
-                                    <th style="min-width: 110px;">Hasil</th>
-                                    <th style="min-width: 160px;">Catatan</th>
-                                    <th class="text-center" style="min-width: 140px;">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var row in week.Rows)
-                                {
-                                    <tr>
-                                        <td>
-                                            <strong>@row.IdPm</strong>
-                                            <input type="hidden" name="scheduleIds" value="@row.ScheduleId" />
-                                        </td>
-                                        <td>
-                                            @row.AssetCode
-                                            <br />
-                                            <small class="text-muted">@row.AssetName</small>
-                                        </td>
-                                        <td>@row.SubUnitName</td>
-                                        <td><span class="badge bg-secondary">@row.MethodName</span></td>
-                                        <td class="text-center">@row.WorkHourMinutes</td>
-                                        <td class="text-center">@row.ManPower</td>
-
-                                        <td>
-                                            <input type="date" name="planDates" class="form-control form-control-sm"
-                                                   value="@(row.PlanDate?.ToString("yyyy-MM-dd"))" />
-                                        </td>
-
-                                        <td>
-                                            <input type="date" name="actualDates" class="form-control form-control-sm"
-                                                   value="@(row.ActualDate?.ToString("yyyy-MM-dd"))" />
-                                        </td>
-
-                                        <td>
-                                            <input type="text" name="pics" class="form-control form-control-sm"
-                                                   value="@row.PIC" placeholder="PIC" />
-                                        </td>
-
-                                        <td>
-                                            <select name="statuses" class="form-select form-select-sm">
-                                                @foreach (var s in Enum.GetNames(typeof(PmApp.Web.Models.PmStatus)))
-                                                {
-                                                    var label = s == "Overdue" ? "Delay" : s;
-                                                    if (row.Status.ToString() == s)
-                                                    {
-                                                        <option value="@s" selected>@label</option>
-                                                    }
-                                                    else
-                                                    {
-                                                        <option value="@s">@label</option>
-                                                    }
-                                                }
-                                            </select>
-                                        </td>
-
-                                        <td>
-                                            <select name="results" class="form-select form-select-sm">
-                                                @foreach (var r in Enum.GetNames(typeof(PmApp.Web.Models.MachineCondition)))
-                                                {
-                                                    if (row.Result.ToString() == r)
-                                                    {
-                                                        <option value="@r" selected>@r</option>
-                                                    }
-                                                    else
-                                                    {
-                                                        <option value="@r">@r</option>
-                                                    }
-                                                }
-                                            </select>
-                                        </td>
-
-                                        <td>
-                                            <input type="text" name="notes" class="form-control form-control-sm"
-                                                   value="@row.Notes" placeholder="Catatan" />
-                                        </td>
-
-                                        <td class="text-center">
-                                            <a asp-controller="PmSchedule" asp-action="UpdateCell"
-                                               asp-route-id="@row.ScheduleId"
-                                               class="btn btn-sm btn-warning mb-1"
-                                               title="Update via Form Lengkap">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-                                            <a asp-controller="PmSchedule" asp-action="History"
-                                               asp-route-id="@row.ScheduleId"
-                                               class="btn btn-sm btn-info text-white mb-1"
-                                               title="History">
-                                                <i class="bi bi-clock-history"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        }
-
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-end">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-save"></i> Simpan Semua (@Model.TotalTask task)
+                        <i class="bi bi-chevron-down ms-1"></i>
+                    </span>
                 </button>
             </div>
+            <div id="@collapseId" class="collapse show">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 pm-execution-list">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID-PM</th>
+                                <th>Mesin</th>
+                                <th>Sub Unit / Metode</th>
+                                <th>Plan</th>
+                                <th>Actual / PIC</th>
+                                <th>Status</th>
+                                <th>Hasil</th>
+                                <th class="text-end">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in week.Rows)
+                            {
+                                var isDone = row.Status == PmApp.Web.Models.PmStatus.Done;
+                                string resultLabel = row.Result == PmApp.Web.Models.MachineCondition.Partial
+                                    ? "Comment" : row.Result.ToString();
+                                <tr>
+                                    <td class="fw-semibold">@row.IdPm</td>
+                                    <td class="text-nowrap">@row.AssetCode</td>
+                                    <td><div>@row.SubUnitName</div><small class="text-muted">@row.MethodName</small></td>
+                                    <td class="text-nowrap">@(row.PlanDate?.ToString("dd/MM/yyyy") ?? "—")</td>
+                                    <td><div class="text-nowrap">@(row.ActualDate?.ToString("dd/MM/yyyy") ?? "—")</div><small class="text-muted">@(string.IsNullOrWhiteSpace(row.PIC) ? "Belum diisi" : row.PIC)</small></td>
+                                    <td>
+                                        @if (isDone)
+                                        {
+                                            <span class="badge bg-success"><i class="bi bi-lock-fill me-1"></i>Done</span>
+                                        }
+                                        else if (row.Status == PmApp.Web.Models.PmStatus.Overdue)
+                                        {
+
+                                            <span class="badge bg-danger">Delay</span>
+                                        }
+                                        else if (row.Status == PmApp.Web.Models.PmStatus.InProgress)
+                                        {
+
+                                            <span class="badge bg-info text-dark">On Progress</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span class="badge bg-secondary">@row.Status</span>
+                                        }
+                                    </td>
+                                    <td>@(row.Result == PmApp.Web.Models.MachineCondition.Pending ? "—" : resultLabel)</td>
+                                    <td class="text-end text-nowrap">
+                                        <a asp-controller="PmSchedule" asp-action="UpdateCell" asp-route-id="@row.ScheduleId"
+                                           class="btn btn-sm @(isDone ? (canCorrect ? "btn-warning" : "btn-outline-secondary") : "btn-primary")">
+                                            <i class="bi @(isDone ? (canCorrect ? "bi-pencil-square" : "bi-eye") : "bi-pencil-square") me-1"></i>
+                                            @(isDone ? (canCorrect ? "Koreksi" : "Detail") : "Isi PM")
+                                        </a>
+                                        <a asp-controller="PmSchedule" asp-action="History" asp-route-id="@row.ScheduleId"
+                                           class="btn btn-sm btn-outline-secondary ms-1" title="Riwayat perubahan" aria-label="Riwayat perubahan">
+                                            <i class="bi bi-clock-history"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-    </form>
+    }
 }
+
+<style>
+    .pm-execution-list {
+        font-size: .87rem;
+        min-width: 780px;
+    }
+
+        .pm-execution-list th, .pm-execution-list td {
+            padding: .75rem .65rem;
+        }
+
+        .pm-execution-list th {
+            white-space: nowrap;
+        }
+
+    @@media (max-width: 767.98px) {
+        .pm-execution-list {
+            min-width: 830px;
+        }
+    }
+</style>

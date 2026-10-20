@@ -4,12 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using PmApp.Web.Data;
 using PmApp.Web.Models;
 using PmApp.Web.Models.ViewModels;
+using PmApp.Web.Services;
 
 namespace PmApp.Web.Controllers;
 
 public class ReportController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly LineAccessService _lineAccess;
 
     private static readonly string[] MonthNames =
     {
@@ -23,9 +25,10 @@ public class ReportController : Controller
         "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
     };
 
-    public ReportController(AppDbContext db)
+    public ReportController(AppDbContext db, LineAccessService lineAccess)
     {
         _db = db;
+        _lineAccess = lineAccess;
     }
 
     public async Task<IActionResult> PmSchedule(int? year, int? month, int? lineId, int? assetId, string? status, string? result)
@@ -49,7 +52,8 @@ public class ReportController : Controller
     private async Task<PmReportViewModel> BuildReportAsync(
         int year, int? month, int? lineId, int? assetId, string? status, string? result)
     {
-        var query = _db.PmSchedules
+        var assigned = await _lineAccess.AssignedLineIdsAsync();
+        var query = _lineAccess.ScopeSchedules(_db.PmSchedules, assigned)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.Asset).ThenInclude(a => a!.Line)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.SubUnit)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.Method)
@@ -166,13 +170,15 @@ public class ReportController : Controller
         string? lineName = null;
         if (lineId.HasValue)
         {
-            var l = await _db.Lines.FirstOrDefaultAsync(x => x.Id == lineId.Value);
+            var l = await _db.Lines.FirstOrDefaultAsync(x => x.Id == lineId.Value &&
+                (_lineAccess.IsManager || assigned.Contains(x.Id)));
             lineName = l?.Name;
         }
         string? assetName = null;
         if (assetId.HasValue)
         {
-            var a = await _db.Assets.FirstOrDefaultAsync(x => x.Id == assetId.Value);
+            var a = await _lineAccess.ScopeAssets(_db.Assets, assigned)
+                .FirstOrDefaultAsync(x => x.Id == assetId.Value);
             assetName = a?.Code + " - " + a?.Name;
         }
 
@@ -205,7 +211,8 @@ public class ReportController : Controller
     private async Task<PmReportFilterViewModel> BuildFilterAsync(
         int year, int? month, int? lineId, int? assetId, string? status, string? result)
     {
-        var years = await _db.PmSchedules
+        var assigned = await _lineAccess.AssignedLineIdsAsync();
+        var years = await _lineAccess.ScopeSchedules(_db.PmSchedules, assigned)
             .Select(s => s.Year).Distinct()
             .OrderByDescending(y => y).ToListAsync();
 
@@ -235,7 +242,9 @@ public class ReportController : Controller
                 Selected = month == m
             }).ToList(),
 
-            Lines = await _db.Lines.OrderBy(l => l.Code)
+            Lines = await _db.Lines
+                .Where(l => _lineAccess.IsManager || assigned.Contains(l.Id))
+                .OrderBy(l => l.Code)
                 .Select(l => new SelectListItem
                 {
                     Value = l.Id.ToString(),
@@ -243,7 +252,8 @@ public class ReportController : Controller
                     Selected = lineId == l.Id
                 }).ToListAsync(),
 
-            Assets = await _db.Assets.OrderBy(a => a.Code)
+            Assets = await _lineAccess.ScopeAssets(_db.Assets, assigned)
+                .OrderBy(a => a.Code)
                 .Select(a => new SelectListItem
                 {
                     Value = a.Id.ToString(),

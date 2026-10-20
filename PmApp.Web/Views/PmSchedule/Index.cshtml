@@ -18,44 +18,50 @@
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h4 class="mb-0"><i class="bi bi-calendar-week"></i> Jadwal PM @year</h4>
     <div class="d-flex gap-2">
-        <a asp-controller="Export" asp-action="ScheduleExcel"
-           asp-route-year="@year" asp-route-assetId="@assetId"
-           class="btn btn-outline-success" title="Export ke Excel">
-            <i class="bi bi-file-earmark-excel"></i> Excel
-        </a>
-        <a asp-controller="Export" asp-action="SchedulePdf"
-           asp-route-year="@year" asp-route-assetId="@assetId"
-           class="btn btn-outline-danger" title="Export ke PDF">
-            <i class="bi bi-file-earmark-pdf"></i> PDF
-        </a>
-        <a asp-controller="Export" asp-action="ScheduleCsv"
-           asp-route-year="@year" asp-route-assetId="@assetId"
-           class="btn btn-outline-secondary" title="Export ke CSV">
-            <i class="bi bi-file-earmark-text"></i> CSV
-        </a>
-        <form asp-action="Regenerate" method="post" class="d-inline">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="year" value="@year" />
-            <button type="submit" class="btn btn-success btn-post"
-                    data-confirm-title="Konfirmasi Regenerate"
-                    data-confirm-message="Regenerate jadwal untuk tahun @year? Jadwal yang sudah ada tidak akan terganti."
-                    data-confirm-button="Ya, Regenerate"
-                    data-loading-text="Membuat jadwal PM...">
-                <i class="bi bi-arrow-repeat"></i> Regenerate
-            </button>
-        </form>
-        <form asp-action="ResetRegenerate" method="post" class="d-inline">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="year" value="@year" />
-            <button type="submit" class="btn btn-danger btn-post"
-                    data-confirm-title="Konfirmasi Reset Jadwal"
-                    data-confirm-message="Semua jadwal yang BELUM Done akan dihapus dan dibuat ulang. Jadwal Done tetap tersimpan. Lanjutkan?"
-                    data-confirm-type="danger"
-                    data-confirm-button="Ya, Reset & Regenerate"
-                    data-loading-text="Reset dan membuat ulang jadwal...">
-                <i class="bi bi-arrow-counterclockwise"></i> Reset & Regenerate
-            </button>
-        </form>
+        @if (!User.IsInRole("LineHead") || assetId.HasValue)
+        {
+            <a asp-controller="Export" asp-action="ScheduleExcel"
+               asp-route-year="@year" asp-route-assetId="@assetId"
+               class="btn btn-outline-success" title="Export ke Excel">
+                <i class="bi bi-file-earmark-excel"></i> Excel
+            </a>
+            <a asp-controller="Export" asp-action="SchedulePdf"
+               asp-route-year="@year" asp-route-assetId="@assetId"
+               class="btn btn-outline-danger" title="Export ke PDF">
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+            </a>
+            <a asp-controller="Export" asp-action="ScheduleCsv"
+               asp-route-year="@year" asp-route-assetId="@assetId"
+               class="btn btn-outline-secondary" title="Export ke CSV">
+                <i class="bi bi-file-earmark-text"></i> CSV
+            </a>
+        }
+        @if (User.IsInRole("Admin") || User.IsInRole("TS"))
+        {
+            <form asp-action="Regenerate" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="year" value="@year" />
+                <button type="submit" class="btn btn-success btn-post"
+                        data-confirm-title="Konfirmasi Regenerate"
+                        data-confirm-message="Regenerate jadwal untuk tahun @year? Jadwal yang sudah ada tidak akan terganti."
+                        data-confirm-button="Ya, Regenerate"
+                        data-loading-text="Membuat jadwal PM...">
+                    <i class="bi bi-arrow-repeat"></i> Regenerate
+                </button>
+            </form>
+            <form asp-action="ResetRegenerate" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="year" value="@year" />
+                <button type="submit" class="btn btn-danger btn-post"
+                        data-confirm-title="Konfirmasi Reset Jadwal"
+                        data-confirm-message="Semua jadwal yang BELUM Done akan dihapus dan dibuat ulang. Jadwal Done tetap tersimpan. Lanjutkan?"
+                        data-confirm-type="danger"
+                        data-confirm-button="Ya, Reset & Regenerate"
+                        data-loading-text="Reset dan membuat ulang jadwal...">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset & Regenerate
+                </button>
+            </form>
+        }
     </div>
 </div>
 

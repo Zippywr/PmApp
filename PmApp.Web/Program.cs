@@ -21,6 +21,7 @@ builder.Services.AddScoped<
     PasswordHasher<AppUser>>();
 
 builder.Services.AddScoped<AppUserBootstrapService>();
+builder.Services.AddScoped<LineAccessService>();
 // ============================================================
 // COOKIE AUTHENTICATION
 // ============================================================
@@ -108,9 +109,14 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy =>
         policy.RequireRole(AppRoles.Admin));
 
+    options.AddPolicy("AdminOrTS", policy =>
+        policy.RequireRole(AppRoles.Admin, AppRoles.TechnicalSupport));
+
+    options.AddPolicy("PmReaders", policy =>
+        policy.RequireRole(AppRoles.Admin, AppRoles.TechnicalSupport, AppRoles.LineHead));
+
     options.AddPolicy("OperatorOrAdmin", policy =>
-        policy.RequireRole(
-            AppRoles.Admin,
+        policy.RequireRole(AppRoles.Admin, AppRoles.TechnicalSupport, AppRoles.LineHead,
             AppRoles.Operator));
 });
 
@@ -193,6 +199,34 @@ app.UseRouting();
 
 // Periksa siapa pengguna yang sedang login
 app.UseAuthentication();
+
+// Wajib ganti password sementara sebelum memakai menu lainnya.
+app.Use(async (context, next) =>
+{
+    var principal = context.User;
+    if (principal.Identity?.IsAuthenticated == true &&
+        int.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
+    {
+        var db = context.RequestServices.GetRequiredService<AppDbContext>();
+        var needsChange = await db.AppUsers.AsNoTracking()
+            .AnyAsync(x => x.Id == userId && x.MustChangePassword);
+        var path = context.Request.Path;
+        var allowed = path.StartsWithSegments("/Profile/ChangePassword") ||
+                      path.StartsWithSegments("/Account/Logout") ||
+                      path.StartsWithSegments("/Account/AccessDenied") ||
+                      path.StartsWithSegments("/Account/Login") ||
+                      path.StartsWithSegments("/css") ||
+                      path.StartsWithSegments("/js") ||
+                      path.StartsWithSegments("/lib") ||
+                      path.StartsWithSegments("/images");
+        if (needsChange && !allowed)
+        {
+            context.Response.Redirect("/Profile/ChangePassword");
+            return;
+        }
+    }
+    await next();
+});
 
 // Periksa hak akses pengguna
 app.UseAuthorization();

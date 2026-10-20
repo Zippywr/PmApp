@@ -50,11 +50,22 @@ public class AppDbContext : DbContext
     // DB SETS — User
     // ============================================================
     public DbSet<AppUser> AppUsers => Set<AppUser>();
+    public DbSet<AppUserLine> AppUserLines => Set<AppUserLine>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<AppUserLine>(entity =>
+        {
+            entity.HasKey(x => new { x.UserId, x.LineId });
+            entity.HasOne(x => x.User).WithMany(u => u.AssignedLines)
+                .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Line).WithMany()
+                .HasForeignKey(x => x.LineId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.LineId);
+        });
 
         // ---------------------------------------------------------
         // User
@@ -93,7 +104,7 @@ public class AppDbContext : DbContext
         {
             e.HasIndex(x => x.Code)
             .IsUnique()
-            .HasFilter("[IsDeleted] = 0"); 
+            .HasFilter("[IsDeleted] = 0");
         });
 
         // ---------------------------------------------------------
@@ -158,9 +169,9 @@ public class AppDbContext : DbContext
             .IsUnique()
             .HasFilter("[IsDeleted] = 0");
         });
-            // ---------------------------------------------------------
-            // MC CATEGORY
-            // ---------------------------------------------------------
+        // ---------------------------------------------------------
+        // MC CATEGORY
+        // ---------------------------------------------------------
         modelBuilder.Entity<McCategory>(e =>
         {
             e.HasIndex(x => x.Code)

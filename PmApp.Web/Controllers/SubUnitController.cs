@@ -8,7 +8,7 @@ using PmApp.Web.Models.ViewModels;
 
 namespace PmApp.Web.Controllers;
 
-[Authorize(Roles = AppRoles.Admin)]
+[Authorize(Roles = "Admin,TS")]
 public class SubUnitController : Controller
 {
     private readonly AppDbContext _db;

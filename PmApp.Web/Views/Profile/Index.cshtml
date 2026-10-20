@@ -1,0 +1,22 @@
+﻿@model PmApp.Web.Models.Entities.AppUser
+@using PmApp.Web.Models.Entities
+@{
+    ViewData["Title"] = "Profil Saya";
+}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3"><div><h4><i class="bi bi-person-circle"></i> Profil Saya</h4><p class="text-muted mb-0">Informasi akun dan keamanan</p></div><a asp-action="ChangePassword" class="btn btn-primary"><i class="bi bi-key"></i> Ganti Password</a></div>
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Nama Lengkap</dt>
+            <dd class="col-sm-9">@Model.FullName</dd>
+            <dt class="col-sm-3">Username</dt>
+            <dd class="col-sm-9">@Model.Username</dd>
+            <dt class="col-sm-3">Role</dt>
+            <dd class="col-sm-9"><span class="badge bg-primary">@(Model.Role == AppRoles.LineHead ? "Line Head" : Model.Role)</span></dd>
+            <dt class="col-sm-3">Line</dt>
+            <dd class="col-sm-9">@(Model.Role == AppRoles.LineHead ? string.Join(", ", Model.AssignedLines.Select(x => x.Line?.Name ?? "-")) : "Seluruh Line")</dd>
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">@(Model.IsActive ? "Aktif" : "Nonaktif")</dd>
+        </dl>
+    </div>
+</div>

@@ -7,7 +7,9 @@ namespace PmApp.Web.Models.Entities;
 public static class AppRoles
 {
     public const string Admin = "Admin";
-    public const string Operator = "Operator";
+    public const string Operator = "Operator"; // Legacy: akun lama dipetakan manual setelah migrasi
+    public const string TechnicalSupport = "TS";
+    public const string LineHead = "LineHead";
 }
 
 public class AppUser : BaseEntity
@@ -28,6 +30,9 @@ public class AppUser : BaseEntity
     public string Role { get; set; } = AppRoles.Operator;
 
     public bool IsActive { get; set; } = true;
+
+    public bool MustChangePassword { get; set; }
+    public ICollection<AppUserLine> AssignedLines { get; set; } = new List<AppUserLine>();
 
     [Required]
     [StringLength(40)]

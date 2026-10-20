@@ -10,7 +10,7 @@ using PmApp.Web.Models.ViewModels;
 
 namespace PmApp.Web.Controllers;
 
-[Authorize(Policy = "AdminOnly")]
+[Authorize(Roles = "Admin,TS")]
 public class ProductController : Controller
 {
     private readonly AppDbContext _db;

@@ -10,7 +10,7 @@ using PmApp.Web.Models.ViewModels;
 
 namespace PmApp.Web.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Admin,TS")]
 public class AssetController : Controller
 {
     private readonly AppDbContext _db;
@@ -87,7 +87,7 @@ public class AssetController : Controller
     // =====================================================
     // CREATE - GET
     // =====================================================
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Roles = "Admin,TS")]
     [HttpGet]
     public async Task<IActionResult> Create()
     {
@@ -101,7 +101,7 @@ public class AssetController : Controller
     // =====================================================
     // CREATE - POST
     // =====================================================
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Roles = "Admin,TS")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(
@@ -185,7 +185,7 @@ public class AssetController : Controller
     // =====================================================
     // EDIT - GET
     // =====================================================
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Roles = "Admin,TS")]
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
@@ -235,7 +235,7 @@ public class AssetController : Controller
     // =====================================================
     // EDIT - POST
     // =====================================================
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Roles = "Admin,TS")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(
@@ -347,7 +347,7 @@ public class AssetController : Controller
     // =====================================================
     // DELETE - SOFT DELETE
     // =====================================================
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Roles = "Admin,TS")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
@@ -404,7 +404,7 @@ public class AssetController : Controller
     // =====================================================
     // BOM - ADD PART
     // =====================================================
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Roles = "Admin,TS")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddPart(
@@ -502,7 +502,7 @@ public class AssetController : Controller
     // =====================================================
     // BOM - REMOVE PART (SOFT DELETE)
     // =====================================================
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Roles = "Admin,TS")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemovePart(int id)

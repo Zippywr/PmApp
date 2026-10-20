@@ -3,17 +3,20 @@ using Microsoft.EntityFrameworkCore;
 using PmApp.Web.Data;
 using PmApp.Web.Models;
 using PmApp.Web.Models.ViewModels;
+using PmApp.Web.Services;
 
 namespace PmApp.Web.Controllers;
 
 public class HomeController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly LineAccessService _lineAccess;
     private const int PAGE_SIZE = 25;
 
-    public HomeController(AppDbContext db)
+    public HomeController(AppDbContext db, LineAccessService lineAccess)
     {
         _db = db;
+        _lineAccess = lineAccess;
     }
 
     // ============================================================
@@ -53,6 +56,8 @@ public class HomeController : Controller
         var monthStart = new DateTime(y, m, 1);
         var monthEnd = monthStart.AddMonths(1);
 
+        var assignedLines = await _lineAccess.AssignedLineIdsAsync();
+        var scopedAssets = _lineAccess.ScopeAssets(_db.Assets, assignedLines);
         var vm = new HomeDashboardViewModel
         {
             SelectedYear = y,
@@ -61,14 +66,14 @@ public class HomeController : Controller
             ActiveTab = tab ?? "active",
             SelectedDelayWeek = delayWeek,
             PageSize = PAGE_SIZE,
-            TotalAssets = await _db.Assets.CountAsync(),
-            TotalParts = await _db.Parts.CountAsync()
+            TotalAssets = await scopedAssets.CountAsync(),
+            TotalParts = _lineAccess.IsManager ? await _db.Parts.CountAsync() : 0
         };
 
         // ============================================================
         // LOAD TASK DI BULAN TERPILIH
         // ============================================================
-        var monthTasks = await _db.PmSchedules
+        var monthTasks = await _lineAccess.ScopeSchedules(_db.PmSchedules, assignedLines)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.Asset)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.SubUnit)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.Method)
