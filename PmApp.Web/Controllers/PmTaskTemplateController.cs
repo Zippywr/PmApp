@@ -67,6 +67,8 @@ public class PmTaskTemplateController : Controller
             tasksQuery = tasksQuery.Where(t =>
                 t.IdPm.ToLower().Contains(s) ||
                 t.Asset!.Code.ToLower().Contains(s) ||
+                (t.Asset.OpNo != null && t.Asset.OpNo.ToLower().Contains(s)) ||
+                (t.Asset.OpNo != null && (t.Asset.Code + "/" + t.Asset.OpNo).ToLower().Contains(s)) ||
                 t.Asset!.Name.ToLower().Contains(s) ||
                 (t.SubUnit != null && t.SubUnit.Name.ToLower().Contains(s)) ||
                 (t.Unit != null && t.Unit.Name.ToLower().Contains(s)));
@@ -587,7 +589,7 @@ public class PmTaskTemplateController : Controller
             .Select(a => new
             {
                 id = a.Id,
-                text = a.Code
+                text = a.Code + (a.OpNo != null && a.OpNo != "" ? "/" + a.OpNo : "")
             })
             .ToListAsync();
 
@@ -741,7 +743,7 @@ public class PmTaskTemplateController : Controller
             .Select(a => new SelectListItem
             {
                 Value = a.Id.ToString(),
-                Text = a.Code
+                Text = a.Code + (a.OpNo != null && a.OpNo != "" ? "/" + a.OpNo : "")
             })
             .ToListAsync();
 

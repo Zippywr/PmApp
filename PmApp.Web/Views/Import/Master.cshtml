@@ -79,6 +79,14 @@ else
                     <li>Isi data sesuai kolom yang tersedia: <strong>@string.Join(", ", headers)</strong></li>
                     <li><strong>Jangan ubah</strong> nama kolom (header)</li>
                     <li>Kode harus unik (tidak boleh duplikat)</li>
+                    @if (actionName == "Asset")
+                    {
+                        <li>OP No opsional, maksimal 50 karakter, boleh huruf/angka dan boleh sama pada mesin lain. Isi manual, misalnya OP-130 atau FMS-1A; tidak ada awalan otomatis.</li>
+                    }
+                    @if (actionName == "PmTask")
+                    {
+                        <li>Kode Mesin boleh berupa kode asli (78-EN-02) atau kode dengan nomor operasi (78-EN-02/FMS-1A). ID-PM tetap enam digit.</li>
+                    }
                 </ul>
             </div>
 

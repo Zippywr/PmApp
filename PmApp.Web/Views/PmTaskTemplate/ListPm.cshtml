@@ -128,7 +128,7 @@
             <div class="col-md-3">
                 <label class="form-label">Cari</label>
                 <input type="text" name="search" class="form-control"
-                       placeholder="ID-PM, kode mesin, sub unit..."
+                       placeholder="ID-PM, kode mesin, nomor operasi, sub unit..."
                        value="@search" />
             </div>
             <div class="col-md-3">
@@ -172,7 +172,7 @@ else
                             aria-expanded="@(isOpen ? "true" : "false")"
                             aria-controls="@collapseId">
                         <i class="bi bi-gear-fill text-primary"></i>
-                        <strong>@group.Asset.Code</strong>
+                        <strong>@group.Asset.DisplayCode</strong>
                         @if (!string.IsNullOrWhiteSpace(group.Asset.Name) &&
                              !string.Equals(group.Asset.Name, group.Asset.Code, StringComparison.OrdinalIgnoreCase))
                         {
@@ -315,7 +315,7 @@ else
                                                         <button type="button"
                                                                 class="btn btn-sm btn-danger btn-delete"
                                                                 data-name="Task '@task.IdPm'"
-                                                                data-detail="Mesin: @group.Asset.Code"
+                                                                data-detail="Mesin: @group.Asset.DisplayCode"
                                                                 title="Hapus">
                                                             <i class="bi bi-trash"></i>
                                                         </button>

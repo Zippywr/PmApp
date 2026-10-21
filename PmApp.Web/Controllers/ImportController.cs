@@ -761,8 +761,8 @@ public class ImportController : Controller
             var criticalityString = row.GetValueOrDefault("Kritikalitas", "Normal").Trim();
             var desc = row.GetValueOrDefault("Deskripsi", "").Trim();
 
-            if (new[] { code, opNo, plantCode, productCode, lineCode, catCode }.Any(string.IsNullOrWhiteSpace))
-            { errors.Add($"Baris {rowNum}: Kode, OP No, Plant, Product, Line, dan Kategori wajib diisi."); continue; }
+            if (new[] { code, plantCode, productCode, lineCode, catCode }.Any(string.IsNullOrWhiteSpace))
+            { errors.Add($"Baris {rowNum}: Kode Mesin, Plant, Product, Line, dan Kategori wajib diisi. OP No opsional."); continue; }
             if (code.Length > 50 || opNo.Length > 50 || model.Length > 100 || serial.Length > 100 || capacity.Length > 100 || desc.Length > 500)
             { errors.Add($"Baris {rowNum}: Panjang kolom melebihi batas."); continue; }
             var plant = plants.FirstOrDefault(p => p.Code.Equals(plantCode, StringComparison.OrdinalIgnoreCase));
@@ -800,7 +800,7 @@ public class ImportController : Controller
             {
                 Code = code,
                 Name = code,
-                OpNo = opNo,
+                OpNo = string.IsNullOrWhiteSpace(opNo) ? null : opNo,
                 LineId = line.Id,
                 ProductId = product.Id,
                 AreaId = null,
@@ -994,7 +994,8 @@ public class ImportController : Controller
 
             var assetCode = Get("Kode Mesin");
             var asset = assets.FirstOrDefault(a =>
-                a.Code.Equals(assetCode, StringComparison.OrdinalIgnoreCase));
+                a.Code.Equals(assetCode, StringComparison.OrdinalIgnoreCase) ||
+                a.DisplayCode.Equals(assetCode, StringComparison.OrdinalIgnoreCase));
             if (asset == null || !asset.IsActive)
             {
                 errors.Add($"Baris {rowNumber}: Mesin '{assetCode}' tidak ditemukan atau nonaktif.");

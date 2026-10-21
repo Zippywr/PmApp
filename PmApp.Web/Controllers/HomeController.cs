@@ -110,7 +110,7 @@ public class HomeController : Controller
         {
             Id = s.Id,
             IdPm = s.TaskTemplate?.IdPm ?? "-",
-            AssetCode = s.TaskTemplate?.Asset?.Code ?? "-",
+            AssetCode = s.TaskTemplate?.Asset?.DisplayCode ?? "-",
             AssetName = s.TaskTemplate?.Asset?.Name ?? "-",
             SubUnitName = s.TaskTemplate?.SubUnit?.Name ?? "-",
             MethodName = s.TaskTemplate?.Method?.Name ?? "-",

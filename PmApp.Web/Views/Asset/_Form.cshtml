@@ -37,8 +37,9 @@
 
                 <input asp-for="OpNo"
                        class="form-control"
-                       placeholder="Contoh: OP-120" />
+                       placeholder="Contoh: OP-120 atau FMS-1A" />
 
+                <div class="form-text">Opsional. Isi sesuai nama operasi, tanpa awalan otomatis. Nomor operasi boleh sama pada mesin lain.</div>
                 <span asp-validation-for="OpNo"
                       class="text-danger small"></span>
             </div>

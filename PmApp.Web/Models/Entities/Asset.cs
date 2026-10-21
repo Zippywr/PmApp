@@ -19,8 +19,14 @@ public class Asset : BaseEntity
     public string Name { get; set; } = string.Empty;
 
     [MaxLength(50)]
-    [Display(Name = "OP No")]
+    [Display(Name = "Nomor Operasi (Opsional)")]
     public string? OpNo { get; set; }
+
+    // Properti untuk tampilan saja. Kode mesin untuk ID-PM tetap Code.
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string DisplayCode => string.IsNullOrWhiteSpace(OpNo)
+        ? Code
+        : $"{Code}/{OpNo.Trim()}";
 
     // ============================================================
     // RELASI KE MASTER LOKASI

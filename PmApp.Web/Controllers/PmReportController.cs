@@ -81,7 +81,7 @@ public class ReportController : Controller
         {
             ScheduleId = s.Id,
             IdPm = s.TaskTemplate?.IdPm ?? "",
-            AssetCode = s.TaskTemplate?.Asset?.Code ?? "",
+            AssetCode = s.TaskTemplate?.Asset?.DisplayCode ?? "",
             AssetName = s.TaskTemplate?.Asset?.Name ?? "",
             LineName = s.TaskTemplate?.Asset?.Line?.Name ?? "",
             SubUnitName = s.TaskTemplate?.SubUnit?.Name ?? "",
@@ -162,7 +162,7 @@ public class ReportController : Controller
             .OrderByDescending(x => x.Value).ToList();
 
         var perMachine = schedules
-            .GroupBy(s => s.TaskTemplate?.Asset?.Code ?? "-")
+            .GroupBy(s => s.TaskTemplate?.Asset?.DisplayCode ?? "-")
             .Select(g => new ChartDataPoint { Label = g.Key, Value = g.Count() })
             .OrderByDescending(x => x.Value)
             .Take(10).ToList();
@@ -180,7 +180,7 @@ public class ReportController : Controller
         {
             var a = await _productAccess.ScopeAssets(_db.Assets, assignedProducts)
                 .FirstOrDefaultAsync(x => x.Id == assetId.Value);
-            assetName = a?.Code + " - " + a?.Name;
+            assetName = a?.DisplayCode + " - " + a?.Name;
         }
 
         return new PmReportViewModel
@@ -259,7 +259,7 @@ public class ReportController : Controller
                 .Select(a => new SelectListItem
                 {
                     Value = a.Id.ToString(),
-                    Text = a.Code + " - " + a.Name,
+                    Text = a.Code + (a.OpNo != null && a.OpNo != "" ? "/" + a.OpNo : ""),
                     Selected = assetId == a.Id
                 }).ToListAsync(),
 

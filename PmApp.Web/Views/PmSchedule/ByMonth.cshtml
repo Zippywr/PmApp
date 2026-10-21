@@ -77,7 +77,7 @@
                     <option value="">-- Semua Mesin --</option>
                     @foreach (var a in (IEnumerable<PmApp.Web.Models.Entities.Asset>)ViewBag.Assets)
                     {
-                        <option value="@a.Id" selected="@(ViewBag.AssetId == (int?)a.Id)">@a.Code</option>
+                        <option value="@a.Id" selected="@(ViewBag.AssetId == (int?)a.Id)">@a.DisplayCode</option>
                     }
                 </select>
             </div>
@@ -95,7 +95,7 @@
             <div class="col-12 col-lg-7">
                 <label class="form-label" for="searchFilter">Cari Task PM</label>
                 <input id="searchFilter" name="search" type="search" class="form-control"
-                       value="@ViewBag.Search" placeholder="Cari ID-PM, kode mesin, Sub Unit, Metode..." />
+                       value="@ViewBag.Search" placeholder="Cari ID-PM, kode mesin, OP-120, FMS-1A, Sub Unit, Metode..." />
             </div>
             <div class="col-12 col-lg-5 d-flex align-items-end gap-2 flex-wrap">
                 <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i> Terapkan Filter</button>

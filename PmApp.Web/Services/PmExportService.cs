@@ -101,7 +101,7 @@ public class PmExportService
             var row = new ScheduleMatrixRow
             {
                 IdPm = task.IdPm,
-                AssetCode = task.Asset?.Code ?? "",
+                AssetCode = task.Asset?.DisplayCode ?? "",
                 AssetName = task.Asset?.Name ?? "",
                 SubUnitName = task.SubUnit?.Name ?? "",
                 MethodName = task.Method?.Name ?? "",
@@ -160,7 +160,7 @@ public class PmExportService
         foreach (var item in data)
         {
             ws.Cell(row, 1).Value = item.IdPm;
-            ws.Cell(row, 2).Value = item.Asset?.Code ?? "";
+            ws.Cell(row, 2).Value = item.Asset?.DisplayCode ?? "";
             ws.Cell(row, 3).Value = item.Asset?.Name ?? "";
             ws.Cell(row, 4).Value = item.Asset?.Line?.Name ?? "";
             ws.Cell(row, 5).Value = item.Asset?.Area?.Name ?? "";
@@ -213,7 +213,7 @@ public class PmExportService
             row++;
         }
 
-        AddDetail("Kode Mesin", asset.Code);
+        AddDetail("Kode Mesin", asset.DisplayCode);
         AddDetail("Nama Mesin", asset.Name);
         AddDetail("OP No", asset.OpNo);
         AddDetail("Line", asset.Line?.Name);
@@ -438,7 +438,7 @@ public class PmExportService
         foreach (var item in data)
         {
             csv.WriteField(item.IdPm);
-            csv.WriteField(item.Asset?.Code ?? "");
+            csv.WriteField(item.Asset?.DisplayCode ?? "");
             csv.WriteField(item.Asset?.Name ?? "");
             csv.WriteField(item.Asset?.Line?.Name ?? "");
             csv.WriteField(item.Asset?.Area?.Name ?? "");
@@ -474,7 +474,7 @@ public class PmExportService
 
         csv.WriteField("=== DETAIL MESIN ===");
         csv.NextRecord();
-        csv.WriteField("Kode Mesin"); csv.WriteField(asset.Code); csv.NextRecord();
+        csv.WriteField("Kode Mesin"); csv.WriteField(asset.DisplayCode); csv.NextRecord();
         csv.WriteField("Nama Mesin"); csv.WriteField(asset.Name); csv.NextRecord();
         csv.WriteField("OP No"); csv.WriteField(asset.OpNo ?? "-"); csv.NextRecord();
         csv.WriteField("Line"); csv.WriteField(asset.Line?.Name ?? "-"); csv.NextRecord();
@@ -644,7 +644,7 @@ public class PmExportService
                                 .Padding(2).Text(text ?? "-").FontSize(7);
                         }
                         Cell(item.IdPm);
-                        Cell(item.Asset?.Code ?? "-");
+                        Cell(item.Asset?.DisplayCode ?? "-");
                         Cell(item.Asset?.Name ?? "-");
                         Cell(item.Asset?.Line?.Name ?? "-");
                         Cell(item.Unit?.Name ?? "-");
@@ -713,7 +713,7 @@ public class PmExportService
                                 tbl.Cell().Text(v2 ?? "-");
                             }
 
-                            Row("Kode Mesin", asset.Code, "OP No", asset.OpNo);
+                            Row("Kode Mesin", asset.DisplayCode, "OP No", asset.OpNo);
                             Row("Nama Mesin", asset.Name, "Line", asset.Line?.Name);
                             Row("Area", asset.Area?.Name, "Kategori", asset.McCategory?.Name);
                             Row("Fungsi", asset.MachineFunction?.Name, "Brand", asset.Brand?.Name);
@@ -1143,7 +1143,7 @@ public class PmExportService
             TaskId = task.Id,
             IdPm = task.IdPm,
             Year = year,
-            AssetCode = task.Asset?.Code ?? "-",
+            AssetCode = task.Asset?.DisplayCode ?? "-",
             AssetName = task.Asset?.Name ?? "-",
             LineName = task.Asset?.Line?.Name ?? "-",
             AreaName = task.Asset?.Area?.Name ?? "-",

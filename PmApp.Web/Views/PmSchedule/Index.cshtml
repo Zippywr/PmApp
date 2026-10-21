@@ -80,11 +80,11 @@
                     {
                         if (assetId == a.Id)
                         {
-                            <option value="@a.Id" selected>@a.Code - @a.Name</option>
+                            <option value="@a.Id" selected>@a.DisplayCode</option>
                         }
                         else
                         {
-                            <option value="@a.Id">@a.Code - @a.Name</option>
+                            <option value="@a.Id">@a.DisplayCode</option>
                         }
                     }
                 </select>
@@ -132,7 +132,7 @@ else
                         <tr>
                             <td><strong>@row.Task.IdPm</strong></td>
                             <td>
-                                @row.Task.Asset?.Code
+                                @row.Task.Asset?.DisplayCode
                                 <br />
                                 <small class="text-muted">@row.Task.Asset?.Name</small>
                             </td>

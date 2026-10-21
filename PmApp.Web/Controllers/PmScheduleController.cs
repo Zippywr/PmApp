@@ -185,7 +185,7 @@ public class PmScheduleController : Controller
             TaskId = task.Id,
             IdPm = task.IdPm,
             Year = y,
-            AssetCode = task.Asset?.Code ?? "-",
+            AssetCode = task.Asset?.DisplayCode ?? "-",
             AssetName = task.Asset?.Name ?? "-",
             LineName = task.Asset?.Line?.Name ?? "-",
             AreaName = task.Asset?.Area?.Name ?? "-",
@@ -262,7 +262,7 @@ public class PmScheduleController : Controller
 
             // Info task
             IdPm = task?.IdPm ?? "",
-            AssetCode = task?.Asset?.Code ?? "",
+            AssetCode = task?.Asset?.DisplayCode ?? "",
             AssetName = task?.Asset?.Name ?? "",
             LineName = task?.Asset?.Line?.Name,
             AreaName = task?.Asset?.Area?.Name,
@@ -395,7 +395,7 @@ public class PmScheduleController : Controller
 
         ViewBag.Schedule = schedule;
         ViewBag.IdPm = schedule.TaskTemplate?.IdPm;
-        ViewBag.AssetCode = schedule.TaskTemplate?.Asset?.Code;
+        ViewBag.AssetCode = schedule.TaskTemplate?.Asset?.DisplayCode;
         ViewBag.SubUnitName = schedule.TaskTemplate?.SubUnit?.Name;
         ViewBag.MethodName = schedule.TaskTemplate?.Method?.Name;
         ViewBag.Month = schedule.Month;
@@ -471,7 +471,11 @@ public class PmScheduleController : Controller
             var term = search.Trim();
             query = query.Where(s => s.TaskTemplate != null && (
                 s.TaskTemplate.IdPm.Contains(term) ||
-                (s.TaskTemplate.Asset != null && s.TaskTemplate.Asset.Code.Contains(term)) ||
+                (s.TaskTemplate.Asset != null && (
+                    s.TaskTemplate.Asset.Code.Contains(term) ||
+                    (s.TaskTemplate.Asset.OpNo != null && s.TaskTemplate.Asset.OpNo.Contains(term)) ||
+                    (s.TaskTemplate.Asset.OpNo != null &&
+                     (s.TaskTemplate.Asset.Code + "/" + s.TaskTemplate.Asset.OpNo).Contains(term)))) ||
                 (s.TaskTemplate.SubUnit != null && s.TaskTemplate.SubUnit.Name.Contains(term)) ||
                 (s.TaskTemplate.Method != null && s.TaskTemplate.Method.Name.Contains(term))
             ));
@@ -504,7 +508,7 @@ public class PmScheduleController : Controller
                 ScheduleId = s.Id,
                 TaskTemplateId = s.TaskTemplateId,
                 IdPm = s.TaskTemplate?.IdPm ?? "",
-                AssetCode = s.TaskTemplate?.Asset?.Code ?? "-",
+                AssetCode = s.TaskTemplate?.Asset?.DisplayCode ?? "-",
                 AssetName = s.TaskTemplate?.Asset?.Name ?? "-",
                 SubUnitName = s.TaskTemplate?.SubUnit?.Name ?? "-",
                 MethodName = s.TaskTemplate?.Method?.Name ?? "-",

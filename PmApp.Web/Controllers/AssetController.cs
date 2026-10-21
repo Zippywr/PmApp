@@ -579,7 +579,7 @@ public class AssetController : Controller
             .Select(a => new
             {
                 id = a.Id,
-                text = a.Code
+                text = a.Code + (a.OpNo != null && a.OpNo != "" ? "/" + a.OpNo : "")
             })
             .ToListAsync();
 
@@ -811,7 +811,7 @@ public class AssetController : Controller
         AssetFormViewModel vm)
     {
         vm.Code = vm.Code?.Trim() ?? "";
-        vm.OpNo = vm.OpNo?.Trim();
+        vm.OpNo = string.IsNullOrWhiteSpace(vm.OpNo) ? null : vm.OpNo.Trim();
 
         vm.Model = vm.Model?.Trim();
         vm.SerialNumber = vm.SerialNumber?.Trim();

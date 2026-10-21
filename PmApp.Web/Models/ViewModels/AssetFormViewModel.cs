@@ -19,9 +19,8 @@ public class AssetFormViewModel
     public string Code { get; set; } = string.Empty;
 
 
-    [Required(ErrorMessage = "OP No wajib diisi")]
     [MaxLength(50)]
-    [Display(Name = "OP No")]
+    [Display(Name = "Nomor Operasi (Opsional)")]
     public string? OpNo { get; set; }
 
     // ============================================================
