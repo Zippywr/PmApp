@@ -27,7 +27,7 @@ public class UserManagementController : Controller
     public async Task<IActionResult> Index(string? search, string? role)
     {
         var query = _db.AppUsers.AsNoTracking()
-            .Include(u => u.AssignedLines).ThenInclude(a => a.Line)
+            .Include(u => u.AssignedProducts).ThenInclude(a => a.Product)
             .AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -45,7 +45,7 @@ public class UserManagementController : Controller
     public async Task<IActionResult> Create()
     {
         var vm = new UserFormViewModel();
-        await LoadLinesAsync(vm);
+        await LoadProductsAsync(vm);
         return View(vm);
     }
 
@@ -55,7 +55,7 @@ public class UserManagementController : Controller
         await ValidateInputAsync(vm);
         if (!ModelState.IsValid)
         {
-            await LoadLinesAsync(vm);
+            await LoadProductsAsync(vm);
             return View(vm);
         }
         var password = TemporaryPasswordService.Generate();
@@ -68,14 +68,14 @@ public class UserManagementController : Controller
             MustChangePassword = true
         };
         entity.PasswordHash = _hasher.HashPassword(entity, password);
-        foreach (var id in vm.Role == AppRoles.LineHead ? vm.LineIds.Distinct() : Enumerable.Empty<int>())
-            entity.AssignedLines.Add(new AppUserLine { LineId = id });
+        foreach (var id in vm.Role == AppRoles.LineHead ? vm.ProductIds.Distinct() : Enumerable.Empty<int>())
+            entity.AssignedProducts.Add(new AppUserProduct { ProductId = id });
         _db.AppUsers.Add(entity);
         try { await _db.SaveChangesAsync(); }
         catch (DbUpdateException)
         {
             ModelState.AddModelError(nameof(vm.Username), "Username sudah dipakai atau penyimpanan gagal.");
-            await LoadLinesAsync(vm);
+            await LoadProductsAsync(vm);
             return View(vm);
         }
         return ShowIssued(vm.Username, password, "Akun baru dibuat. Wajib ganti password saat login pertama.");
@@ -84,7 +84,7 @@ public class UserManagementController : Controller
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var user = await _db.AppUsers.Include(u => u.AssignedLines)
+        var user = await _db.AppUsers.Include(u => u.AssignedProducts)
             .FirstOrDefaultAsync(u => u.Id == id);
         if (user == null) return NotFound();
         var vm = new UserFormViewModel
@@ -94,9 +94,9 @@ public class UserManagementController : Controller
             FullName = user.FullName,
             Role = user.Role,
             IsActive = user.IsActive,
-            LineIds = user.AssignedLines.Select(a => a.LineId).ToList()
+            ProductIds = user.AssignedProducts.Select(a => a.ProductId).ToList()
         };
-        await LoadLinesAsync(vm);
+        await LoadProductsAsync(vm);
         return View(vm);
     }
 
@@ -104,7 +104,7 @@ public class UserManagementController : Controller
     public async Task<IActionResult> Edit(int id, UserFormViewModel vm)
     {
         if (id != vm.Id) return BadRequest();
-        var user = await _db.AppUsers.Include(u => u.AssignedLines)
+        var user = await _db.AppUsers.Include(u => u.AssignedProducts)
             .FirstOrDefaultAsync(u => u.Id == id);
         if (user == null) return NotFound();
         vm.Username = user.Username; // Username identitas tetap, tidak menerima nilai form.
@@ -118,19 +118,19 @@ public class UserManagementController : Controller
         }
         if (!ModelState.IsValid)
         {
-            await LoadLinesAsync(vm);
+            await LoadProductsAsync(vm);
             return View(vm);
         }
         user.FullName = vm.FullName.Trim();
         user.Role = vm.Role;
         user.IsActive = vm.IsActive;
         user.SecurityStamp = Guid.NewGuid().ToString("N"); // Akhiri semua sesi lama.
-        var oldIds = user.AssignedLines.Select(a => a.LineId).ToHashSet();
-        var newIds = (vm.Role == AppRoles.LineHead ? vm.LineIds : new List<int>()).ToHashSet();
-        foreach (var old in user.AssignedLines.Where(a => !newIds.Contains(a.LineId)).ToList())
-            _db.AppUserLines.Remove(old);
+        var oldIds = user.AssignedProducts.Select(a => a.ProductId).ToHashSet();
+        var newIds = (vm.Role == AppRoles.LineHead ? vm.ProductIds : new List<int>()).ToHashSet();
+        foreach (var old in user.AssignedProducts.Where(a => !newIds.Contains(a.ProductId)).ToList())
+            _db.AppUserProducts.Remove(old);
         foreach (var newId in newIds.Where(line => !oldIds.Contains(line)))
-            _db.AppUserLines.Add(new AppUserLine { UserId = id, LineId = newId });
+            _db.AppUserProducts.Add(new AppUserProduct { UserId = id, ProductId = newId });
         await _db.SaveChangesAsync();
         TempData["Success"] = "Pengguna berhasil diperbarui; sesi lama otomatis dibatalkan.";
         return RedirectToAction(nameof(Index));
@@ -165,10 +165,10 @@ public class UserManagementController : Controller
         });
     }
 
-    private async Task LoadLinesAsync(UserFormViewModel vm)
+    private async Task LoadProductsAsync(UserFormViewModel vm)
     {
-        vm.LineOptions = await _db.Lines.AsNoTracking().OrderBy(l => l.Code)
-            .Select(l => new SelectListItem { Value = l.Id.ToString(), Text = l.Code + " - " + l.Name })
+        vm.ProductOptions = await _db.Products.AsNoTracking().OrderBy(p => p.Code)
+            .Select(p => new SelectListItem { Value = p.Id.ToString(), Text = p.Code + " - " + p.Name })
             .ToListAsync();
     }
 
@@ -176,13 +176,13 @@ public class UserManagementController : Controller
     {
         if (!new[] { AppRoles.Admin, AppRoles.TechnicalSupport, AppRoles.LineHead }.Contains(vm.Role))
             ModelState.AddModelError(nameof(vm.Role), "Role tidak valid.");
-        if (vm.Role == AppRoles.LineHead && vm.LineIds.Count == 0)
-            ModelState.AddModelError(nameof(vm.LineIds), "Line Head wajib memiliki minimal satu Line.");
-        if (vm.LineIds.Count > 0 && vm.Role == AppRoles.LineHead)
+        if (vm.Role == AppRoles.LineHead && vm.ProductIds.Count == 0)
+            ModelState.AddModelError(nameof(vm.ProductIds), "Line Head wajib memiliki minimal satu Product.");
+        if (vm.ProductIds.Count > 0 && vm.Role == AppRoles.LineHead)
         {
-            var count = await _db.Lines.CountAsync(l => vm.LineIds.Contains(l.Id));
-            if (count != vm.LineIds.Distinct().Count())
-                ModelState.AddModelError(nameof(vm.LineIds), "Salah satu Line tidak ditemukan.");
+            var count = await _db.Products.CountAsync(p => vm.ProductIds.Contains(p.Id));
+            if (count != vm.ProductIds.Distinct().Count())
+                ModelState.AddModelError(nameof(vm.ProductIds), "Salah satu Product tidak ditemukan.");
         }
         if (editingId == null && await _db.AppUsers.IgnoreQueryFilters()
             .AnyAsync(u => u.Username.ToLower() == vm.Username.Trim().ToLower()))

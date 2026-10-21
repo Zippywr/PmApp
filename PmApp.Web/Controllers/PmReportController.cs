@@ -11,7 +11,7 @@ namespace PmApp.Web.Controllers;
 public class ReportController : Controller
 {
     private readonly AppDbContext _db;
-    private readonly LineAccessService _lineAccess;
+    private readonly ProductAccessService _productAccess;
 
     private static readonly string[] MonthNames =
     {
@@ -25,10 +25,10 @@ public class ReportController : Controller
         "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
     };
 
-    public ReportController(AppDbContext db, LineAccessService lineAccess)
+    public ReportController(AppDbContext db, ProductAccessService productAccess)
     {
         _db = db;
-        _lineAccess = lineAccess;
+        _productAccess = productAccess;
     }
 
     public async Task<IActionResult> PmSchedule(int? year, int? month, int? lineId, int? assetId, string? status, string? result)
@@ -52,8 +52,8 @@ public class ReportController : Controller
     private async Task<PmReportViewModel> BuildReportAsync(
         int year, int? month, int? lineId, int? assetId, string? status, string? result)
     {
-        var assigned = await _lineAccess.AssignedLineIdsAsync();
-        var query = _lineAccess.ScopeSchedules(_db.PmSchedules, assigned)
+        var assignedProducts = await _productAccess.AssignedProductIdsAsync();
+        var query = _productAccess.ScopeSchedules(_db.PmSchedules, assignedProducts)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.Asset).ThenInclude(a => a!.Line)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.SubUnit)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.Method)
@@ -171,13 +171,14 @@ public class ReportController : Controller
         if (lineId.HasValue)
         {
             var l = await _db.Lines.FirstOrDefaultAsync(x => x.Id == lineId.Value &&
-                (_lineAccess.IsManager || assigned.Contains(x.Id)));
+                (_productAccess.IsManager ||
+                    (x.ProductId.HasValue && assignedProducts.Contains(x.ProductId.Value))));
             lineName = l?.Name;
         }
         string? assetName = null;
         if (assetId.HasValue)
         {
-            var a = await _lineAccess.ScopeAssets(_db.Assets, assigned)
+            var a = await _productAccess.ScopeAssets(_db.Assets, assignedProducts)
                 .FirstOrDefaultAsync(x => x.Id == assetId.Value);
             assetName = a?.Code + " - " + a?.Name;
         }
@@ -211,8 +212,8 @@ public class ReportController : Controller
     private async Task<PmReportFilterViewModel> BuildFilterAsync(
         int year, int? month, int? lineId, int? assetId, string? status, string? result)
     {
-        var assigned = await _lineAccess.AssignedLineIdsAsync();
-        var years = await _lineAccess.ScopeSchedules(_db.PmSchedules, assigned)
+        var assignedProducts = await _productAccess.AssignedProductIdsAsync();
+        var years = await _productAccess.ScopeSchedules(_db.PmSchedules, assignedProducts)
             .Select(s => s.Year).Distinct()
             .OrderByDescending(y => y).ToListAsync();
 
@@ -243,7 +244,8 @@ public class ReportController : Controller
             }).ToList(),
 
             Lines = await _db.Lines
-                .Where(l => _lineAccess.IsManager || assigned.Contains(l.Id))
+                .Where(l => _productAccess.IsManager ||
+                    (l.ProductId.HasValue && assignedProducts.Contains(l.ProductId.Value)))
                 .OrderBy(l => l.Code)
                 .Select(l => new SelectListItem
                 {
@@ -252,7 +254,7 @@ public class ReportController : Controller
                     Selected = lineId == l.Id
                 }).ToListAsync(),
 
-            Assets = await _lineAccess.ScopeAssets(_db.Assets, assigned)
+            Assets = await _productAccess.ScopeAssets(_db.Assets, assignedProducts)
                 .OrderBy(a => a.Code)
                 .Select(a => new SelectListItem
                 {

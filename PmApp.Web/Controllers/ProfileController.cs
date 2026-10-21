@@ -29,7 +29,7 @@ public class ProfileController : Controller
     public async Task<IActionResult> Index()
     {
         var user = await _db.AppUsers.AsNoTracking()
-            .Include(u => u.AssignedLines).ThenInclude(a => a.Line)
+            .Include(u => u.AssignedProducts).ThenInclude(a => a.Product)
             .FirstOrDefaultAsync(u => u.Id == CurrentId);
         return user == null ? NotFound() : View(user);
     }

@@ -19,8 +19,8 @@ public class UserFormViewModel
     public string Role { get; set; } = "LineHead";
 
     public bool IsActive { get; set; } = true;
-    public List<int> LineIds { get; set; } = new();
-    public List<SelectListItem> LineOptions { get; set; } = new();
+    public List<int> ProductIds { get; set; } = new();
+    public List<SelectListItem> ProductOptions { get; set; } = new();
 }
 
 public class ChangePasswordViewModel

@@ -110,6 +110,21 @@ namespace PmApp.Web.Migrations
                     b.ToTable("AppUserLines");
                 });
 
+            modelBuilder.Entity("PmApp.Web.Models.Entities.AppUserProduct", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId", "ProductId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("AppUserProducts", (string)null);
+                });
+
             modelBuilder.Entity("PmApp.Web.Models.Entities.Area", b =>
                 {
                     b.Property<int>("Id")
@@ -1319,6 +1334,25 @@ namespace PmApp.Web.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("PmApp.Web.Models.Entities.AppUserProduct", b =>
+                {
+                    b.HasOne("PmApp.Web.Models.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PmApp.Web.Models.Entities.AppUser", "User")
+                        .WithMany("AssignedProducts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("PmApp.Web.Models.Entities.Area", b =>
                 {
                     b.HasOne("PmApp.Web.Models.Entities.Line", "Line")
@@ -1515,6 +1549,8 @@ namespace PmApp.Web.Migrations
             modelBuilder.Entity("PmApp.Web.Models.Entities.AppUser", b =>
                 {
                     b.Navigation("AssignedLines");
+
+                    b.Navigation("AssignedProducts");
                 });
 
             modelBuilder.Entity("PmApp.Web.Models.Entities.Asset", b =>

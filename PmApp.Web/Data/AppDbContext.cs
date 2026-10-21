@@ -50,12 +50,25 @@ public class AppDbContext : DbContext
     // DB SETS — User
     // ============================================================
     public DbSet<AppUser> AppUsers => Set<AppUser>();
+    // Legacy, tetap ada agar database yang sudah dimigrasi tidak kehilangan data.
     public DbSet<AppUserLine> AppUserLines => Set<AppUserLine>();
+    public DbSet<AppUserProduct> AppUserProducts => Set<AppUserProduct>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<AppUserProduct>(entity =>
+        {
+            entity.ToTable("AppUserProducts");
+            entity.HasKey(x => new { x.UserId, x.ProductId });
+            entity.HasOne(x => x.User).WithMany(u => u.AssignedProducts)
+                .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Product).WithMany()
+                .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.ProductId);
+        });
 
         modelBuilder.Entity<AppUserLine>(entity =>
         {

@@ -32,7 +32,10 @@ public class AppUser : BaseEntity
     public bool IsActive { get; set; } = true;
 
     public bool MustChangePassword { get; set; }
+    // Legacy: penugasan Line disimpan agar migration yang telah diterapkan tidak hilang.
+    // Hak akses aktif hanya menggunakan AssignedProducts.
     public ICollection<AppUserLine> AssignedLines { get; set; } = new List<AppUserLine>();
+    public ICollection<AppUserProduct> AssignedProducts { get; set; } = new List<AppUserProduct>();
 
     [Required]
     [StringLength(40)]

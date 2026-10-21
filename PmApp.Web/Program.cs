@@ -21,7 +21,7 @@ builder.Services.AddScoped<
     PasswordHasher<AppUser>>();
 
 builder.Services.AddScoped<AppUserBootstrapService>();
-builder.Services.AddScoped<LineAccessService>();
+builder.Services.AddScoped<ProductAccessService>();
 // ============================================================
 // COOKIE AUTHENTICATION
 // ============================================================

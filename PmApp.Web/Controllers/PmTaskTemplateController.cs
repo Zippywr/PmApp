@@ -16,17 +16,17 @@ public class PmTaskTemplateController : Controller
     private readonly AppDbContext _db;
     private readonly PmScheduleGeneratorService _generator;
     private readonly PmIdGeneratorService _pmIdGenerator;
-    private readonly LineAccessService _lineAccess;
+    private readonly ProductAccessService _productAccess;
 
     public PmTaskTemplateController(
         AppDbContext db,
         PmScheduleGeneratorService generator,
-        PmIdGeneratorService pmIdGenerator, LineAccessService lineAccess)
+        PmIdGeneratorService pmIdGenerator, ProductAccessService productAccess)
     {
         _db = db;
         _generator = generator;
         _pmIdGenerator = pmIdGenerator;
-        _lineAccess = lineAccess;
+        _productAccess = productAccess;
     }
 
     // ============================================================
@@ -52,8 +52,8 @@ public class PmTaskTemplateController : Controller
             .Where(t => t.IsActive)
             .AsQueryable();
 
-        var allowedLines = await _lineAccess.AssignedLineIdsAsync();
-        tasksQuery = _lineAccess.ScopeTasks(tasksQuery, allowedLines);
+        var allowedProducts = await _productAccess.AssignedProductIdsAsync();
+        tasksQuery = _productAccess.ScopeTasks(tasksQuery, allowedProducts);
 
         if (productId.HasValue)
             tasksQuery = tasksQuery.Where(t => t.Asset!.ProductId == productId.Value);
@@ -88,11 +88,11 @@ public class PmTaskTemplateController : Controller
             .ToList();
 
         ViewBag.Lines = await _db.Lines.AsNoTracking()
-            .Where(l => _lineAccess.IsManager || allowedLines.Contains(l.Id))
+            .Where(l => _productAccess.IsManager ||
+                (l.ProductId.HasValue && allowedProducts.Contains(l.ProductId.Value)))
             .OrderBy(l => l.Code).ToListAsync();
         ViewBag.Products = await _db.Products.AsNoTracking()
-            .Where(p => _lineAccess.IsManager || _db.Lines.Any(l =>
-                l.ProductId == p.Id && allowedLines.Contains(l.Id)))
+            .Where(p => _productAccess.IsManager || allowedProducts.Contains(p.Id))
             .OrderBy(p => p.Name).ToListAsync();
         ViewBag.LineId = lineId;
         ViewBag.ProductId = productId;

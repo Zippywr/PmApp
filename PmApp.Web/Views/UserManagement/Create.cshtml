@@ -6,7 +6,7 @@
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <div class="alert alert-info">Password awal akan dibuat acak, ditampilkan satu kali setelah disimpan, dan wajib diganti saat login.</div>
-        <form asp-action="Create" method="post" class="form-confirm" data-confirm-title="Tambah akun baru?" data-confirm-message="Pastikan nama, role dan Line benar." data-confirm-button="Ya, Tambah">
+        <form asp-action="Create" method="post" class="form-confirm" data-confirm-title="Tambah akun baru?" data-confirm-message="Pastikan nama, role dan Product benar." data-confirm-button="Ya, Tambah">
             @Html.AntiForgeryToken()<partial name="_UserForm" model="Model" />
             <div class="d-flex gap-2 mt-4"><button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Simpan Akun</button><a asp-action="Index" class="btn btn-outline-secondary">Batal</a></div>
         </form>

@@ -1,271 +1,198 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PmApp.Web.Data;
 using PmApp.Web.Models;
+using PmApp.Web.Models.Entities;
 using PmApp.Web.Models.ViewModels;
 using PmApp.Web.Services;
 
 namespace PmApp.Web.Controllers;
 
+[Authorize(Roles = "Admin,TS,LineHead")]
 public class HomeController : Controller
 {
     private readonly AppDbContext _db;
-    private readonly LineAccessService _lineAccess;
-    private const int PAGE_SIZE = 25;
+    private readonly ProductAccessService _productAccess;
+    private const int PageSize = 20;
+    private const int BoardLimit = 8;
 
-    public HomeController(AppDbContext db, LineAccessService lineAccess)
+    public HomeController(AppDbContext db, ProductAccessService productAccess)
     {
         _db = db;
-        _lineAccess = lineAccess;
+        _productAccess = productAccess;
     }
 
-    // ============================================================
-    // HELPER — Cari hari Senin dari suatu tanggal
-    // ============================================================
-    private static DateTime GetMonday(DateTime d)
+    private static DateTime MondayOf(DateTime date)
     {
-        int diff = (7 + (d.DayOfWeek - DayOfWeek.Monday)) % 7;
-        return d.AddDays(-diff).Date;
+        int difference = ((int)date.DayOfWeek + 6) % 7;
+        return date.Date.AddDays(-difference);
     }
 
-    // ============================================================
-    // HELPER — Minggu ke berapa dalam bulan (1-5)
-    // ============================================================
-
-    private static int GetWeekOfMonth(DateTime d)
-    {
-        return Math.Min(((d.Day - 1) / 7) + 1, 4);
-    }
-
+    // Sama dengan pengelompokan ByMonth: tanggal 1-7, 8-14, 15-21, 22-akhir bulan.
+    private static int WeekOfMonth(DateTime date)
+        => Math.Min((date.Day - 1) / 7 + 1, 4);
 
     public async Task<IActionResult> Index(
-        int? year, int? month,
-        string? tab = "active",
-        int activePage = 1,
-        int donePage = 1,
-        int delayWeek = 1)
+        int? year, int? month, int? productId,
+        string? tab = "active", int activePage = 1,
+        int donePage = 1, int delayWeek = 1)
     {
         var today = DateTime.Today;
-        var thisMonday = GetMonday(today);
-        var nextMonday = thisMonday.AddDays(7);
-        var nextNextMonday = thisMonday.AddDays(14);
+        int y = year ?? today.Year;
+        int m = month ?? today.Month;
+        if (y < 2000 || y > 2100 || m < 1 || m > 12)
+            return BadRequest("Bulan atau tahun tidak valid.");
+        if (productId.HasValue && productId.Value <= 0)
+            return BadRequest("Product tidak valid.");
 
-        var y = year ?? today.Year;
-        var m = month ?? today.Month;
+        var start = new DateTime(y, m, 1);
+        var end = start.AddMonths(1);
+        var monday = MondayOf(today);
+        var nextMonday = monday.AddDays(7);
+        var mondayAfterNext = nextMonday.AddDays(7);
 
-        var monthStart = new DateTime(y, m, 1);
-        var monthEnd = monthStart.AddMonths(1);
+        // Selalu filter pada server, termasuk permintaan URL manual.
+        var allowed = await _productAccess.AssignedProductIdsAsync();
+        var availableProducts = await _db.Products.AsNoTracking()
+            .Where(p => _productAccess.IsManager || allowed.Contains(p.Id))
+            .OrderBy(p => p.Name)
+            .Select(p => new HomeProductOption { Id = p.Id, Name = p.Name })
+            .ToListAsync();
+        if (productId.HasValue && !availableProducts.Any(p => p.Id == productId.Value))
+            return NotFound();
 
-        var assignedLines = await _lineAccess.AssignedLineIdsAsync();
-        var scopedAssets = _lineAccess.ScopeAssets(_db.Assets, assignedLines);
+        var assetsQuery = _productAccess.ScopeAssets(_db.Assets.AsNoTracking(), allowed);
+        var scheduleQuery = _productAccess.ScopeSchedules(
+                _db.PmSchedules.AsNoTracking(), allowed)
+            .Where(s => s.PlanDate >= start && s.PlanDate < end
+                        && s.Status != PmStatus.Cancelled);
+
+        if (productId.HasValue)
+        {
+            int selectedId = productId.Value;
+            assetsQuery = assetsQuery.Where(a => a.ProductId == selectedId);
+            scheduleQuery = scheduleQuery.Where(s => s.TaskTemplate != null
+                && s.TaskTemplate.Asset != null
+                && s.TaskTemplate.Asset.ProductId == selectedId);
+        }
+
         var vm = new HomeDashboardViewModel
         {
             SelectedYear = y,
             SelectedMonth = m,
-            MonthName = new DateTime(y, m, 1).ToString("MMMM yyyy"),
-            ActiveTab = tab ?? "active",
-            SelectedDelayWeek = delayWeek,
-            PageSize = PAGE_SIZE,
-            TotalAssets = await scopedAssets.CountAsync(),
-            TotalParts = _lineAccess.IsManager ? await _db.Parts.CountAsync() : 0
+            SelectedProductId = productId,
+            ProductOptions = availableProducts,
+            MonthName = start.ToString("MMMM yyyy", new System.Globalization.CultureInfo("id-ID")),
+            ActiveTab = string.Equals(tab, "done", StringComparison.OrdinalIgnoreCase) ? "done" : "active",
+            SelectedDelayWeek = Math.Clamp(delayWeek, 1, 4),
+            PageSize = PageSize,
+            TotalAssets = await assetsQuery.CountAsync()
         };
 
-        // ============================================================
-        // LOAD TASK DI BULAN TERPILIH
-        // ============================================================
-        var monthTasks = await _lineAccess.ScopeSchedules(_db.PmSchedules, assignedLines)
+        // Read-only; akses Product diterapkan sebelum mengambil data.
+        // Dashboard membaca sumber jadwal yang sama dengan Pelaksanaan PM.
+        var schedules = await scheduleQuery
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.Asset)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.SubUnit)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.Method)
-            .Where(s => s.PlanDate >= monthStart
-                     && s.PlanDate < monthEnd
-                     && s.Status != PmStatus.Cancelled)
             .OrderBy(s => s.PlanDate)
+            .ThenBy(s => s.Id)
             .ToListAsync();
 
-        HomeTaskRow MapToRow(Models.Entities.PmSchedule s) => new HomeTaskRow
+        // Selaras dengan status Overdue tersimpan, juga mendeteksi Plan yang sudah lewat
+        // walaupun pembaruan status terjadwal belum dijalankan.
+        bool IsDelay(PmSchedule s) =>
+            s.Status != PmStatus.Done && (s.Status == PmStatus.Overdue ||
+            (s.PlanDate.HasValue && s.PlanDate.Value.Date < today));
+
+        HomeTaskRow Row(PmSchedule s) => new()
         {
             Id = s.Id,
-            IdPm = s.TaskTemplate?.IdPm ?? "",
-            AssetCode = s.TaskTemplate?.Asset?.Code ?? "",
-            AssetName = s.TaskTemplate?.Asset?.Name ?? "",
-            SubUnitName = s.TaskTemplate?.SubUnit?.Name ?? "",
-            MethodName = s.TaskTemplate?.Method?.Name ?? "",
+            IdPm = s.TaskTemplate?.IdPm ?? "-",
+            AssetCode = s.TaskTemplate?.Asset?.Code ?? "-",
+            AssetName = s.TaskTemplate?.Asset?.Name ?? "-",
+            SubUnitName = s.TaskTemplate?.SubUnit?.Name ?? "-",
+            MethodName = s.TaskTemplate?.Method?.Name ?? "-",
             PlanDate = s.PlanDate,
             ActualDate = s.ActualDate,
             Status = s.Status.ToString(),
+            IsDelayed = IsDelay(s),
             PIC = s.PIC,
             DaysLeft = s.PlanDate.HasValue ? (s.PlanDate.Value.Date - today).Days : null,
-            WeekNumber = s.PlanDate.HasValue ? GetWeekOfMonth(s.PlanDate.Value) : 0
+            WeekNumber = s.PlanDate.HasValue ? WeekOfMonth(s.PlanDate.Value) : 0
         };
 
-        // ============================================================
-        // KPI
-        // ============================================================
-        var totalMonth = monthTasks.Count;
-        var totalDone = monthTasks.Count(s => s.Status == PmStatus.Done);
+        var completed = schedules.Where(s => s.Status == PmStatus.Done)
+            .OrderByDescending(s => s.ActualDate).ThenByDescending(s => s.Id).ToList();
+        var active = schedules.Where(s => s.Status != PmStatus.Done).ToList();
+        var delayed = active.Where(IsDelay).ToList();
 
-        var totalOnTime = monthTasks.Count(s =>
-        {
-            if (s.Status != PmStatus.Done) return false;
-            if (!s.ActualDate.HasValue || !s.PlanDate.HasValue) return false;
-            return GetMonday(s.PlanDate.Value) == GetMonday(s.ActualDate.Value);
-        });
+        vm.TotalScheduled = schedules.Count;
+        vm.TotalDone = completed.Count;
+        vm.DelayCountTotal = delayed.Count;
+        vm.TotalPending = active.Count - delayed.Count;
+        vm.TotalOnTime = completed.Count(s => s.PlanDate.HasValue
+            && s.ActualDate.HasValue
+            && s.PlanDate.Value.Year == s.ActualDate.Value.Year
+            && s.PlanDate.Value.Month == s.ActualDate.Value.Month
+            && WeekOfMonth(s.PlanDate.Value) == WeekOfMonth(s.ActualDate.Value));
+        vm.Completion = vm.TotalScheduled == 0 ? 0
+            : Math.Round(100.0 * vm.TotalDone / vm.TotalScheduled, 1);
+        vm.Compliance = vm.TotalScheduled == 0 ? 0
+            : Math.Round(100.0 * vm.TotalOnTime / vm.TotalScheduled, 1);
 
-        vm.TotalScheduled = totalMonth;
-        vm.TotalDone = totalDone;
-        vm.TotalOnTime = totalOnTime;
-        vm.Compliance = totalMonth == 0 ? 0 : Math.Round((double)totalOnTime / totalMonth * 100, 1);
-        vm.Completion = totalMonth == 0 ? 0 : Math.Round((double)totalDone / totalMonth * 100, 1);
+        vm.DelayCountByWeek = Enumerable.Range(1, 4).ToDictionary(
+            w => w, w => delayed.Count(s => WeekOfMonth(s.PlanDate!.Value) == w));
+        vm.DelayTasks = delayed
+            .Where(s => WeekOfMonth(s.PlanDate!.Value) == vm.SelectedDelayWeek)
+            .OrderBy(s => s.PlanDate).Take(BoardLimit).Select(Row).ToList();
 
-        // ============================================================
-        // DELAY — dengan breakdown per minggu
-        // ============================================================
-        var delayAll = monthTasks
-            .Where(s => s.Status != PmStatus.Done && s.PlanDate!.Value.Date < today)
-            .OrderBy(s => s.PlanDate)
-            .ToList();
+        // Hanya task pada bulan terpilih. Card mingguan tidak mengambil data bulan lain.
+        var thisWeek = active.Where(s => s.PlanDate.HasValue
+            && s.PlanDate.Value.Date >= today
+            && s.PlanDate.Value.Date < nextMonday)
+            .OrderBy(s => s.PlanDate).ToList();
+        var nextWeek = active.Where(s => s.PlanDate.HasValue
+            && s.PlanDate.Value.Date >= nextMonday
+            && s.PlanDate.Value.Date < mondayAfterNext)
+            .OrderBy(s => s.PlanDate).ToList();
+        vm.ThisWeekCount = thisWeek.Count;
+        vm.ThisWeekTasks = thisWeek.Take(BoardLimit).Select(Row).ToList();
+        vm.NextWeekCount = nextWeek.Count;
+        vm.NextWeekTasks = nextWeek.Take(BoardLimit).Select(Row).ToList();
+        vm.CompletedCount = completed.Count;
+        vm.CompletedKanban = completed.Take(BoardLimit).Select(Row).ToList();
 
-        vm.DelayCountTotal = delayAll.Count;
+        vm.ActiveTotalItems = active.Count;
+        vm.ActiveTotalPages = Math.Max(1, (int)Math.Ceiling(active.Count / (double)PageSize));
+        vm.ActivePage = Math.Clamp(activePage, 1, vm.ActiveTotalPages);
+        vm.ActiveTasks = active.Skip((vm.ActivePage - 1) * PageSize)
+            .Take(PageSize).Select(Row).ToList();
 
-
-        vm.DelayCountByWeek = delayAll
-            .GroupBy(s => GetWeekOfMonth(s.PlanDate!.Value))
-            .ToDictionary(g => g.Key, g => g.Count());
-
-        // Pastikan semua minggu 1-4 tersedia
-        for (int w = 1; w <= 4; w++)
-        {
-            if (!vm.DelayCountByWeek.ContainsKey(w))
-                vm.DelayCountByWeek[w] = 0;
-        }
-
-        // Batasi pilihan minggu 1-4
-        vm.SelectedDelayWeek = Math.Clamp(delayWeek, 1, 4);
-
-        // Filter delay berdasarkan minggu terpilih
-        var delayFiltered = delayAll
-            .Where(s => GetWeekOfMonth(s.PlanDate!.Value)
-                == vm.SelectedDelayWeek)
-            .ToList();
-
-        vm.DelayTasks = delayFiltered.Take(10).Select(MapToRow).ToList();
-
-
-        // ============================================================
-        // MINGGU INI — today <= PlanDate < nextMonday
-        // ============================================================
-        var thisWeekList = monthTasks
-            .Where(s => s.Status != PmStatus.Done
-                     && s.PlanDate!.Value.Date >= today
-                     && s.PlanDate.Value.Date < nextMonday)
-            .OrderBy(s => s.PlanDate)
-            .ToList();
-
-        vm.ThisWeekCount = thisWeekList.Count;
-        vm.ThisWeekTasks = thisWeekList.Take(10).Select(MapToRow).ToList();
-
-        // ============================================================
-        // MINGGU DEPAN — nextMonday <= PlanDate < nextNextMonday
-        // ============================================================
-        var nextWeekList = monthTasks
-            .Where(s => s.Status != PmStatus.Done
-                     && s.PlanDate!.Value.Date >= nextMonday
-                     && s.PlanDate.Value.Date < nextNextMonday)
-            .OrderBy(s => s.PlanDate)
-            .ToList();
-
-        vm.NextWeekCount = nextWeekList.Count;
-        vm.NextWeekTasks = nextWeekList.Take(10).Select(MapToRow).ToList();
-
-        // ============================================================
-        // SELESAI
-        // ============================================================
-        var completedList = monthTasks
-            .Where(s => s.Status == PmStatus.Done)
-            .OrderByDescending(s => s.ActualDate)
-            .ToList();
-
-        vm.CompletedCount = completedList.Count;
-        vm.CompletedKanban = completedList.Take(10).Select(MapToRow).ToList();
-
-        // ============================================================
-        // TAB AKTIF
-        // ============================================================
-        var activeList = monthTasks
-            .Where(s => s.Status != PmStatus.Done)
-            .OrderBy(s => s.PlanDate)
-            .ToList();
-
-        vm.ActiveTotalItems = activeList.Count;
-        vm.ActiveTotalPages = Math.Max(1, (int)Math.Ceiling((double)activeList.Count / PAGE_SIZE));
-        vm.ActivePage = Math.Max(1, Math.Min(activePage, vm.ActiveTotalPages));
-
-        vm.ActiveTasks = activeList
-            .Skip((vm.ActivePage - 1) * PAGE_SIZE)
-            .Take(PAGE_SIZE)
-            .Select(MapToRow)
-            .ToList();
-
-        // ============================================================
-        // TAB SELESAI
-        // ============================================================
-        var doneList = monthTasks
-            .Where(s => s.Status == PmStatus.Done)
-            .OrderByDescending(s => s.ActualDate)
-            .ToList();
-
-        vm.DoneTotalItems = doneList.Count;
-        vm.DoneTotalPages = Math.Max(1, (int)Math.Ceiling((double)doneList.Count / PAGE_SIZE));
-        vm.DonePage = Math.Max(1, Math.Min(donePage, vm.DoneTotalPages));
-
-        vm.DoneTasks = doneList
-            .Skip((vm.DonePage - 1) * PAGE_SIZE)
-            .Take(PAGE_SIZE)
-            .Select(MapToRow)
-            .ToList();
-
-        // ============================================================
-        // WEEKLY CHART — per minggu dalam bulan terpilih
-        // ============================================================
-
-        int maxDay = DateTime.DaysInMonth(y, m);
+        vm.DoneTotalItems = completed.Count;
+        vm.DoneTotalPages = Math.Max(1, (int)Math.Ceiling(completed.Count / (double)PageSize));
+        vm.DonePage = Math.Clamp(donePage, 1, vm.DoneTotalPages);
+        vm.DoneTasks = completed.Skip((vm.DonePage - 1) * PageSize)
+            .Take(PageSize).Select(Row).ToList();
 
         for (int w = 1; w <= 4; w++)
         {
-            int startDay = (w - 1) * 7 + 1;
-
-            // Minggu ke-4 mencakup tanggal 22 sampai akhir bulan
-            int endDay = w == 4
-                ? maxDay
-                : Math.Min(startDay + 6, maxDay);
-
-            var weekStart = new DateTime(y, m, startDay);
-            var weekEnd = new DateTime(y, m, endDay);
-
-            var weekSchedules = monthTasks
-                .Where(s => s.PlanDate.HasValue
-                         && s.PlanDate.Value.Date >= weekStart
-                         && s.PlanDate.Value.Date <= weekEnd)
-                .ToList();
-
-            var delayCount = weekSchedules.Count(s =>
-                s.Status != PmStatus.Done &&
-                s.PlanDate.HasValue &&
-                s.PlanDate.Value.Date < today);
-
+            int first = (w - 1) * 7 + 1;
+            int last = w == 4 ? DateTime.DaysInMonth(y, m) : first + 6;
+            var week = schedules.Where(s => s.PlanDate.HasValue
+                && WeekOfMonth(s.PlanDate.Value) == w).ToList();
             vm.Weekly.Add(new HomeWeeklyTrend
             {
                 WeekNumber = w,
-                WeekLabel = $"Minggu {w}",
-                WeekStart = weekStart,
-                WeekEnd = weekEnd,
-                Scheduled = weekSchedules.Count,
-                Done = weekSchedules.Count(s => s.Status == PmStatus.Done),
-                Delay = delayCount
+                WeekLabel = $"W{w}",
+                WeekStart = new DateTime(y, m, first),
+                WeekEnd = new DateTime(y, m, last),
+                Scheduled = week.Count,
+                Done = week.Count(s => s.Status == PmStatus.Done),
+                Delay = week.Count(IsDelay)
             });
         }
-
 
         return View(vm);
     }

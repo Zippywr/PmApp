@@ -24,24 +24,24 @@
     </select><span asp-validation-for="Role" class="text-danger"></span>
 </div>
 <div class="col-md-6 d-flex align-items-end pb-1"><div class="form-check form-switch"><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label">Akun aktif</label></div></div>
-<div class="col-12" id="lineSelector">
-    <label class="form-label">Line yang ditugaskan *</label>
+<div class="col-12" id="productSelector">
+    <label class="form-label">Product yang ditugaskan *</label>
     <div class="border rounded p-3" style="max-height:220px;overflow:auto">
-        @foreach (var ln in Model.LineOptions)
+        @foreach (var product in Model.ProductOptions)
         {
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="LineIds" value="@ln.Value" id="line_@ln.Value" checked="@Model.LineIds.Contains(int.Parse(ln.Value))" />
-                <label class="form-check-label" for="line_@ln.Value">@ln.Text</label>
+                <input class="form-check-input" type="checkbox" name="ProductIds" value="@product.Value" id="product_@product.Value" checked="@Model.ProductIds.Contains(int.Parse(product.Value))" />
+                <label class="form-check-label" for="product_@product.Value">@product.Text</label>
             </div>
         }
-    </div><span asp-validation-for="LineIds" class="text-danger"></span>
-    <small class="text-muted">Hanya Line Head membutuhkan penugasan Line; boleh lebih dari satu.</small>
+    </div><span asp-validation-for="ProductIds" class="text-danger"></span>
+    <small class="text-muted">Hanya Line Head membutuhkan penugasan Product; boleh lebih dari satu.</small>
 </div>
 </div>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const p = document.getElementById('rolePicker'), lines = document.getElementById('lineSelector');
-        function render() { lines.style.display = p.value === 'LineHead' ? '' : 'none'; }
+        const p = document.getElementById('rolePicker'), products = document.getElementById('productSelector');
+        function render() { products.style.display = p.value === 'LineHead' ? '' : 'none'; }
         p.addEventListener('change', render); render();
     });
 </script>

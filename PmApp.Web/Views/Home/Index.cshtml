@@ -1,792 +1,1414 @@
 ﻿@model PmApp.Web.Models.ViewModels.HomeDashboardViewModel
 @{
     ViewData["Title"] = "Dashboard";
+    bool isActive = Model.ActiveTab == "active";
+    var rows = isActive ? Model.ActiveTasks : Model.DoneTasks;
+    int currentPage = isActive ? Model.ActivePage : Model.DonePage;
+    int totalPages = isActive ? Model.ActiveTotalPages : Model.DoneTotalPages;
+    int totalItems = isActive ? Model.ActiveTotalItems : Model.DoneTotalItems;
+    bool isLineHead = User.IsInRole("LineHead");
 }
 
 <style>
-    .bg-delay { background-color: #fd7e14 !important; }
+    /* Dashboard scoped: tidak mengubah halaman lain atau layout sidebar. */
+    .dash-page {
+        min-width: 0;
+        max-width: 1600px;
+        margin: 0 auto;
+        color: #172b4d;
+    }
 
-    .kanban-col {
+        .dash-page a {
+            text-underline-offset: 2px;
+        }
+
+    .dash-heading {
         display: flex;
-        flex-direction: column;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 17px;
+    }
+
+    .dash-title {
+        margin: 0;
+        font-size: clamp(1.27rem, 2.3vw, 1.65rem);
+        font-weight: 750;
+        letter-spacing: -.35px;
+    }
+
+    .dash-subtitle {
+        margin: 5px 0 0;
+        font-size: .85rem;
+        color: #586b82;
+    }
+
+    .dash-panel {
+        border: 1px solid #e1e8f2;
+        border-radius: 15px;
+        background: #fff;
+        box-shadow: 0 3px 16px rgba(23,43,77,.045);
+    }
+
+    .dash-filter {
+        padding: 16px 18px;
+        margin-bottom: 18px;
+    }
+
+        .dash-filter .form-label {
+            color: #40536d;
+            font-size: .8rem;
+            font-weight: 650;
+            margin-bottom: 5px;
+        }
+
+        .dash-filter .form-select, .dash-filter .form-control {
+            min-height: 42px;
+            border-radius: 9px;
+            border-color: #cbd6e5;
+            color: #24364b;
+        }
+
+        .dash-filter .btn {
+            min-height: 42px;
+            border-radius: 9px;
+        }
+
+    .dash-kpi {
+        min-height: 134px;
+        position: relative;
+        overflow: hidden;
+        padding: 17px 18px;
+    }
+
+        .dash-kpi .dash-label {
+            font-size: .78rem;
+            font-weight: 650;
+            color: #526780;
+        }
+
+        .dash-kpi .dash-value {
+            margin: 6px 0 2px;
+            font-size: clamp(1.55rem, 2.2vw, 2rem);
+            font-weight: 780;
+            line-height: 1.2;
+            color: #172b4d;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .dash-kpi .dash-detail {
+            color: #66778c;
+            font-size: .74rem;
+            margin-top: 5px;
+        }
+
+        .dash-kpi .dash-icon {
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+            border-radius: 11px;
+            font-size: 1.25rem;
+        }
+
+        .dash-kpi.kpi-total {
+            border-top: 3px solid #2563eb;
+        }
+
+            .dash-kpi.kpi-total .dash-icon {
+                background: #eaf2ff;
+                color: #1d4ed8;
+            }
+
+        .dash-kpi.kpi-done {
+            border-top: 3px solid #15803d;
+        }
+
+            .dash-kpi.kpi-done .dash-icon {
+                background: #e6f6ea;
+                color: #15803d;
+            }
+
+        .dash-kpi.kpi-pending {
+            border-top: 3px solid #64748b;
+        }
+
+            .dash-kpi.kpi-pending .dash-icon {
+                background: #eff3f7;
+                color: #475569;
+            }
+
+        .dash-kpi.kpi-delay {
+            border-top: 3px solid #c2590c;
+        }
+
+            .dash-kpi.kpi-delay .dash-icon {
+                background: #fff1e5;
+                color: #b45309;
+            }
+
+    .dash-progress-track {
+        height: 7px;
+        border-radius: 999px;
+        background: #e9edf3;
+        overflow: hidden;
+    }
+
+    .dash-progress-bar {
         height: 100%;
+        background: #16a34a;
+        border-radius: inherit;
+        transition: width .2s ease;
     }
 
-    .kanban-body {
-        max-height: 420px;
-        overflow-y: auto;
-        flex-grow: 1;
+    .dash-progress {
+        padding: 16px 18px;
+        margin-bottom: 18px;
     }
 
-    .kanban-card {
-        border-left: 3px solid #dee2e6;
-        padding: 0.6rem 0.75rem;
-        border-bottom: 1px solid #f0f0f0;
-        transition: background-color 0.15s;
+    .dash-progress-label {
+        color: #42546b;
+        font-size: .85rem;
+        font-weight: 650;
     }
 
-    .kanban-card:hover {
-        background-color: #f8f9fa;
+    .dash-progress-extra {
+        color: #68788b;
+        font-size: .77rem;
     }
 
-    .kanban-card:last-child {
-        border-bottom: none;
-    }
-
-    .kanban-card .id-pm {
-        font-size: 0.75rem;
-        color: #6c757d;
-        font-weight: 600;
-    }
-
-    .kanban-card .asset-code {
-        font-weight: 700;
-        font-size: 0.9rem;
-    }
-
-    .kanban-card .sub-unit {
-        font-size: 0.75rem;
-        color: #6c757d;
-    }
-
-    /* Week tabs di header kanban Delay */
-    .week-tabs {
+    .dash-section-head {
         display: flex;
-        gap: 2px;
-        margin-top: 6px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 20px 0 12px;
     }
 
-    .week-tabs a {
-        flex: 1;
-        text-align: center;
-        font-size: 0.7rem;
+    .dash-section-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 750;
+        color: #1c324c;
+    }
+
+    .dash-section-note {
+        font-size: .77rem;
+        color: #66788e;
+    }
+
+    .dash-board {
+        height: 100%;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .dash-board-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-height: 50px;
+        padding: 12px 14px;
+        border-bottom: 1px solid #e6ebf2;
+    }
+
+        .dash-board-header strong {
+            font-size: .81rem;
+            font-weight: 750;
+            letter-spacing: .1px;
+        }
+
+        .dash-board-header i {
+            margin-right: 6px;
+        }
+
+    .dash-board-count {
+        border-radius: 20px;
+        padding: 3px 9px;
+        font-size: .75rem;
+        font-weight: 800;
+        background: #f1f5f9;
+        color: #334155;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .dash-board.delay .dash-board-header {
+        background: #fff6ee;
+        color: #9a4308;
+    }
+
+    .dash-board.current .dash-board-header {
+        background: #eff5ff;
+        color: #1d4ed8;
+    }
+
+    .dash-board.next .dash-board-header {
+        background: #eef6f8;
+        color: #0f5c75;
+    }
+
+    .dash-board.done .dash-board-header {
+        background: #edf9f1;
+        color: #146c35;
+    }
+
+    .dash-week-tabs {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 5px;
+        padding: 9px 10px;
+        border-bottom: 1px solid #e6ebf2;
+    }
+
+        .dash-week-tabs a {
+            display: block;
+            text-align: center;
+            border: 1px solid #e1e7ef;
+            color: #586b83;
+            font-size: .7rem;
+            font-weight: 700;
+            text-decoration: none;
+            border-radius: 7px;
+            padding: 7px 1px;
+        }
+
+            .dash-week-tabs a.active {
+                border-color: #a95b1c;
+                background: #fff0e0;
+                color: #8a3b08;
+            }
+
+            .dash-week-tabs a:hover {
+                background: #f4f6fa;
+            }
+
+    .dash-board-items {
+        max-height: 338px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .dash-task {
+        padding: 12px 13px;
+        border-bottom: 1px solid #edf1f5;
+    }
+
+        .dash-task:last-child {
+            border-bottom: 0;
+        }
+
+    .dash-task-id {
+        font-size: .73rem;
         font-weight: 700;
-        padding: 2px 4px;
-        border-radius: 4px;
+        color: #657791;
+    }
+
+    .dash-task-machine {
+        font-size: .9rem;
+        font-weight: 750;
+        margin: 2px 0 3px;
+        color: #1d3552;
+        overflow-wrap: anywhere;
+    }
+
+    .dash-task-unit {
+        font-size: .77rem;
+        color: #586d86;
+        overflow-wrap: anywhere;
+    }
+
+    .dash-task-date {
+        font-size: .72rem;
+        color: #62748b;
+    }
+
+    .dash-task .btn {
+        min-height: 34px;
+        border-radius: 8px;
+        font-weight: 650;
+        font-size: .73rem;
+    }
+
+    .dash-empty {
+        min-height: 128px;
+        display: grid;
+        place-content: center;
+        text-align: center;
+        padding: 15px;
+        color: #687d95;
+        font-size: .79rem;
+    }
+
+        .dash-empty i {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            color: #9aaabd;
+        }
+
+    .dash-more {
+        display: block;
         text-decoration: none;
-        color: #fff;
-        background: rgba(255, 255, 255, 0.2);
-        transition: background 0.15s;
+        text-align: center;
+        background: #fbfcff;
+        border-top: 1px solid #e6edf5;
+        padding: 10px;
+        font-size: .75rem;
+        color: #2457a6;
+        font-weight: 700;
+    }
+
+    .dash-tabs {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 5px;
+        padding: 9px;
+        border-bottom: 1px solid #e5ebf2;
+    }
+
+        .dash-tabs .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 15px;
+            color: #4e647e;
+            border-radius: 9px;
+            font-size: .82rem;
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+            .dash-tabs .nav-link.active {
+                background: #eaf2ff;
+                color: #1e4fa1;
+            }
+
+        .dash-tabs .badge {
+            font-size: .65rem;
+        }
+
+    .dash-table {
+        font-size: .79rem;
+        margin: 0;
+    }
+
+        .dash-table th {
+            padding: 12px 11px;
+            white-space: nowrap;
+            background: #f5f8fb;
+            color: #53667c;
+            font-size: .75rem;
+            border-color: #e9eef5;
+        }
+
+        .dash-table td {
+            vertical-align: middle;
+            padding: 11px;
+            border-color: #edf1f6;
+            color: #2b4058;
+        }
+
+        .dash-table .btn {
+            white-space: nowrap;
+            min-height: 34px;
+            border-radius: 8px;
+        }
+
+    .dash-status {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 7px;
+        padding: 5px 8px;
+        font-size: .7rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+        .dash-status.done {
+            color: #146c35;
+            background: #e6f6eb;
+        }
+
+        .dash-status.delay {
+            color: #98500e;
+            background: #fff0df;
+        }
+
+        .dash-status.pending {
+            color: #495b70;
+            background: #e9eff6;
+        }
+
+        .dash-status.progressing {
+            color: #1d4ed8;
+            background: #eaf2ff;
+        }
+
+    .dash-mobile-item {
+        padding: 14px 16px;
+        border-bottom: 1px solid #e9eef5;
+    }
+
+        .dash-mobile-item:last-child {
+            border-bottom: 0;
+        }
+
+    .dash-mobile-label {
+        font-size: .69rem;
+        color: #687a90;
+    }
+
+    .dash-mobile-value {
+        color: #273e57;
+        font-size: .81rem;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    .dash-mobile-item .btn {
+        min-height: 42px;
+        border-radius: 9px;
+    }
+
+    .dash-pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border-top: 1px solid #e8eef5;
+        flex-wrap: wrap;
+    }
+
+        .dash-pagination .btn {
+            min-width: 84px;
+            min-height: 37px;
+            border-radius: 8px;
+        }
+
+    .dash-chart-header {
+        padding: 17px 18px 0;
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .dash-chart {
+        height: 325px;
+        padding: 15px 18px 20px;
         position: relative;
     }
 
-    .week-tabs a:hover {
-        background: rgba(255, 255, 255, 0.35);
-        color: #fff;
+    .dash-page .btn:focus-visible, .dash-page a:focus-visible, .dash-page select:focus-visible, .dash-page input:focus-visible {
+        outline: 3px solid #93c5fd;
+        outline-offset: 2px;
     }
 
-    .week-tabs a.active {
-        background: #fff;
-        color: #dc3545;
+    @@media (max-width: 991.98px) {
+        .dash-board-items {
+            max-height: 285px;
+        }
     }
 
-    .week-tabs a .cnt {
-        font-size: 0.65rem;
-        opacity: 0.85;
+    @@media (max-width: 575.98px) {
+        .dash-heading .btn {
+            width: 100%;
+        }
+
+        .dash-filter {
+            padding: 13px;
+        }
+
+        .dash-kpi {
+            min-height: 122px;
+            padding: 13px 12px;
+        }
+
+            .dash-kpi .dash-icon {
+                height: 34px;
+                width: 34px;
+                font-size: 1.05rem;
+            }
+
+            .dash-kpi .dash-value {
+                font-size: 1.65rem;
+            }
+
+            .dash-kpi .dash-detail {
+                font-size: .7rem;
+            }
+
+        .dash-board-items {
+            max-height: 280px;
+        }
+
+        .dash-tabs {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+            .dash-tabs .nav-link {
+                padding: 9px 10px;
+                font-size: .76rem;
+            }
+
+        .dash-chart {
+            height: 290px;
+            padding: 10px 8px 15px;
+        }
+
+        .dash-progress {
+            padding: 14px;
+        }
+
+        .dash-pagination {
+            justify-content: center;
+        }
     }
 
-    .week-tabs a.active .cnt {
-        color: #dc3545;
-        opacity: 1;
+    @@media (prefers-reduced-motion: reduce) {
+        .dash-progress-bar {
+            transition: none;
+        }
     }
 
-    .tab-badge {
-        font-size: 0.8rem;
-        padding: 0.25rem 0.6rem;
+    /* =========================================================
+               DASHBOARD HIGH CONTRAST — hanya tampilan, tidak ubah fungsi
+               Warna status mengacu pada kontras kartu Kanban sebelumnya.
+               ========================================================= */
+    .dash-page {
+        color: #0f172a;
     }
 
-    .pagination-sm .page-link {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
+        .dash-page .dash-title, .dash-page .dash-section-title {
+            color: #0f172a;
+        }
+
+        .dash-page .dash-subtitle, .dash-page .dash-section-note {
+            color: #475569;
+        }
+
+        .dash-page .dash-panel {
+            border-color: #c4d0df;
+            box-shadow: 0 4px 14px rgba(15,23,42,.07);
+        }
+
+        .dash-page .dash-filter {
+            background: #f8fafc;
+            border-color: #b8c7d8;
+        }
+
+            .dash-page .dash-filter .form-label {
+                color: #1e293b;
+            }
+
+            .dash-page .dash-filter .form-control,
+            .dash-page .dash-filter .form-select {
+                color: #0f172a;
+                background-color: #fff;
+                border: 1.5px solid #94a3b8;
+            }
+
+                .dash-page .dash-filter .form-control:focus,
+                .dash-page .dash-filter .form-select:focus {
+                    border-color: #1d4ed8;
+                    box-shadow: 0 0 0 3px rgba(29,78,216,.15);
+                }
+
+        /* KPI: lebih mudah dibedakan meski tidak membaca angkanya. */
+        .dash-page .dash-kpi {
+            border-top: 0;
+            border-left: 5px solid transparent;
+        }
+
+            .dash-page .dash-kpi.kpi-total {
+                border-left-color: #1d4ed8;
+                background: #eff6ff;
+            }
+
+            .dash-page .dash-kpi.kpi-done {
+                border-left-color: #15803d;
+                background: #effdf3;
+            }
+
+            .dash-page .dash-kpi.kpi-pending {
+                border-left-color: #475569;
+                background: #f1f5f9;
+            }
+
+            .dash-page .dash-kpi.kpi-delay {
+                border-left-color: #c2410c;
+                background: #fff5e9;
+            }
+
+            .dash-page .dash-kpi .dash-label {
+                color: #1e293b;
+                font-weight: 750;
+            }
+
+            .dash-page .dash-kpi .dash-value {
+                color: #0f172a;
+            }
+
+            .dash-page .dash-kpi .dash-detail {
+                color: #334155;
+            }
+
+            .dash-page .dash-kpi.kpi-total .dash-icon {
+                background: #dbeafe;
+                color: #1d4ed8;
+            }
+
+            .dash-page .dash-kpi.kpi-done .dash-icon {
+                background: #dcfce7;
+                color: #166534;
+            }
+
+            .dash-page .dash-kpi.kpi-pending .dash-icon {
+                background: #e2e8f0;
+                color: #334155;
+            }
+
+            .dash-page .dash-kpi.kpi-delay .dash-icon {
+                background: #ffedd5;
+                color: #9a3412;
+            }
+
+        .dash-page .dash-progress-label {
+            color: #1e293b;
+        }
+
+        .dash-page .dash-progress-extra {
+            color: #475569;
+        }
+
+        .dash-page .dash-progress-track {
+            background: #dce5ef;
+        }
+
+        .dash-page .dash-progress-bar {
+            background: #15803d;
+        }
+
+        /* Kanban: warna header solid agar status langsung terbaca. */
+        .dash-page .dash-board-header {
+            border-bottom: 0;
+        }
+
+            .dash-page .dash-board-header strong {
+                color: #fff;
+                font-size: .87rem;
+            }
+
+        .dash-page .dash-board.delay .dash-board-header {
+            background: #b45309;
+            color: #fff;
+        }
+
+        .dash-page .dash-board.current .dash-board-header {
+            background: #1d4ed8;
+            color: #fff;
+        }
+
+        .dash-page .dash-board.next .dash-board-header {
+            background: #0e7490;
+            color: #fff;
+        }
+
+        .dash-page .dash-board.done .dash-board-header {
+            background: #15803d;
+            color: #fff;
+        }
+
+        .dash-page .dash-board-count {
+            color: #0f172a;
+            background: #fff;
+            border: 1px solid rgba(15,23,42,.12);
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .dash-page .dash-week-tabs {
+            background: #fff8ef;
+            border-bottom-color: #ead2b9;
+        }
+
+            .dash-page .dash-week-tabs a {
+                background: #fff;
+                border-color: #c8a68c;
+                color: #78350f;
+            }
+
+                .dash-page .dash-week-tabs a.active,
+                .dash-page .dash-week-tabs a.active:hover {
+                    background: #92400e;
+                    border-color: #92400e;
+                    color: #fff;
+                }
+
+                .dash-page .dash-week-tabs a:not(.active):hover {
+                    background: #ffedd5;
+                    color: #78350f;
+                }
+
+        .dash-page .dash-task {
+            border-bottom-color: #d8e1ec;
+        }
+
+            .dash-page .dash-task:nth-child(even) {
+                background: #f8fafc;
+            }
+
+        .dash-page .dash-task-id {
+            color: #475569;
+        }
+
+        .dash-page .dash-task-machine {
+            color: #0f172a;
+        }
+
+        .dash-page .dash-task-unit, .dash-page .dash-task-date {
+            color: #334155;
+        }
+
+        .dash-page .dash-empty {
+            color: #475569;
+        }
+
+        .dash-page .dash-more {
+            background: #f1f5f9;
+            color: #1e40af;
+            border-top-color: #cbd5e1;
+        }
+
+            .dash-page .dash-more:hover {
+                background: #dbeafe;
+                color: #1e3a8a;
+            }
+
+        /* Tabel, tab, dan status dengan kontras lebih kuat. */
+        .dash-page .dash-tabs {
+            background: #f8fafc;
+            border-bottom-color: #cbd5e1;
+        }
+
+            .dash-page .dash-tabs .nav-link {
+                color: #334155;
+            }
+
+                .dash-page .dash-tabs .nav-link.active {
+                    background: #1d4ed8;
+                    color: #fff;
+                }
+
+                    .dash-page .dash-tabs .nav-link.active .badge {
+                        color: #1d4ed8 !important;
+                        background: #fff !important;
+                    }
+
+        .dash-page .dash-table th {
+            background: #e2e8f0;
+            color: #1e293b;
+            border-color: #cbd5e1;
+        }
+
+        .dash-page .dash-table td {
+            color: #1e293b;
+            border-color: #dbe3ed;
+        }
+
+        .dash-page .dash-table tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .dash-page .dash-table tbody tr:hover {
+            background: #eff6ff;
+        }
+
+        .dash-page .dash-status.done {
+            color: #166534;
+            background: #dcfce7;
+            border: 1px solid #86efac;
+        }
+
+        .dash-page .dash-status.delay {
+            color: #9a3412;
+            background: #ffedd5;
+            border: 1px solid #fdba74;
+        }
+
+        .dash-page .dash-status.pending {
+            color: #334155;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+        }
+
+        .dash-page .dash-status.progressing {
+            color: #1e40af;
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+        }
+
+        .dash-page .dash-mobile-item {
+            border-bottom-color: #cbd5e1;
+        }
+
+            .dash-page .dash-mobile-item:nth-child(even) {
+                background: #f8fafc;
+            }
+
+        .dash-page .dash-mobile-label {
+            color: #475569;
+        }
+
+        .dash-page .dash-mobile-value {
+            color: #0f172a;
+        }
+
+        .dash-page .dash-pagination {
+            background: #f8fafc;
+            border-top-color: #cbd5e1;
+        }
+
+        .dash-page .dash-chart-header {
+            padding-bottom: 13px;
+            border-bottom: 1px solid #dbe3ed;
+        }
+
+        .dash-page .btn-outline-primary {
+            color: #1d4ed8;
+            border-color: #2563eb;
+            font-weight: 650;
+        }
+
+            .dash-page .btn-outline-primary:hover {
+                color: #fff;
+                background: #1d4ed8;
+            }
+
+        .dash-page .btn-outline-warning {
+            color: #9a3412;
+            border-color: #c2410c;
+            font-weight: 700;
+        }
+
+            .dash-page .btn-outline-warning:hover {
+                color: #fff;
+                background: #9a3412;
+                border-color: #9a3412;
+            }
+
+        .dash-page .btn-outline-secondary {
+            color: #334155;
+            border-color: #64748b;
+        }
+
+            .dash-page .btn-outline-secondary:hover {
+                color: #fff;
+                background: #475569;
+            }
+
+        .dash-page .text-muted {
+            color: #475569 !important;
+        }
+
+
+        /* ID-PM menjadi identitas utama task, nomor mesin hanya keterangan. */
+        .dash-page .dash-task-id-label {
+            color: #475569;
+            font-size: .66rem;
+            font-weight: 750;
+            letter-spacing: .045em;
+            text-transform: uppercase;
+            margin-bottom: 1px;
+        }
+
+        .dash-page .dash-task-id,
+        .dash-page .dash-mobile-pm-id {
+            color: #1d4ed8;
+            font-size: 1.12rem;
+            font-weight: 800;
+            line-height: 1.35;
+            letter-spacing: .01em;
+            overflow-wrap: anywhere;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .dash-page .dash-task-machine,
+        .dash-page .dash-mobile-machine {
+            color: #475569;
+            font-size: .75rem;
+            font-weight: 550;
+            margin: 4px 0 2px;
+            overflow-wrap: anywhere;
+        }
+
+        .dash-page .dash-table-pm-id {
+            display: inline-block;
+            color: #1d4ed8;
+            font-size: .94rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .dash-page .dash-table-machine {
+            color: #475569;
+            font-size: .78rem;
+            font-weight: 550;
+        }
+
+        .dash-page .dash-mobile-primary {
+            min-width: 0;
+        }
+
+    @@media (max-width: 575.98px) {
+        .dash-page .dash-mobile-pm-id {
+            font-size: 1.18rem;
+        }
     }
+
 </style>
 
-<!-- ============================================================ -->
-<!-- FILTER BULAN/TAHUN                                            -->
-<!-- ============================================================ -->
-<div class="card border-0 shadow-sm mb-3">
-    <div class="card-body">
-        <form method="get" class="row g-2 align-items-end">
+<div class="dash-page">
+    <div class="dash-heading">
+        <div>
+            <h1 class="dash-title">Dashboard Maintenance</h1>
+            <p class="dash-subtitle mb-0">Ringkasan pekerjaan · @Model.MonthName</p>
+        </div>
+        <a asp-controller="PmSchedule" asp-action="ByMonth"
+           asp-route-year="@Model.SelectedYear" asp-route-month="@Model.SelectedMonth"
+           asp-route-productId="@Model.SelectedProductId"
+           class="btn btn-primary px-3" style="min-height:42px;border-radius:9px;">
+            <i class="bi bi-clipboard-check me-1" aria-hidden="true"></i> Pelaksanaan PM
+        </a>
+    </div>
+
+    <!-- Filter sama periode dengan halaman Pelaksanaan PM. -->
+    <section class="dash-panel dash-filter" aria-label="Filter dashboard">
+        <form asp-controller="Home" asp-action="Index" method="get" class="row g-2 align-items-end">
             <input type="hidden" name="tab" value="@Model.ActiveTab" />
-            <input type="hidden" name="delayWeek" value="@Model.SelectedDelayWeek" />
-            <div class="col-md-3">
-                <label class="form-label">Bulan (KPI)</label>
-                <select name="month" class="form-select">
+            <div class="col-6 col-md-3 col-xl-2">
+                <label class="form-label" for="dashMonth">Bulan</label>
+                <select name="month" id="dashMonth" class="form-select">
                     @for (int i = 1; i <= 12; i++)
                     {
-                        var name = new DateTime(2026, i, 1).ToString("MMMM");
-                        if (Model.SelectedMonth == i)
-                        {
-                            <option value="@i" selected>@name</option>
-                        }
-                        else
-                        {
-                            <option value="@i">@name</option>
-                        }
+                        var name = new DateTime(Model.SelectedYear, i, 1).ToString("MMMM", new System.Globalization.CultureInfo("id-ID"));
+                        <option value="@i" selected="@(Model.SelectedMonth == i)">@name</option>
                     }
                 </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Tahun</label>
-                <input type="number" name="year" class="form-control"
-                       value="@Model.SelectedYear" />
+            <div class="col-6 col-md-3 col-xl-2">
+                <label class="form-label" for="dashYear">Tahun</label>
+                <input type="number" name="year" id="dashYear" min="2000" max="2100"
+                       class="form-control" value="@Model.SelectedYear" required />
             </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-search"></i> Tampilkan
-                </button>
-                <a asp-action="Index" class="btn btn-secondary">Reset</a>
+            <div class="col-12 col-md-6 col-xl-4">
+                <label class="form-label" for="dashProduct">Product</label>
+                <select name="productId" id="dashProduct" class="form-select">
+                    <option value="">Semua Product yang diizinkan</option>
+                    @foreach (var product in Model.ProductOptions)
+                    {
+                        <option value="@product.Id" selected="@(Model.SelectedProductId == product.Id)">@product.Name</option>
+                    }
+                </select>
             </div>
-            <div class="col-md-3 text-end">
-                <small class="text-muted">Periode KPI</small><br />
-                <strong>@Model.MonthName</strong>
+            <div class="col-12 col-xl-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-funnel me-1" aria-hidden="true"></i> Terapkan</button>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Reset</a>
             </div>
         </form>
-    </div>
-</div>
+    </section>
 
-<!-- ============================================================ -->
-<!-- KPI CARDS                                                     -->
-<!-- ============================================================ -->
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm text-white bg-primary">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="small opacity-75">Total Mesin</div>
-                        <h3 class="mb-0">@Model.TotalAssets</h3>
-                    </div>
-                    <i class="bi bi-gear" style="font-size: 2.5rem; opacity: 0.5;"></i>
+    <!-- KPI: sesuai status langsung Done, tanpa antrean approval. -->
+    <div class="row g-2 g-md-3 mb-3">
+        <div class="col-6 col-xl-3">
+            <div class="dash-panel dash-kpi kpi-total h-100">
+                <div class="d-flex justify-content-between align-items-start gap-1">
+                    <span class="dash-label">Total Task PM</span>
+                    <span class="dash-icon"><i class="bi bi-calendar3" aria-hidden="true"></i></span>
                 </div>
+                <div class="dash-value">@Model.TotalScheduled</div>
+                <div class="dash-detail">@Model.TotalAssets mesin terpantau</div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="dash-panel dash-kpi kpi-done h-100">
+                <div class="d-flex justify-content-between align-items-start gap-1">
+                    <span class="dash-label">Selesai (Done)</span>
+                    <span class="dash-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
+                </div>
+                <div class="dash-value">@Model.TotalDone</div>
+                <div class="dash-detail">Langsung Done setelah disimpan</div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="dash-panel dash-kpi kpi-pending h-100">
+                <div class="d-flex justify-content-between align-items-start gap-1">
+                    <span class="dash-label">Pending</span>
+                    <span class="dash-icon"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
+                </div>
+                <div class="dash-value">@Model.TotalPending</div>
+                <div class="dash-detail">Belum selesai, belum terlambat</div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="dash-panel dash-kpi kpi-delay h-100">
+                <div class="d-flex justify-content-between align-items-start gap-1">
+                    <span class="dash-label">Delay</span>
+                    <span class="dash-icon"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>
+                </div>
+                <div class="dash-value">@Model.DelayCountTotal</div>
+                <div class="dash-detail">Melewati Plan, belum Done</div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm text-white bg-success">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="small opacity-75">
-                            Total PM Bulan Ini — @Model.MonthName
-                        </div>
-                        <h3 class="mb-0">@Model.TotalScheduled</h3>
-                        <small class="opacity-75">Total task terjadwal</small>
-                    </div>
-                    <i class="bi bi-calendar-check"
-                       style="font-size: 2.5rem; opacity: 0.5;"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm text-white bg-info">
-            <div class="card-body">
-                <div class="small opacity-75">
-                    PM Compliance — @Model.MonthName
-                </div>
-                <h3 class="mb-0">@Model.Compliance%</h3>
-                <small class="opacity-75">
-                    @Model.TotalOnTime / @Model.TotalScheduled task
-                </small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm text-white bg-warning">
-            <div class="card-body">
-                <div class="small opacity-75">
-                    PM Completion — @Model.MonthName
-                </div>
-                <h3 class="mb-0">@Model.Completion%</h3>
-                <small class="opacity-75">
-                    @Model.TotalDone / @Model.TotalScheduled task
-                </small>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- ============================================================ -->
-<!-- KANBAN BOARD — 4 KOLOM                                        -->
-<!-- ============================================================ -->
-<div class="row g-2 mb-3">
+    <section class="dash-panel dash-progress" aria-label="Progres PM">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+            <span class="dash-progress-label">Penyelesaian PM bulan ini</span>
+            <strong class="text-success" style="font-size:1.05rem">@Model.Completion.ToString("0.#")%</strong>
+        </div>
+        <div class="dash-progress-track" role="progressbar" aria-valuenow="@Model.Completion"
+             aria-valuemin="0" aria-valuemax="100" aria-label="Persentase penyelesaian PM">
+            <div class="dash-progress-bar" style="width:@(Model.Completion.ToString(System.Globalization.CultureInfo.InvariantCulture))%"></div>
+        </div>
+        <div class="d-flex justify-content-between flex-wrap gap-1 mt-2 dash-progress-extra">
+            <span>@Model.TotalDone dari @Model.TotalScheduled task selesai</span>
+            <span>@Model.TotalOnTime tepat pada minggu rencana (@Model.Compliance.ToString("0.#")%)</span>
+        </div>
+    </section>
 
-    <!-- ============== DELAY (dengan tab minggu) ============== -->
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="card border-0 shadow-sm h-100 kanban-col">
-            <div class="card-header bg-delay text-white py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="small">
-                        <i class="bi bi-exclamation-triangle-fill"></i>
-                        <strong>DELAY</strong>
-                    </span>
-                    <span class="badge bg-light text-dark">@Model.DelayCountTotal</span>
-                </div>
-                <!-- TAB MINGGU -->
-                <div class="week-tabs">
+    <div class="dash-section-head">
+        <h2 class="dash-section-title">Pemantauan Pekerjaan</h2>
+        <span class="dash-section-note">Menampilkan task dari periode yang dipilih</span>
+    </div>
+    <div class="row g-2 g-md-3 mb-3">
+        <div class="col-12 col-md-6 col-xl-3">
+            <section class="dash-panel dash-board delay" aria-label="Daftar PM terlambat">
+                <div class="dash-board-header"><strong><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Delay</strong><span class="dash-board-count">@Model.DelayCountTotal</span></div>
+                <div class="dash-week-tabs" aria-label="Pilih minggu untuk delay">
                     @for (int w = 1; w <= 4; w++)
                     {
-                        var cnt = Model.DelayCountByWeek.ContainsKey(w) ? Model.DelayCountByWeek[w] : 0;
-                        var isWeekActive = Model.SelectedDelayWeek == w;
-                        <a asp-action="Index"
-                           asp-route-year="@Model.SelectedYear"
-                           asp-route-month="@Model.SelectedMonth"
-                           asp-route-tab="@Model.ActiveTab"
-                           asp-route-activePage="@Model.ActivePage"
-                           asp-route-donePage="@Model.DonePage"
-                           asp-route-delayWeek="@w"
-                           class="@(isWeekActive ? "active" : "")">W@(w) <span class="cnt">(@cnt)</span></a>
+                        int count = Model.DelayCountByWeek.GetValueOrDefault(w);
+                        <a asp-controller="Home" asp-action="Index"
+                           asp-route-year="@Model.SelectedYear" asp-route-month="@Model.SelectedMonth"
+                           asp-route-productId="@Model.SelectedProductId" asp-route-tab="@Model.ActiveTab"
+                           asp-route-activePage="@Model.ActivePage" asp-route-donePage="@Model.DonePage"
+                           asp-route-delayWeek="@w" class="@(Model.SelectedDelayWeek == w ? "active" : "")"
+                           aria-label="Delay minggu @w: @count task">W@(w) (@count)</a>
                     }
                 </div>
-            </div>
-            <div class="kanban-body">
-                @if (!Model.DelayTasks.Any())
-                {
-                    <div class="p-3 text-center text-muted small">
-                        <i class="bi bi-check-circle" style="font-size: 1.8rem;"></i>
-                        <p class="mb-0 mt-1">Tidak ada delay di Minggu @Model.SelectedDelayWeek</p>
-                    </div>
-                }
-                else
-                {
-                    @foreach (var t in Model.DelayTasks)
+                <div class="dash-board-items">
+                    @if (Model.DelayTasks.Count == 0)
                     {
-                        <div class="kanban-card" style="border-left-color: #dc3545;">
-                            <div class="id-pm">@t.IdPm</div>
-                            <div class="asset-code">@t.AssetCode</div>
-                            <div class="sub-unit">@t.SubUnitName</div>
-                            <div class="d-flex justify-content-between align-items-center mt-1">
-                                <span class="badge bg-danger" style="font-size: 0.7rem;">
-                                    @(Math.Abs(t.DaysLeft ?? 0)) hari
-                                </span>
-                                <a asp-controller="PmSchedule" asp-action="UpdateCell"
-                                   asp-route-id="@t.Id"
-                                   class="btn btn-sm btn-outline-warning py-0 px-2">
-                                    <i class="bi bi-play-fill"></i>
-                                </a>
+                        <div class="dash-empty"><i class="bi bi-check-circle" aria-hidden="true"></i>Tidak ada delay di W@Model.SelectedDelayWeek</div>
+                    }
+                    else
+                    {
+                        @foreach (var t in Model.DelayTasks)
+                        {
+                            <div class="dash-task">
+                                <div class="dash-task-id-label">ID-PM</div>
+                                <div class="dash-task-id">@t.IdPm</div>
+                                <div class="dash-task-machine"><i class="bi bi-gear me-1" aria-hidden="true"></i>Mesin: @t.AssetCode</div>
+                                <div class="dash-task-unit">@t.SubUnitName</div>
+                                <div class="d-flex justify-content-between align-items-center gap-2 mt-2">
+                                    <span class="dash-status delay">Lewat @Math.Abs(t.DaysLeft ?? 0) hari</span>
+                                    <a asp-controller="PmSchedule" asp-action="UpdateCell" asp-route-id="@t.Id"
+                                       class="btn btn-sm btn-outline-warning" aria-label="Isi PM @t.IdPm">Isi PM</a>
+                                </div>
                             </div>
-                        </div>
+                        }
                     }
-                    @if (Model.DelayCountByWeek.GetValueOrDefault(Model.SelectedDelayWeek) > 10)
-                    {
-                        <div class="text-center py-2">
-                            <small class="text-muted">
-                                +@(Model.DelayCountByWeek[Model.SelectedDelayWeek] - 10) lagi
-                            </small>
-                        </div>
-                    }
+                </div>
+                @if (Model.DelayCountByWeek.GetValueOrDefault(Model.SelectedDelayWeek) > Model.DelayTasks.Count)
+                {
+                    <a class="dash-more" asp-controller="PmSchedule" asp-action="ByMonth"
+                       asp-route-year="@Model.SelectedYear" asp-route-month="@Model.SelectedMonth"
+                       asp-route-productId="@Model.SelectedProductId" asp-route-status="delay">Lihat semua Delay <i class="bi bi-arrow-right"></i></a>
                 }
-            </div>
+            </section>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <section class="dash-panel dash-board current" aria-label="Task minggu ini">
+                <div class="dash-board-header"><strong><i class="bi bi-calendar-week" aria-hidden="true"></i> Minggu Ini</strong><span class="dash-board-count">@Model.ThisWeekCount</span></div>
+                <div class="dash-board-items">
+                    @if (Model.ThisWeekTasks.Count == 0)
+                    {
+                        <div class="dash-empty"><i class="bi bi-calendar-check" aria-hidden="true"></i>Tidak ada task mendatang minggu ini</div>
+                    }
+                    else
+                    {
+                        @foreach (var t in Model.ThisWeekTasks)
+                        {
+                            <div class="dash-task">
+                                <div class="dash-task-id-label">ID-PM</div>
+                                <div class="dash-task-id">@t.IdPm</div>
+                                <div class="dash-task-machine"><i class="bi bi-gear me-1" aria-hidden="true"></i>Mesin: @t.AssetCode</div>
+                                <div class="dash-task-unit">@t.SubUnitName</div>
+                                <div class="d-flex justify-content-between align-items-center gap-2 mt-2">
+                                    <span class="dash-task-date"><i class="bi bi-calendar me-1"></i>@(t.PlanDate?.ToString("dd/MM/yyyy") ?? "-")</span>
+                                    <a asp-controller="PmSchedule" asp-action="UpdateCell" asp-route-id="@t.Id"
+                                       class="btn btn-sm btn-outline-primary" aria-label="Isi PM @t.IdPm">Isi PM</a>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+                @if (Model.ThisWeekCount > Model.ThisWeekTasks.Count)
+                {
+                    <a class="dash-more" asp-controller="PmSchedule" asp-action="ByMonth"
+                       asp-route-year="@Model.SelectedYear" asp-route-month="@Model.SelectedMonth"
+                       asp-route-productId="@Model.SelectedProductId">Lihat semua task <i class="bi bi-arrow-right"></i></a>
+                }
+            </section>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <section class="dash-panel dash-board next" aria-label="Task minggu depan">
+                <div class="dash-board-header"><strong><i class="bi bi-calendar-plus" aria-hidden="true"></i> Minggu Depan</strong><span class="dash-board-count">@Model.NextWeekCount</span></div>
+                <div class="dash-board-items">
+                    @if (Model.NextWeekTasks.Count == 0)
+                    {
+                        <div class="dash-empty"><i class="bi bi-calendar2" aria-hidden="true"></i>Tidak ada task minggu depan</div>
+                    }
+                    else
+                    {
+                        @foreach (var t in Model.NextWeekTasks)
+                        {
+                            <div class="dash-task">
+                                <div class="dash-task-id-label">ID-PM</div>
+                                <div class="dash-task-id">@t.IdPm</div>
+                                <div class="dash-task-machine"><i class="bi bi-gear me-1" aria-hidden="true"></i>Mesin: @t.AssetCode</div>
+                                <div class="dash-task-unit">@t.SubUnitName</div>
+                                <div class="d-flex justify-content-between align-items-center gap-2 mt-2">
+                                    <span class="dash-task-date"><i class="bi bi-calendar me-1"></i>@(t.PlanDate?.ToString("dd/MM/yyyy") ?? "-")</span>
+                                    <a asp-controller="PmSchedule" asp-action="UpdateCell" asp-route-id="@t.Id"
+                                       class="btn btn-sm btn-outline-primary" aria-label="Isi PM @t.IdPm">Isi PM</a>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+                @if (Model.NextWeekCount > Model.NextWeekTasks.Count)
+                {
+                    <a class="dash-more" asp-controller="PmSchedule" asp-action="ByMonth"
+                       asp-route-year="@Model.SelectedYear" asp-route-month="@Model.SelectedMonth"
+                       asp-route-productId="@Model.SelectedProductId">Lihat semua task <i class="bi bi-arrow-right"></i></a>
+                }
+            </section>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <section class="dash-panel dash-board done" aria-label="PM selesai">
+                <div class="dash-board-header"><strong><i class="bi bi-check-circle" aria-hidden="true"></i> Selesai</strong><span class="dash-board-count">@Model.CompletedCount</span></div>
+                <div class="dash-board-items">
+                    @if (Model.CompletedKanban.Count == 0)
+                    {
+                        <div class="dash-empty"><i class="bi bi-inbox" aria-hidden="true"></i>Belum ada PM selesai</div>
+                    }
+                    else
+                    {
+                        @foreach (var t in Model.CompletedKanban)
+                        {
+                            <div class="dash-task">
+                                <div class="dash-task-id-label">ID-PM</div>
+                                <div class="dash-task-id">@t.IdPm</div>
+                                <div class="dash-task-machine"><i class="bi bi-gear me-1" aria-hidden="true"></i>Mesin: @t.AssetCode</div>
+                                <div class="dash-task-unit">@t.SubUnitName</div>
+                                <div class="d-flex justify-content-between align-items-center gap-2 mt-2">
+                                    <span class="dash-task-date text-success"><i class="bi bi-check-circle me-1"></i>@(t.ActualDate?.ToString("dd/MM/yyyy") ?? "-")</span>
+                                    <a asp-controller="PmSchedule" asp-action="UpdateCell" asp-route-id="@t.Id"
+                                       class="btn btn-sm btn-outline-success" aria-label="@(isLineHead ? "Lihat" : "Lihat atau koreksi") PM @t.IdPm">@(isLineHead ? "Lihat" : "Koreksi")</a>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+                @if (Model.CompletedCount > Model.CompletedKanban.Count)
+                {
+                    <a class="dash-more" asp-controller="PmSchedule" asp-action="ByMonth"
+                       asp-route-year="@Model.SelectedYear" asp-route-month="@Model.SelectedMonth"
+                       asp-route-productId="@Model.SelectedProductId" asp-route-status="done">Lihat semua Done <i class="bi bi-arrow-right"></i></a>
+                }
+            </section>
         </div>
     </div>
 
-    <!-- ============== MINGGU INI ============== -->
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="card border-0 shadow-sm h-100 kanban-col">
-            <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
-                <span class="small">
-                    <i class="bi bi-calendar-week"></i>
-                    <strong>MINGGU INI</strong>
-                </span>
-                <span class="badge bg-light text-primary">@Model.ThisWeekCount</span>
-            </div>
-            <div class="kanban-body">
-                @if (!Model.ThisWeekTasks.Any())
-                {
-                    <div class="p-3 text-center text-muted small">
-                        <i class="bi bi-calendar-check" style="font-size: 1.8rem;"></i>
-                        <p class="mb-0 mt-1">Tidak ada</p>
-                    </div>
-                }
-                else
-                {
-                    @foreach (var t in Model.ThisWeekTasks)
-                    {
-                        <div class="kanban-card" style="border-left-color: #0d6efd;">
-                            <div class="id-pm">@t.IdPm</div>
-                            <div class="asset-code">@t.AssetCode</div>
-                            <div class="sub-unit">@t.SubUnitName</div>
-                            <div class="d-flex justify-content-between align-items-center mt-1">
-                                <small class="text-muted">@t.PlanDate?.ToString("ddd, dd/MM")</small>
-                                <a asp-controller="PmSchedule" asp-action="UpdateCell"
-                                   asp-route-id="@t.Id"
-                                   class="btn btn-sm btn-outline-primary py-0 px-2">
-                                    <i class="bi bi-play-fill"></i>
-                                </a>
-                            </div>
-                        </div>
-                    }
-                    @if (Model.ThisWeekCount > 10)
-                    {
-                        <div class="text-center py-2">
-                            <small class="text-muted">+@(Model.ThisWeekCount - 10) lagi</small>
-                        </div>
-                    }
-                }
-            </div>
+    <section class="dash-panel mb-3" aria-label="Daftar task PM">
+        <div class="dash-tabs" role="tablist" aria-label="Status pekerjaan">
+            <a role="tab" aria-selected="@(isActive ? "true" : "false")"
+               asp-controller="Home" asp-action="Index" asp-route-tab="active"
+               asp-route-year="@Model.SelectedYear" asp-route-month="@Model.SelectedMonth"
+               asp-route-productId="@Model.SelectedProductId" asp-route-delayWeek="@Model.SelectedDelayWeek"
+               class="nav-link @(isActive ? "active" : "")">
+                <i class="bi bi-list-task" aria-hidden="true"></i> Aktif <span class="badge text-bg-primary">@Model.ActiveTotalItems</span>
+            </a>
+            <a role="tab" aria-selected="@(!isActive ? "true" : "false")"
+               asp-controller="Home" asp-action="Index" asp-route-tab="done"
+               asp-route-year="@Model.SelectedYear" asp-route-month="@Model.SelectedMonth"
+               asp-route-productId="@Model.SelectedProductId" asp-route-delayWeek="@Model.SelectedDelayWeek"
+               class="nav-link @(!isActive ? "active" : "")">
+                <i class="bi bi-check2-circle" aria-hidden="true"></i> Done <span class="badge text-bg-success">@Model.DoneTotalItems</span>
+            </a>
         </div>
-    </div>
-
-    <!-- ============== MINGGU DEPAN ============== -->
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="card border-0 shadow-sm h-100 kanban-col">
-            <div class="card-header bg-info text-white py-2 d-flex justify-content-between align-items-center">
-                <span class="small">
-                    <i class="bi bi-calendar-plus"></i>
-                    <strong>MINGGU DEPAN</strong>
-                </span>
-                <span class="badge bg-light text-dark">@Model.NextWeekCount</span>
-            </div>
-            <div class="kanban-body">
-                @if (!Model.NextWeekTasks.Any())
-                {
-                    <div class="p-3 text-center text-muted small">
-                        <i class="bi bi-calendar-x" style="font-size: 1.8rem;"></i>
-                        <p class="mb-0 mt-1">Tidak ada</p>
-                    </div>
-                }
-                else
-                {
-                    @foreach (var t in Model.NextWeekTasks)
-                    {
-                        <div class="kanban-card" style="border-left-color: #0dcaf0;">
-                            <div class="id-pm">@t.IdPm</div>
-                            <div class="asset-code">@t.AssetCode</div>
-                            <div class="sub-unit">@t.SubUnitName</div>
-                            <div class="d-flex justify-content-between align-items-center mt-1">
-                                <small class="text-muted">@t.PlanDate?.ToString("ddd, dd/MM")</small>
-                                <a asp-controller="PmSchedule" asp-action="UpdateCell"
-                                   asp-route-id="@t.Id"
-                                   class="btn btn-sm btn-outline-info py-0 px-2">
-                                    <i class="bi bi-play-fill"></i>
-                                </a>
-                            </div>
-                        </div>
-                    }
-                    @if (Model.NextWeekCount > 10)
-                    {
-                        <div class="text-center py-2">
-                            <small class="text-muted">+@(Model.NextWeekCount - 10) lagi</small>
-                        </div>
-                    }
-                }
-            </div>
-        </div>
-    </div>
-
-    <!-- ============== SELESAI ============== -->
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="card border-0 shadow-sm h-100 kanban-col">
-            <div class="card-header bg-success text-white py-2 d-flex justify-content-between align-items-center">
-                <span class="small">
-                    <i class="bi bi-check-circle-fill"></i>
-                    <strong>SELESAI</strong>
-                </span>
-                <span class="badge bg-light text-success">@Model.CompletedCount</span>
-            </div>
-            <div class="kanban-body">
-                @if (!Model.CompletedKanban.Any())
-                {
-                    <div class="p-3 text-center text-muted small">
-                        <i class="bi bi-inbox" style="font-size: 1.8rem;"></i>
-                        <p class="mb-0 mt-1">Belum ada</p>
-                    </div>
-                }
-                else
-                {
-                    @foreach (var t in Model.CompletedKanban)
-                    {
-                        <div class="kanban-card" style="border-left-color: #198754;">
-                            <div class="id-pm">@t.IdPm</div>
-                            <div class="asset-code">@t.AssetCode</div>
-                            <div class="sub-unit">@t.SubUnitName</div>
-                            <div class="d-flex justify-content-between align-items-center mt-1">
-                                <small class="text-success">
-                                    <i class="bi bi-check2"></i>
-                                    @t.ActualDate?.ToString("dd/MM")
-                                </small>
-                                <a asp-controller="PmSchedule" asp-action="UpdateCell"
-                                   asp-route-id="@t.Id"
-                                   class="btn btn-sm btn-outline-secondary py-0 px-2">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                            </div>
-                        </div>
-                    }
-                    @if (Model.CompletedCount > 10)
-                    {
-                        <div class="text-center py-2">
-                            <small class="text-muted">+@(Model.CompletedCount - 10) lagi</small>
-                        </div>
-                    }
-                }
-            </div>
-        </div>
-    </div>
-
-</div>
-
-<!-- ============================================================ -->
-<!-- TAB AKTIF / SELESAI DENGAN PAGINATION                         -->
-<!-- ============================================================ -->
-<div class="card border-0 shadow-sm mb-3">
-
-    <div class="card-header bg-white p-0">
-        <ul class="nav nav-tabs border-0">
-            <li class="nav-item">
-                <a class="nav-link @(Model.ActiveTab == "active" ? "active" : "")"
-                   asp-action="Index"
-                   asp-route-year="@Model.SelectedYear"
-                   asp-route-month="@Model.SelectedMonth"
-                   asp-route-tab="active"
-                   asp-route-activePage="1"
-                   asp-route-donePage="@Model.DonePage"
-                   asp-route-delayWeek="@Model.SelectedDelayWeek">
-                    <i class="bi bi-list-task"></i>
-                    <strong>TASK AKTIF</strong>
-                    <span class="badge bg-primary tab-badge ms-1">@Model.ActiveTotalItems</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link @(Model.ActiveTab == "done" ? "active" : "")"
-                   asp-action="Index"
-                   asp-route-year="@Model.SelectedYear"
-                   asp-route-month="@Model.SelectedMonth"
-                   asp-route-tab="done"
-                   asp-route-activePage="@Model.ActivePage"
-                   asp-route-donePage="1"
-                   asp-route-delayWeek="@Model.SelectedDelayWeek">
-                    <i class="bi bi-check-circle"></i>
-                    <strong>TASK SELESAI</strong>
-                    <span class="badge bg-success tab-badge ms-1">@Model.DoneTotalItems</span>
-                </a>
-            </li>
-        </ul>
-    </div>
-
-    <div class="card-body p-0">
-
-        @{
-            var isActive = Model.ActiveTab == "active";
-            var rows = isActive ? Model.ActiveTasks : Model.DoneTasks;
-            var currentPage = isActive ? Model.ActivePage : Model.DonePage;
-            var totalPages = isActive ? Model.ActiveTotalPages : Model.DoneTotalPages;
-            var totalItems = isActive ? Model.ActiveTotalItems : Model.DoneTotalItems;
-        }
-
-        @if (!rows.Any())
+        @if (rows.Count == 0)
         {
-            <div class="p-5 text-center text-muted">
-                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
-                <p class="mb-0 mt-2">
-                    @(isActive ? "Tidak ada task aktif bulan ini" : "Belum ada task selesai bulan ini")
-                </p>
-            </div>
+            <div class="dash-empty" style="min-height:180px"><i class="bi bi-inbox" aria-hidden="true"></i>@(isActive ? "Tidak ada task aktif pada periode ini" : "Belum ada PM Done pada periode ini")</div>
         }
         else
         {
-            <div class="table-responsive">
-                <table class="table table-sm table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>ID-PM</th>
-                            <th>Mesin</th>
-                            <th>Sub Unit</th>
-                            <th>Metode</th>
-                            <th>Plan</th>
-                            <th>Actual</th>
-                            <th>PIC</th>
-                            <th>Status</th>
-                            <th class="text-center">Aksi</th>
-                        </tr>
-                    </thead>
+            <!-- Desktop: tabel. Mobile/tablet: daftar kartu tanpa scroll horizontal. -->
+            <div class="table-responsive d-none d-xl-block">
+                <table class="table table-hover dash-table">
+                    <thead><tr><th>ID-PM</th><th>Mesin</th><th>Sub Unit</th><th>Metode</th><th>Plan</th><th>Actual</th><th>PIC</th><th>Status</th><th>Aksi</th></tr></thead>
                     <tbody>
                         @foreach (var t in rows)
                         {
-                            var statusText = t.Status == "Overdue" ? "Delay" : t.Status;
-                            var badge = t.Status switch
-                            {
-                                "Done" => "bg-success",
-                                "Overdue" => "bg-delay",
-                                "InProgress" => "bg-primary",
-                                "Cancelled" => "bg-secondary",
-                                _ => "bg-warning text-dark"
-                            };
+                            string status = t.Status == "Done" ? "Done" : t.IsDelayed ? "Delay" : t.Status == "InProgress" ? "On Progress" : "Scheduled";
+                            string statusClass = t.Status == "Done" ? "done" : t.IsDelayed ? "delay" : t.Status == "InProgress" ? "progressing" : "pending";
                             <tr>
-                                <td><strong>@t.IdPm</strong></td>
-                                <td>
-                                    @t.AssetCode
-                                    <br />
-                                    <small class="text-muted">@t.AssetName</small>
-                                </td>
+                                <td><span class="dash-table-pm-id">@t.IdPm</span></td>
+                                <td><span class="dash-table-machine">@t.AssetCode</span><div class="text-muted small">@t.AssetName</div></td>
                                 <td>@t.SubUnitName</td>
-                                <td><span class="badge bg-secondary">@t.MethodName</span></td>
-                                <td><small>@t.PlanDate?.ToString("dd/MM/yyyy")</small></td>
+                                <td>@t.MethodName</td>
+                                <td class="text-nowrap">@(t.PlanDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                <td class="text-nowrap">@(t.ActualDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                <td>@(string.IsNullOrWhiteSpace(t.PIC) ? "-" : t.PIC)</td>
+                                <td><span class="dash-status @statusClass">@status</span></td>
                                 <td>
-                                    <small>
-                                        @(t.ActualDate.HasValue
-                                            ? t.ActualDate.Value.ToString("dd/MM/yyyy")
-                                            : "-")
-                                    </small>
-                                </td>
-                                <td><small>@(t.PIC ?? "-")</small></td>
-                                <td><span class="badge @badge">@statusText</span></td>
-                                <td class="text-center">
-                                    <a asp-controller="PmSchedule" asp-action="UpdateCell"
-                                       asp-route-id="@t.Id"
-                                       class="btn btn-sm @(isActive ? "btn-warning" : "btn-outline-secondary") py-0 px-2"
-                                       title="@(isActive ? "Update" : "Lihat")">
-                                        <i class="bi @(isActive ? "bi-pencil" : "bi-eye")"></i>
-                                    </a>
+                                    <a asp-controller="PmSchedule" asp-action="UpdateCell" asp-route-id="@t.Id"
+                                       class="btn btn-sm @(t.Status == "Done" ? "btn-outline-secondary" : "btn-outline-primary")">@(t.Status == "Done" ? (isLineHead ? "Lihat" : "Koreksi") : "Isi PM")</a>
                                 </td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
-
-            @if (totalPages > 1)
-            {
-                <div class="d-flex justify-content-between align-items-center p-2 border-top">
-                    <small class="text-muted">
-                        Menampilkan
-                        <strong>@(((currentPage - 1) * Model.PageSize) + 1)</strong> -
-                        <strong>@(Math.Min(currentPage * Model.PageSize, totalItems))</strong>
-                        dari <strong>@totalItems</strong> task
-                    </small>
-
-                    @{
-                        int startPage = Math.Max(1, currentPage - 2);
-                        int endPage = Math.Min(totalPages, startPage + 4);
-                        if (endPage - startPage < 4) startPage = Math.Max(1, endPage - 4);
-                    }
-
-                    <nav>
-                        <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                                <a class="page-link"
-                                   asp-action="Index"
-                                   asp-route-year="@Model.SelectedYear"
-                                   asp-route-month="@Model.SelectedMonth"
-                                   asp-route-tab="@Model.ActiveTab"
-                                   asp-route-activePage="@(isActive ? currentPage - 1 : Model.ActivePage)"
-                                   asp-route-donePage="@(isActive ? Model.DonePage : currentPage - 1)"
-                                   asp-route-delayWeek="@Model.SelectedDelayWeek">
-                                    <i class="bi bi-chevron-left"></i>
-                                </a>
-                            </li>
-
-                            @for (int i = startPage; i <= endPage; i++)
-                            {
-                                <li class="page-item @(i == currentPage ? "active" : "")">
-                                    <a class="page-link"
-                                       asp-action="Index"
-                                       asp-route-year="@Model.SelectedYear"
-                                       asp-route-month="@Model.SelectedMonth"
-                                       asp-route-tab="@Model.ActiveTab"
-                                       asp-route-activePage="@(isActive ? i : Model.ActivePage)"
-                                       asp-route-donePage="@(isActive ? Model.DonePage : i)"
-                                       asp-route-delayWeek="@Model.SelectedDelayWeek">@i</a>
-                                </li>
-                            }
-
-                            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                                <a class="page-link"
-                                   asp-action="Index"
-                                   asp-route-year="@Model.SelectedYear"
-                                   asp-route-month="@Model.SelectedMonth"
-                                   asp-route-tab="@Model.ActiveTab"
-                                   asp-route-activePage="@(isActive ? currentPage + 1 : Model.ActivePage)"
-                                   asp-route-donePage="@(isActive ? Model.DonePage : currentPage + 1)"
-                                   asp-route-delayWeek="@Model.SelectedDelayWeek">
-                                    <i class="bi bi-chevron-right"></i>
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
-            }
-        }
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- WEEKLY CHART — Bar (Plan/Actual/Delay) + Line (Performance %) -->
-<!-- ============================================================ -->
-<div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <strong>
-            <i class="bi bi-graph-up"></i>
-            Trend PM per Minggu — @Model.MonthName
-        </strong>
-        <small class="text-muted">
-            <i class="bi bi-info-circle"></i>
-            Ganti bulan di filter atas untuk melihat tren bulan lain
-        </small>
-    </div>
-    <div class="card-body" style="height: 360px;">
-        @if (Model.Weekly == null || !Model.Weekly.Any())
-        {
-            <div class="d-flex flex-column justify-content-center align-items-center h-100 text-muted">
-                <i class="bi bi-bar-chart" style="font-size: 2rem;"></i>
-                <p class="mb-0 mt-2">Belum ada data tren untuk periode ini</p>
+            <div class="d-xl-none">
+                @foreach (var t in rows)
+                {
+                    string status = t.Status == "Done" ? "Done" : t.IsDelayed ? "Delay" : t.Status == "InProgress" ? "On Progress" : "Scheduled";
+                    string statusClass = t.Status == "Done" ? "done" : t.IsDelayed ? "delay" : t.Status == "InProgress" ? "progressing" : "pending";
+                    <article class="dash-mobile-item">
+                        <div class="d-flex justify-content-between gap-2 align-items-start mb-2">
+                            <div class="dash-mobile-primary">
+                                <div class="dash-task-id-label">ID-PM</div>
+                                <div class="dash-mobile-pm-id">@t.IdPm</div>
+                                <div class="dash-mobile-machine"><i class="bi bi-gear me-1" aria-hidden="true"></i>Mesin: @t.AssetCode</div>
+                                <div class="dash-mobile-label">@t.AssetName</div>
+                            </div>
+                            <span class="dash-status @statusClass">@status</span>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6"><div class="dash-mobile-label">Sub Unit</div><div class="dash-mobile-value">@t.SubUnitName</div></div>
+                            <div class="col-6"><div class="dash-mobile-label">Metode</div><div class="dash-mobile-value">@t.MethodName</div></div>
+                            <div class="col-6"><div class="dash-mobile-label">Plan</div><div class="dash-mobile-value">@(t.PlanDate?.ToString("dd/MM/yyyy") ?? "-")</div></div>
+                            <div class="col-6"><div class="dash-mobile-label">Actual</div><div class="dash-mobile-value">@(t.ActualDate?.ToString("dd/MM/yyyy") ?? "-")</div></div>
+                            <div class="col-12"><div class="dash-mobile-label">PIC</div><div class="dash-mobile-value">@(string.IsNullOrWhiteSpace(t.PIC) ? "-" : t.PIC)</div></div>
+                        </div>
+                        <a asp-controller="PmSchedule" asp-action="UpdateCell" asp-route-id="@t.Id"
+                           class="btn btn-sm w-100 @(t.Status == "Done" ? "btn-outline-secondary" : "btn-primary")">@(t.Status == "Done" ? (isLineHead ? "Lihat Detail" : "Lihat / Koreksi") : "Isi PM")</a>
+                    </article>
+                }
             </div>
+        }
+        <div class="dash-pagination">
+            <span class="dash-section-note">@totalItems task · Halaman @currentPage dari @totalPages</span>
+            <div class="d-flex gap-2">
+                @if (currentPage > 1)
+                {
+                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Home" asp-action="Index"
+                       asp-route-year="@Model.SelectedYear" asp-route-month="@Model.SelectedMonth"
+                       asp-route-productId="@Model.SelectedProductId" asp-route-tab="@Model.ActiveTab"
+                       asp-route-delayWeek="@Model.SelectedDelayWeek"
+                       asp-route-activePage="@(isActive ? currentPage - 1 : Model.ActivePage)"
+                       asp-route-donePage="@(isActive ? Model.DonePage : currentPage - 1)"><i class="bi bi-chevron-left me-1"></i> Sebelumnya</a>
+                }
+                @if (currentPage < totalPages)
+                {
+                    <a class="btn btn-outline-primary btn-sm" asp-controller="Home" asp-action="Index"
+                       asp-route-year="@Model.SelectedYear" asp-route-month="@Model.SelectedMonth"
+                       asp-route-productId="@Model.SelectedProductId" asp-route-tab="@Model.ActiveTab"
+                       asp-route-delayWeek="@Model.SelectedDelayWeek"
+                       asp-route-activePage="@(isActive ? currentPage + 1 : Model.ActivePage)"
+                       asp-route-donePage="@(isActive ? Model.DonePage : currentPage + 1)">Berikutnya <i class="bi bi-chevron-right ms-1"></i></a>
+                }
+            </div>
+        </div>
+    </section>
+
+    <section class="dash-panel mb-3" aria-label="Grafik hasil PM per minggu">
+        <div class="dash-chart-header">
+            <h2 class="dash-section-title mb-0"><i class="bi bi-bar-chart-line me-2 text-primary" aria-hidden="true"></i>Rekap PM per Minggu</h2>
+            <span class="dash-section-note">W1: 1–7 · W2: 8–14 · W3: 15–21 · W4: 22–akhir bulan</span>
+        </div>
+        @if (Model.TotalScheduled == 0)
+        {
+            <div class="dash-empty" style="min-height:190px"><i class="bi bi-bar-chart" aria-hidden="true"></i>Belum ada jadwal PM pada periode ini</div>
         }
         else
         {
-            <canvas id="weeklyChart"></canvas>
+            <div class="dash-chart"><canvas id="dashWeeklyChart" role="img" aria-label="Grafik Plan, Actual Done, Delay, dan tingkat penyelesaian per minggu"></canvas></div>
         }
-    </div>
+    </section>
 </div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        const weeklyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-            Model.Weekly,
-            new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-            }));
-
-        const canvasEl = document.getElementById('weeklyChart');
-
-        if (canvasEl && weeklyData && weeklyData.length > 0) {
-
-            // ====== Plugin custom: tulis nilai % di atas titik line ======
-            const lineLabelPlugin = {
-                id: 'lineLabel',
-                afterDatasetsDraw(chart) {
-                    const { ctx } = chart;
-                    const meta = chart.getDatasetMeta(3); // dataset index 3 = Performance
-                    if (!meta || meta.hidden) return;
-                    ctx.save();
-                    ctx.font = 'bold 11px sans-serif';
-                    ctx.fillStyle = '#b8860b';
-                    ctx.textAlign = 'center';
-                    meta.data.forEach((pt, i) => {
-                        const v = weeklyData[i].performance;
-                        if (v > 0) ctx.fillText(`${v}%`, pt.x, pt.y - 10);
-                    });
-                    ctx.restore();
-                }
-            };
-
-            new Chart(canvasEl, {
+        (function () {
+            const chartCanvas = document.getElementById('dashWeeklyChart');
+            if (!chartCanvas || typeof Chart === 'undefined') return;
+            const weeks = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Weekly,
+                            new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+            const isSmall = window.matchMedia('(max-width: 575px)').matches;
+            new Chart(chartCanvas, {
                 type: 'bar',
                 data: {
-                    labels: weeklyData.map(x => x.weekLabel),
+                    labels: weeks.map(x => x.weekLabel),
                     datasets: [
+                        { label: 'Plan', data: weeks.map(x => x.scheduled), backgroundColor: '#2563eb', borderRadius: 4, order: 2 },
+                        { label: 'Done', data: weeks.map(x => x.done), backgroundColor: '#16a34a', borderRadius: 4, order: 2 },
+                        { label: 'Delay', data: weeks.map(x => x.delay), backgroundColor: '#d97706', borderRadius: 4, order: 2 },
                         {
-                            type: 'bar',
-                            label: 'Plan',
-                            data: weeklyData.map(x => x.scheduled),
-                            backgroundColor: '#0d6efd',
-                            borderRadius: 4,
-                            order: 3
-                        },
-                        {
-                            type: 'bar',
-                            label: 'Actual',
-                            data: weeklyData.map(x => x.done),
-                            backgroundColor: '#198754',
-                            borderRadius: 4,
-                            order: 3
-                        },
-                        {
-                            type: 'bar',
-                            label: 'Delay',
-                            data: weeklyData.map(x => x.delay),
-                            backgroundColor: '#fd7e14',
-                            borderRadius: 4,
-                            order: 3
-                        },
-                        {
-                            type: 'line',
-                            label: 'Performance %',
-                            data: weeklyData.map(x => x.performance),
-                            borderColor: '#ffc107',
-                            backgroundColor: 'rgba(255, 193, 7, 0.10)',
-                            borderWidth: 3,
-                            tension: 0.35,
-                            fill: true,
-                            pointRadius: 6,
-                            pointBackgroundColor: '#ffc107',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2,
-                            yAxisID: 'y1',
-                            order: 1
+                            type: 'line', label: 'Completion (%)', data: weeks.map(x => x.performance),
+                            borderColor: '#0f5778', backgroundColor: '#0f5778', borderWidth: 2,
+                            pointRadius: 4, tension: .25, yAxisID: 'percent', order: 1
                         }
                     ]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                usePointStyle: true,
-                                boxWidth: 10,
-                                padding: 14
-                            }
-                        },
+                        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: isSmall ? 10 : 12 } } },
                         tooltip: {
-                            backgroundColor: 'rgba(33, 37, 41, 0.95)',
-                            titleColor: '#fff',
-                            bodyColor: '#fff',
-                            padding: 10,
                             callbacks: {
-                                label: function (ctx) {
-                                    const v = ctx.parsed.y ?? 0;
-                                    if (ctx.dataset.label === 'Performance %') {
-                                        return ` ${ctx.dataset.label}: ${v}%`;
-                                    }
-                                    return ` ${ctx.dataset.label}: ${v}`;
-                                },
-                                afterBody: function (items) {
-                                    const i = items[0].dataIndex;
-                                    const w = weeklyData[i];
-                                    if (!w || !w.weekStart || !w.weekEnd) return '';
-                                    const s = new Date(w.weekStart);
-                                    const e = new Date(w.weekEnd);
-                                    const fmt = d => String(d.getDate()).padStart(2, '0')
-                                        + '/' + String(d.getMonth() + 1).padStart(2, '0');
-                                    return `Periode: ${fmt(s)} - ${fmt(e)}`;
+                                afterBody: items => {
+                                    if (!items.length) return '';
+                                    const w = weeks[items[0].dataIndex];
+                                    if (!w) return '';
+                                    const date = x => new Date(x).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' });
+                                    return `${date(w.weekStart)} - ${date(w.weekEnd)}`;
                                 }
                             }
                         }
                     },
                     scales: {
-                        x: {
-                            grid: { display: false }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            position: 'left',
-                            title: { display: true, text: 'Jumlah Task' },
-                            ticks: { stepSize: 1, precision: 0 }
-                        },
-                        y1: {
-                            beginAtZero: true,
-                            position: 'right',
-                            suggestedMax: 100,
-                            title: { display: true, text: 'Performance (%)' },
-                            grid: { drawOnChartArea: false },
-                            ticks: {
-                                callback: v => v + '%',
-                                stepSize: 25
-                            }
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 }, title: { display: !isSmall, text: 'Jumlah task' } },
+                        percent: {
+                            beginAtZero: true, position: 'right', suggestedMax: 100,
+                            grid: { drawOnChartArea: false }, ticks: { callback: value => value + '%' }
                         }
                     }
-                },
-                plugins: [lineLabelPlugin]
+                }
             });
-        }
+        })();
     </script>
 }

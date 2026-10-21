@@ -13,7 +13,7 @@ public class PmScheduleController : Controller
 {
     private readonly AppDbContext _db;
     private readonly PmScheduleHistoryService _history;
-    private readonly LineAccessService _lineAccess;
+    private readonly ProductAccessService _productAccess;
 
     private static readonly string[] MonthNames =
     {
@@ -21,11 +21,11 @@ public class PmScheduleController : Controller
         "Juli", "Agustus", "September", "Oktober", "November", "Desember"
     };
 
-    public PmScheduleController(AppDbContext db, PmScheduleHistoryService history, LineAccessService lineAccess)
+    public PmScheduleController(AppDbContext db, PmScheduleHistoryService history, ProductAccessService productAccess)
     {
         _db = db;
         _history = history;
-        _lineAccess = lineAccess;
+        _productAccess = productAccess;
     }
 
     private static int GetMonthsDelay(int year, int month)
@@ -43,8 +43,8 @@ public class PmScheduleController : Controller
     {
         var today = DateTime.Today;
 
-        var allowed = await _lineAccess.AssignedLineIdsAsync();
-        var delayList = await _lineAccess.ScopeSchedules(_db.PmSchedules, allowed)
+        var allowed = await _productAccess.AssignedProductIdsAsync();
+        var delayList = await _productAccess.ScopeSchedules(_db.PmSchedules, allowed)
             .Where(s =>
                 (s.Year < today.Year || (s.Year == today.Year && s.Month < today.Month))
                 && (s.Status == PmStatus.Scheduled || s.Status == PmStatus.InProgress))
@@ -77,15 +77,15 @@ public class PmScheduleController : Controller
             .Where(t => t.IsActive)
             .AsQueryable();
 
-        var assignedLines = await _lineAccess.AssignedLineIdsAsync();
-        tasksQuery = _lineAccess.ScopeTasks(tasksQuery, assignedLines);
+        var assignedProducts = await _productAccess.AssignedProductIdsAsync();
+        tasksQuery = _productAccess.ScopeTasks(tasksQuery, assignedProducts);
 
         if (assetId.HasValue)
             tasksQuery = tasksQuery.Where(t => t.AssetId == assetId.Value);
 
         var tasks = await tasksQuery.OrderBy(t => t.IdPm).ToListAsync();
 
-        var schedules = await _lineAccess.ScopeSchedules(_db.PmSchedules, assignedLines)
+        var schedules = await _productAccess.ScopeSchedules(_db.PmSchedules, assignedProducts)
             .Where(s => s.Year == y)
             .ToListAsync();
 
@@ -131,7 +131,7 @@ public class PmScheduleController : Controller
         ViewBag.Year = y;
         ViewBag.AssetId = assetId;
         ViewBag.OnlyDelay = onlyDelay;
-        ViewBag.Assets = await _lineAccess.ScopeAssets(_db.Assets, assignedLines)
+        ViewBag.Assets = await _productAccess.ScopeAssets(_db.Assets, assignedProducts)
             .OrderBy(a => a.Code).ToListAsync();
 
         return View(rows);
@@ -163,7 +163,7 @@ public class PmScheduleController : Controller
     public async Task<IActionResult> Detail(int id, int? year)
     {
         var y = year ?? DateTime.Today.Year;
-        if (!await _lineAccess.CanAccessTaskAsync(id)) return Forbid();
+        if (!await _productAccess.CanAccessTaskAsync(id)) return Forbid();
 
         var task = await _db.PmTaskTemplates
             .Include(t => t.Asset).ThenInclude(a => a!.Line)
@@ -249,8 +249,8 @@ public class PmScheduleController : Controller
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (schedule == null) return NotFound();
-        if (!await _lineAccess.CanAccessScheduleAsync(id)) return Forbid();
-        ViewBag.CanEditDone = _lineAccess.IsManager;
+        if (!await _productAccess.CanAccessScheduleAsync(id)) return Forbid();
+        ViewBag.CanEditDone = _productAccess.IsManager;
 
         var task = schedule.TaskTemplate;
 
@@ -313,11 +313,11 @@ public class PmScheduleController : Controller
     {
         var schedule = await _db.PmSchedules.FirstOrDefaultAsync(s => s.Id == id);
         if (schedule == null) return NotFound();
-        if (!await _lineAccess.CanAccessScheduleAsync(id)) return Forbid();
+        if (!await _productAccess.CanAccessScheduleAsync(id)) return Forbid();
 
         // Line Head hanya dapat mengisi jika belum Done. Admin boleh mengoreksi PM Done.
         // Pemeriksaan di server mencegah bypass melalui POST langsung.
-        bool isAdmin = _lineAccess.IsManager;
+        bool isAdmin = _productAccess.IsManager;
         if (schedule.Status == PmStatus.Done && !isAdmin)
             return Forbid();
 
@@ -386,7 +386,7 @@ public class PmScheduleController : Controller
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (schedule == null) return NotFound();
-        if (!await _lineAccess.CanAccessScheduleAsync(id)) return Forbid();
+        if (!await _productAccess.CanAccessScheduleAsync(id)) return Forbid();
 
         var history = await _db.PmScheduleHistories
             .Where(h => h.PmScheduleId == id)
@@ -420,16 +420,16 @@ public class PmScheduleController : Controller
         var start = new DateTime(y, m, 1);
         var end = start.AddMonths(1);
 
-        var assignedLines = await _lineAccess.AssignedLineIdsAsync();
+        var assignedProducts = await _productAccess.AssignedProductIdsAsync();
         // Pilihan filter tidak mengubah data PM.
         ViewBag.Products = await _db.Products.AsNoTracking()
-            .Where(p => _lineAccess.IsManager || _db.Lines.Any(l =>
-                l.ProductId == p.Id && assignedLines.Contains(l.Id)))
+            .Where(p => _productAccess.IsManager || assignedProducts.Contains(p.Id))
             .OrderBy(p => p.Name).ToListAsync();
         ViewBag.Lines = await _db.Lines.AsNoTracking()
-            .Where(l => _lineAccess.IsManager || assignedLines.Contains(l.Id))
+            .Where(l => _productAccess.IsManager ||
+                (l.ProductId.HasValue && assignedProducts.Contains(l.ProductId.Value)))
             .OrderBy(l => l.Name).ToListAsync();
-        ViewBag.Assets = await _lineAccess.ScopeAssets(_db.Assets.AsNoTracking(), assignedLines)
+        ViewBag.Assets = await _productAccess.ScopeAssets(_db.Assets.AsNoTracking(), assignedProducts)
             .OrderBy(a => a.Code).ToListAsync();
         ViewBag.ProductId = productId;
         ViewBag.LineId = lineId;
@@ -437,7 +437,7 @@ public class PmScheduleController : Controller
         ViewBag.StatusFilter = status ?? "all";
         ViewBag.Search = search?.Trim() ?? "";
 
-        var query = _lineAccess.ScopeSchedules(_db.PmSchedules, assignedLines)
+        var query = _productAccess.ScopeSchedules(_db.PmSchedules, assignedProducts)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.Asset)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.SubUnit)
             .Include(s => s.TaskTemplate).ThenInclude(t => t!.Method)

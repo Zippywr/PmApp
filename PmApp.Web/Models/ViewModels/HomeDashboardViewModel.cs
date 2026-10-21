@@ -11,6 +11,8 @@ namespace PmApp.Web.Models.ViewModels
         // -------- Filter periode --------
         public int SelectedYear { get; set; }
         public int SelectedMonth { get; set; }
+        public int? SelectedProductId { get; set; }
+        public List<HomeProductOption> ProductOptions { get; set; } = new();
         public string MonthName { get; set; } = "";
         public string ActiveTab { get; set; } = "active";
         public int SelectedDelayWeek { get; set; } = 1;
@@ -22,6 +24,7 @@ namespace PmApp.Web.Models.ViewModels
 
         public int TotalScheduled { get; set; }
         public int TotalDone { get; set; }
+        public int TotalPending { get; set; }
         public int TotalOnTime { get; set; }
 
         public double Compliance { get; set; }   // % on-time
@@ -60,6 +63,12 @@ namespace PmApp.Web.Models.ViewModels
         public List<HomeWeeklyTrend> Weekly { get; set; } = new();
     }
 
+    public class HomeProductOption
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+    }
+
     // ============================================================
     // BARIS TASK (dipakai di kanban & tabel)
     // ============================================================
@@ -75,6 +84,7 @@ namespace PmApp.Web.Models.ViewModels
         public DateTime? PlanDate { get; set; }
         public DateTime? ActualDate { get; set; }
         public string Status { get; set; } = "";
+        public bool IsDelayed { get; set; }
         public string? PIC { get; set; }
         public int? DaysLeft { get; set; }
         public int WeekNumber { get; set; }
